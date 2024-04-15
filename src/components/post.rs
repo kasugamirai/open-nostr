@@ -35,7 +35,7 @@ pub fn Post(props: PostProps) -> Element {
                     class: "com-post-author-profile",
                     span {
                         class: "com-post-author-profile-name",
-                        "{format_public_key(&props.data.author)}"
+                        "{format_public_key(&props.data.author, None)}"
                     }
                     span {
                         class: "com-post-author-profile-created",
