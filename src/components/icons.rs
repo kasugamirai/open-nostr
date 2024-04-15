@@ -1,0 +1,13 @@
+pub const TURN_LEFT: &str = include_str!("../../public/static/turn-left.svg");
+pub const TURN_RIGHT: &str = include_str!("../../public/static/turn-right.svg");
+pub const MARKS: &str = include_str!("../../public/static/marks.svg");
+pub const FLASH: &str = include_str!("../../public/static/flash.svg");
+pub const ADD: &str = include_str!("../../public/static/add.svg");
+pub const PROFILE: &str = include_str!("../../public/static/profile.svg");
+pub const SEARCH: &str = include_str!("../../public/static/search.svg");
+pub const RELAY: &str = include_str!("../../public/static/relay.svg");
+pub const MESSAGE: &str = include_str!("../../public/static/message.svg");
+pub const SIGNAL: &str = include_str!("../../public/static/signal.svg");
+pub const CHAT: &str = include_str!("../../public/static/chat.svg");
+pub const STAR: &str = include_str!("../../public/static/star.svg");
+pub const SETTING: &str = include_str!("../../public/static/setting.svg");
