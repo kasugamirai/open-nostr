@@ -1,5 +1,6 @@
 mod bookmark;
 mod channel;
+mod custom_sub;
 mod group;
 mod home;
 mod message;
@@ -11,6 +12,7 @@ mod test;
 
 pub use bookmark::Bookmark;
 pub use channel::Channel;
+pub use custom_sub::CustomSub;
 pub use group::Group;
 pub use home::Home;
 pub use message::Message;

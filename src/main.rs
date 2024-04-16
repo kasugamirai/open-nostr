@@ -9,6 +9,7 @@ mod views;
 use dioxus::prelude::*;
 use log::LevelFilter;
 
+use nostr_sdk::Filter;
 use router::Route;
 
 fn main() {
@@ -20,6 +21,7 @@ fn main() {
 
 fn App() -> Element {
     let state = use_context_provider(|| Signal::new(String::from("light")));
+    let _sub = use_context_provider(|| Signal::new(Vec::<Filter>::new()));
 
     rsx! {
         div {

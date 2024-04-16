@@ -2,7 +2,9 @@ use dioxus::prelude::*;
 
 use crate::{
     components::{icons::*, Button, Dropdown},
-    views::{Bookmark, Channel, Group, Home, Message, Profile, Relay, Search, Settings, Test},
+    views::{
+        Bookmark, Channel, CustomSub, Group, Home, Message, Profile, Relay, Search, Settings, Test,
+    },
 };
 
 struct RouterItem {
@@ -140,6 +142,7 @@ fn Layout() -> Element {
         }
         div {
             class: "layout-right",
+            CustomSub {}
         }
     }
 }

@@ -47,7 +47,7 @@ pub fn format_public_key(public_key: &str, len: Option<usize>) -> String {
 /// assert_eq!(formatted, "2022-01-01 00:01:00");
 pub fn format_timestamp(timestamp: u64, format: Option<&str>) -> String {
     let date = chrono::DateTime::from_timestamp(timestamp as i64, 0).unwrap();
-    date.format(format.unwrap_or("%Y-%m-%d %H:%M:%S"))
+    date.format(format.unwrap_or("%Y-%m-%d %H:%M"))
         .to_string()
 }
 

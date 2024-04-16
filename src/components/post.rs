@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::{
-    components::icons::*,
+    components::{icons::*, Dropdown},
     utils::format::{format_content, format_create_at, format_public_key},
 };
 
@@ -40,6 +40,55 @@ pub fn Post(props: PostProps) -> Element {
                     span {
                         class: "com-post-author-profile-created",
                         "{format_create_at(props.data.created_at)}"
+                    }
+                }
+                div {
+                    style: "flex: 1;",
+                }
+                div {
+                    class: "com-post-author-more",
+                    Dropdown {
+                        trigger: rsx! {
+                            div {
+                                class: "more-trigger",
+                                div {
+                                    dangerous_inner_html: "{MORE}"
+                                }
+                            }
+                        },
+                        children: rsx! {
+                            div {
+                                class: "more-content",
+                                div {
+                                    class: "more-content-item",
+                                    div {
+                                        dangerous_inner_html: "{SHARE}"
+                                    }
+                                    "Share"
+                                }
+                                div {
+                                    class: "more-content-item",
+                                    div {
+                                        dangerous_inner_html: "{STAR}"
+                                    }
+                                    "Book Mark"
+                                }
+                                div {
+                                    class: "more-content-item",
+                                    div {
+                                        dangerous_inner_html: "{STATION}"
+                                    }
+                                    "Broadcast"
+                                }
+                                div {
+                                    class: "more-content-item",
+                                    div {
+                                        dangerous_inner_html: "{INFO}"
+                                    }
+                                    "Details"
+                                }
+                            }
+                        }
                     }
                 }
             }
