@@ -25,6 +25,7 @@ body {
     --radius-circle: 2000px;
     --trans-default: 0.4s;
     --link: rgb(159, 116, 235);
+    --col-error: #fc4e55;
 }
 
 #app.light {
@@ -200,6 +201,32 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    position: relative;
+}
+
+.custom-sub-item-remove {
+    cursor: pointer;
+    position: absolute;
+    height: 32px;
+    width: 32px;
+    top: -16px;
+    left: -16px;
+    border-radius: var(--radius-circle);
+    transform: rotate(45deg);
+    background-color: var(--col-error);
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.custom-sub-item-remove svg {
+    width: 12px;
+    height: 12px;
+}
+
+.custom-sub-item-remove svg path {
+    fill: var(--bgc-0);
 }
 
 .custom-sub-filter-item {
@@ -233,6 +260,30 @@ body {
     fill: var(--bgc-0);
 }
 
+.btn-add-content {
+    transform: translateY(6px);
+    background-color: var(--bgc-0);
+    border: 1px solid var(--boc-1);
+    border-radius: var(--radius-1);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.btn-add-item {
+    padding: 4px 6px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    text-align: left;
+    transition: var(--trans-default);
+}
+
+.btn-add-item:hover {
+    background-color: var(--bgc-3);
+}
+
 .custom-sub-time {
     display: flex;
     align-items: center;
@@ -255,6 +306,7 @@ body {
 .custom-sub-add {
     display: flex;
     justify-content: center;
+    text-align: center;
 }
 
 /* Media Queries 0 - 1000 */

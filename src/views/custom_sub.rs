@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use nostr_sdk::{Filter, GenericTagValue, Kind, PublicKey, Timestamp};
 
 use crate::{
-    components::icons::*,
+    components::{icons::*, Dropdown},
     utils::format::{format_public_key, format_timestamp},
 };
 
@@ -38,23 +38,33 @@ fn tags_to_string(tags: HashSet<GenericTagValue>) -> String {
 #[component]
 pub fn CustomSub() -> Element {
     let mut subs = use_context::<Signal<Vec<Filter>>>();
-    let handle_click = move |_| {
+    let mut handle_click = move |t| {
         let mut f = Filter::new();
-        f = f.kinds(vec![Kind::TextNote, Kind::Repost]);
-        f = f.authors(PublicKey::parse(
-            "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64",
-        ));
-        f = f.since(Timestamp::now());
-        f = f.until(Timestamp::now());
-        f = f.limit(500);
-        f = f.hashtag("steak".to_string());
+        match t {
+            0 => {
+                f = f.hashtag("steak".to_string());
+            }
+            _ => {
+                f = f.kinds(vec![Kind::TextNote, Kind::Repost]);
+                f = f.authors(PublicKey::parse(
+                    "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64",
+                ));
+                f = f.since(Timestamp::now());
+                f = f.until(Timestamp::now());
+                f = f.limit(500);
+                f = f.hashtag("steak".to_string());
+            }
+        }
         subs.push(f);
     };
     let mut handle_add_kind = move |index: usize| {
-        // TODO: Remove item before insert, auto update page
+        // TODO: Remove first and then insert to update the page, should be better
         let mut f = subs.remove(index).clone();
         f = f.kind(Kind::Metadata);
         subs.insert(index, f);
+    };
+    let mut handle_remove = move |index: usize| {
+        subs.remove(index);
     };
     rsx! {
         div {
@@ -100,6 +110,11 @@ pub fn CustomSub() -> Element {
                 for (i, sub) in subs.iter().enumerate() {
                     div {
                         class: "custom-sub-item",
+                        button {
+                            class: "custom-sub-item-remove",
+                            onclick: move |_| handle_remove(i) ,
+                            dangerous_inner_html: "{ADD}"
+                        }
                         if let Some(authors) = sub.authors.clone() {
                             div {
                                 class: "custom-sub-filter-item",
@@ -140,51 +155,54 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        div {
-                            class: "custom-sub-filter-item",
-                            span {
-                                class: "title",
-                                "Time:"
-                            }
-                            if let Some(since) = sub.since.clone() {
-                                div {
-                                    class: "card custom-sub-time",
-                                    "{format_timestamp(since.as_u64(), None)}"
-                                    span {
-                                        dangerous_inner_html: "{RIGHT}"
+                        if sub.since.is_some() || sub.until.is_some() {
+                            div {
+                                class: "custom-sub-filter-item",
+                                span {
+                                    class: "title",
+                                    "Time:"
+                                }
+                                if let Some(since) = sub.since.clone() {
+                                    div {
+                                        class: "card custom-sub-time",
+                                        "{format_timestamp(since.as_u64(), None)}"
+                                        span {
+                                            dangerous_inner_html: "{RIGHT}"
+                                        }
                                     }
                                 }
-                            }
-                            if let Some(until) = sub.until.clone() {
-                                div {
-                                    class: "card custom-sub-time",
-                                    span {
-                                        dangerous_inner_html: "{LEFT}"
+                                if let Some(until) = sub.until.clone() {
+                                    div {
+                                        class: "card custom-sub-time",
+                                        span {
+                                            dangerous_inner_html: "{LEFT}"
+                                        }
+                                        "{format_timestamp(until.as_u64(), None)}"
                                     }
-                                    "{format_timestamp(until.as_u64(), None)}"
                                 }
                             }
                         }
-                        div {
-                            class: "custom-sub-filter-item",
-                            span {
-                                class: "title",
-                                "Limits:"
-                            }
-                            if let Some(limit) = sub.limit.clone() {
+                        if let Some(limit) = sub.limit.clone() {
+
+                            div {
+                                class: "custom-sub-filter-item",
+                                span {
+                                    class: "title",
+                                    "Limits:"
+                                }
                                 div {
                                     class: "card custom-sub-limits",
                                     "{limit}"
                                 }
                             }
                         }
-                        div {
-                            class: "custom-sub-filter-item",
-                            span {
-                                class: "title",
-                                "Tags:"
-                            }
-                            if !sub.generic_tags.is_empty() {
+                        if !sub.generic_tags.is_empty() {
+                            div {
+                                class: "custom-sub-filter-item",
+                                span {
+                                    class: "title",
+                                    "Tags:"
+                                }
                                 for tag in sub.generic_tags.clone() {
                                     div {
                                         class: "card custom-sub-tag",
@@ -197,10 +215,40 @@ pub fn CustomSub() -> Element {
                 }
                 div {
                     class: "custom-sub-add",
-                    button {
-                        class: "btn-add",
-                        onclick: handle_click,
-                        dangerous_inner_html: "{ADD}"
+                    span {
+                        Dropdown {
+                            trigger: rsx! {
+                                button {
+                                    class: "btn-add",
+                                    dangerous_inner_html: "{ADD}"
+                                }
+                            },
+                            children: rsx! {
+                                div {
+                                    class: "btn-add-content",
+                                    button {
+                                        class: "btn-add-item",
+                                        onclick: move |_| handle_click(0),
+                                        "Only Tags"
+                                    }
+                                    button {
+                                        class: "btn-add-item",
+                                        onclick: move |_| handle_click(1),
+                                        "Follow People"
+                                    }
+                                    button {
+                                        class: "btn-add-item",
+                                        onclick: move |_| handle_click(2),
+                                        "Follow Notes"
+                                    }
+                                    button {
+                                        class: "btn-add-item",
+                                        onclick: move |_| handle_click(3),
+                                        "Customize"
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
