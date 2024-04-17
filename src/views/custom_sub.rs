@@ -1,89 +1,51 @@
-use std::collections::HashSet;
-
 use dioxus::prelude::*;
-use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{Filter, GenericTagValue, Kind, PublicKey, Timestamp};
 
 use crate::{
     components::{icons::*, Dropdown, InputCard},
+    state::{CustomSubs, Filter, Kind},
     utils::format::{format_public_key, format_timestamp},
 };
 
-fn kind_to_string(kind: Kind) -> String {
-    match kind {
-        Kind::TextNote => "Text Note",
-        Kind::Repost => "Repost",
-        _ => "Unknown",
-    }
-    .to_string()
-}
-
-fn tags_to_string(tags: HashSet<GenericTagValue>) -> String {
-    let mut s = vec![];
-    for tag in tags {
-        match tag {
-            GenericTagValue::PublicKey(pk) => {
-                s.push(format_public_key(&pk.to_string(), None));
-            }
-            GenericTagValue::EventId(eid) => {
-                s.push(format_public_key(&eid.to_hex(), None));
-            }
-            GenericTagValue::String(v) => {
-                s.push(v);
-            }
-        }
-    }
-    s.join(", ")
-}
-
 #[component]
 pub fn CustomSub() -> Element {
-    let mut subs = use_signal(|| Vec::<Filter>::new());
-    let get_filters = move || {
-        spawn(async move {
-            let database = WebDatabase::open("capybastr-filters").await.unwrap();
-            subs.set(Vec::<Filter>::new());
-        });
-    };
-    get_filters();
+    let mut custom_subs_signal = consume_context::<Signal<CustomSubs>>();
+    let mut subs = use_signal(|| custom_subs_signal().clone().filters);
+    let mut edit = use_signal(|| false);
 
-    let set_filters = move || {
-        spawn(async move {
-            let database = WebDatabase::open("capybastr-filters").await.unwrap();
-            subs.set(Vec::<Filter>::new());
-        });
-    };
+    // let get_filters = move || {
+    //     spawn(async move {
+    //         let database = WebDatabase::open("capybastr-filters").await.unwrap();
+    //         subs.set(Vec::<Filter>::new());
+    //     });
+    // };
+    // get_filters();
 
-    let mut subs = use_context::<Signal<Vec<Filter>>>();
+    // let set_filters = move || {
+    //     spawn(async move {
+    //         let database = WebDatabase::open("capybastr-filters").await.unwrap();
+    //         subs.set(Vec::<Filter>::new());
+    //     });
+    // };
+
     let mut handle_click = move |t| {
-        let mut f = Filter::new();
-        match t {
-            0 => {
-                f = f.hashtag("steak".to_string());
-            }
-            _ => {
-                f = f.kinds(vec![Kind::TextNote, Kind::Repost]);
-                f = f.authors(PublicKey::parse(
-                    "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64",
-                ));
-                f = f.since(Timestamp::now());
-                f = f.until(Timestamp::now());
-                f = f.limit(500);
-                f = f.hashtag("steak".to_string());
-            }
-        }
+        let f = match t {
+            0 => Filter::new_tag(),
+            1 => Filter::new_account(),
+            2 => Filter::new_event(),
+            _ => Filter::new_custom(),
+        };
         subs.push(f);
     };
     let mut handle_add_kind = move |index: usize| {
         // TODO: Remove first and then insert to update the page, should be better
         let mut f = subs.remove(index).clone();
-        f = f.kind(Kind::Metadata);
+        f = f.kind(Kind::from(nostr_sdk::Kind::Metadata));
         subs.insert(index, f);
     };
     let mut handle_remove = move |index: usize| {
         subs.remove(index);
     };
-    let handle_export = move |_| {
+    let mut handle_export = move || {
         let eval = eval(
             r#"
                 let c = navigator.clipboard;
@@ -98,9 +60,12 @@ pub fn CustomSub() -> Element {
                 return true;
             "#,
         );
-        eval.send("Hi from Rust!".into()).unwrap();
+        let mut tmp = custom_subs_signal();
+        tmp.filters = subs().clone();
+        custom_subs_signal.set(tmp.clone());
+        eval.send(tmp.json().into()).unwrap();
     };
-    let mut edit = use_signal(|| false);
+
     rsx! {
         div {
             class: "custom-sub",
@@ -126,7 +91,7 @@ pub fn CustomSub() -> Element {
                                 }
                                 button {
                                     class: "content-btn",
-                                    onclick: handle_export,
+                                    onclick: move |_| handle_export(),
                                     "Export"
                                 }
                                 if edit() {
@@ -159,7 +124,7 @@ pub fn CustomSub() -> Element {
                     "Name:"
                     div {
                         class: "card disabled",
-                        "#steakstr"
+                        "{custom_subs_signal().name}"
                     }
                 }
                 div {
@@ -167,7 +132,7 @@ pub fn CustomSub() -> Element {
                     "Relays:"
                     div {
                         class: "card disabled",
-                        "Default"
+                        "{custom_subs_signal().relays.name}"
                     }
                 }
                 div {
@@ -182,7 +147,7 @@ pub fn CustomSub() -> Element {
                             onclick: move |_| handle_remove(i) ,
                             dangerous_inner_html: "{ADD}"
                         }
-                        if let Some(authors) = sub.authors.clone() {
+                        if let Some(authors) = sub.accounts.clone() {
                             div {
                                 class: "custom-sub-filter-item",
                                 span {
@@ -197,7 +162,7 @@ pub fn CustomSub() -> Element {
                                     InputCard {
                                         on_change: move |_| {},
                                         placeholder: None,
-                                        value: format_public_key(&author.to_hex(), Some(6)),
+                                        value: format_public_key(&author.npub, Some(6)),
                                     }
                                 }
                                 button {
@@ -217,7 +182,7 @@ pub fn CustomSub() -> Element {
                                 for kind in kinds {
                                     div {
                                         class: "card custom-sub-kind",
-                                        "{kind_to_string(kind)}"
+                                        "{kind.text}"
                                     }
                                 }
                                 button {
@@ -237,7 +202,7 @@ pub fn CustomSub() -> Element {
                                 if let Some(since) = sub.since.clone() {
                                     div {
                                         class: "card custom-sub-time",
-                                        "{format_timestamp(since.as_u64(), None)}"
+                                        "{format_timestamp(since, None)}"
                                         span {
                                             dangerous_inner_html: "{RIGHT}"
                                         }
@@ -249,13 +214,12 @@ pub fn CustomSub() -> Element {
                                         span {
                                             dangerous_inner_html: "{LEFT}"
                                         }
-                                        "{format_timestamp(until.as_u64(), None)}"
+                                        "{format_timestamp(until, None)}"
                                     }
                                 }
                             }
                         }
                         if let Some(limit) = sub.limit.clone() {
-
                             div {
                                 class: "custom-sub-filter-item",
                                 span {
@@ -268,17 +232,17 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        if !sub.generic_tags.is_empty() {
+                        if let Some(tags) = sub.tags.clone() {
                             div {
                                 class: "custom-sub-filter-item",
                                 span {
                                     class: "title",
                                     "Tags:"
                                 }
-                                for tag in sub.generic_tags.clone() {
+                                for tag in tags {
                                     div {
                                         class: "card custom-sub-tag",
-                                        "#{tag.0.as_char()} | {tags_to_string(tag.1)}"
+                                        "#{tag}"
                                     }
                                 }
                             }

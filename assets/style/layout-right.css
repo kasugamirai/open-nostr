@@ -136,6 +136,7 @@
 }
 
 .custom-sub-filter-item {
+    min-height: 44px;
     display: flex;
     align-items: center;
     gap: 10px;
