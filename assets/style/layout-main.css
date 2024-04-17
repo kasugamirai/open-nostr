@@ -1,0 +1,14 @@
+.layout-main {
+    flex: 1;
+    height: 100%;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.layout-main::-webkit-scrollbar {
+    width: 0;
+}
+
+.post-link {
+    color: var(--link);
+}
