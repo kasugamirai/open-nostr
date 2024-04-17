@@ -10,6 +10,10 @@
     gap: 10px;
 }
 
+.custom-sub .false {
+    display: none !important;
+}
+
 .custom-sub-header {
     height: 60px;
     display: flex;
@@ -54,6 +58,8 @@
     gap: 10px;
     padding: 10px;
     border: 1px solid var(--boc-1);
+    border-radius: var(--radius-1);
+    background-color: var(--bgc-0);
 }
 
 .custom-sub-header .content-btn {

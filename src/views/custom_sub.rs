@@ -100,6 +100,7 @@ pub fn CustomSub() -> Element {
         );
         eval.send("Hi from Rust!".into()).unwrap();
     };
+    let mut edit = use_signal(|| false);
     rsx! {
         div {
             class: "custom-sub",
@@ -128,9 +129,23 @@ pub fn CustomSub() -> Element {
                                     onclick: handle_export,
                                     "Export"
                                 }
-                                button {
-                                    class: "content-btn",
-                                    "Save"
+                                if edit() {
+                                    button {
+                                        class: "content-btn",
+                                        onclick: move |_| edit.set(false),
+                                        "Save"
+                                    }
+                                    button {
+                                        class: "content-btn",
+                                        onclick: move |_| edit.set(false),
+                                        "Reset"
+                                    }
+                                } else {
+                                    button {
+                                        class: "content-btn",
+                                        onclick: move |_| edit.set(true),
+                                        "Edit"
+                                    }
                                 }
                             }
                         }
@@ -163,7 +178,7 @@ pub fn CustomSub() -> Element {
                     div {
                         class: "custom-sub-item",
                         button {
-                            class: "custom-sub-item-remove",
+                            class: "custom-sub-item-remove {edit}",
                             onclick: move |_| handle_remove(i) ,
                             dangerous_inner_html: "{ADD}"
                         }
@@ -186,7 +201,7 @@ pub fn CustomSub() -> Element {
                                     }
                                 }
                                 button {
-                                    class: "btn-add",
+                                    class: "btn-add {edit}",
                                     onclick: move |_| handle_add_kind(i) ,
                                     dangerous_inner_html: "{ADD}"
                                 }
@@ -206,7 +221,7 @@ pub fn CustomSub() -> Element {
                                     }
                                 }
                                 button {
-                                    class: "btn-add",
+                                    class: "btn-add {edit}",
                                     onclick: move |_| handle_add_kind(i) ,
                                     dangerous_inner_html: "{ADD}"
                                 }

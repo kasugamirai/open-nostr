@@ -20,6 +20,7 @@
 .com-dropdown {
     width: 100%;
     display: inline-block;
+    position: relative;
 }
 
 .com-dropdown-content {
