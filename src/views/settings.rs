@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::components::Switch;
+use crate::components::{InputCard, Switch};
 
 #[component]
 pub fn Settings() -> Element {
@@ -12,9 +12,13 @@ pub fn Settings() -> Element {
             "Hello".to_string()
         });
     };
+    let handle_input = move |value| {
+        text.set(value);
+    };
     rsx! {
         h1 { "Settings" }
         Switch { on_change: handle_change, value: false, close: rsx!{ "Goodbye" }, open: rsx! { "{text}" } }
         p { "{text}" }
+        InputCard { on_change: handle_input, value: false }
     }
 }

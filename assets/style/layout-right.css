@@ -13,18 +13,58 @@
 .custom-sub-header {
     height: 60px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 12px;
     border-bottom: 2px solid var(--boc-1);
 }
 
-.custom-sub-header .btn {
+.custom-sub-header .custom-sub-header-more {
+    display: flex;
+}
+
+.custom-sub-header .trigger {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-circle);
+    background: none;
+    border: none;
+}
+
+.custom-sub-header .trigger:hover {
+    background-color: var(--bgc-1);
+}
+
+.custom-sub-header svg {
     cursor: pointer;
-    background-color: #9f74eb;
+    width: 24px;
+    height: 24px;
+}
+
+.custom-sub-header svg path {
+    fill: var(--txt-1);
+}
+
+.custom-sub-header .content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--boc-1);
+}
+
+.custom-sub-header .content-btn {
+    cursor: pointer;
     padding: 4px 10px;
-    color: #ffffff;
     border: none;
     border-radius: var(--radius-1);
+}
+
+.custom-sub-header .content-btn:hover {
+    background-color: var(--bgc-2);
 }
 
 .custom-sub-content {

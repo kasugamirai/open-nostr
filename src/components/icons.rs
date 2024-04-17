@@ -17,3 +17,5 @@ pub const STATION: &str = include_str!("../../public/static/station.svg");
 pub const INFO: &str = include_str!("../../public/static/info.svg");
 pub const RIGHT: &str = include_str!("../../public/static/right.svg");
 pub const LEFT: &str = include_str!("../../public/static/left.svg");
+pub const TRUE: &str = include_str!("../../public/static/true.svg");
+pub const FALSE: &str = include_str!("../../public/static/false.svg");

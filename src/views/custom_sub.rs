@@ -1,10 +1,11 @@
 use std::collections::HashSet;
 
 use dioxus::prelude::*;
+use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Filter, GenericTagValue, Kind, PublicKey, Timestamp};
 
 use crate::{
-    components::{icons::*, Dropdown},
+    components::{icons::*, Dropdown, InputCard},
     utils::format::{format_public_key, format_timestamp},
 };
 
@@ -37,6 +38,22 @@ fn tags_to_string(tags: HashSet<GenericTagValue>) -> String {
 
 #[component]
 pub fn CustomSub() -> Element {
+    let mut subs = use_signal(|| Vec::<Filter>::new());
+    let get_filters = move || {
+        spawn(async move {
+            let database = WebDatabase::open("capybastr-filters").await.unwrap();
+            subs.set(Vec::<Filter>::new());
+        });
+    };
+    get_filters();
+
+    let set_filters = move || {
+        spawn(async move {
+            let database = WebDatabase::open("capybastr-filters").await.unwrap();
+            subs.set(Vec::<Filter>::new());
+        });
+    };
+
     let mut subs = use_context::<Signal<Vec<Filter>>>();
     let mut handle_click = move |t| {
         let mut f = Filter::new();
@@ -66,23 +83,58 @@ pub fn CustomSub() -> Element {
     let mut handle_remove = move |index: usize| {
         subs.remove(index);
     };
+    let handle_export = move |_| {
+        let eval = eval(
+            r#"
+                let c = navigator.clipboard;
+                if (!c) {
+                    console.error('Clipboard not supported');
+                    return false;
+                }
+                let msg = await dioxus.recv();
+                console.log(msg);
+                await c.writeText(msg);
+                alert("Copied to clipboard");
+                return true;
+            "#,
+        );
+        eval.send("Hi from Rust!".into()).unwrap();
+    };
     rsx! {
         div {
             class: "custom-sub",
             div {
                 class: "custom-sub-header",
                 h2 { "Custom Sub" }
-                button {
-                    class: "btn",
-                    "Import"
-                }
-                button {
-                    class: "btn",
-                    "Export"
-                }
-                button {
-                    class: "btn",
-                    "Save"
+                div {
+                    class: "custom-sub-header-more",
+                    Dropdown {
+                        pos: "right".to_string(),
+                        trigger: rsx! {
+                            button {
+                                class: "trigger",
+                                dangerous_inner_html: "{MORE}"
+                            }
+                        },
+                        children: rsx! {
+                            div {
+                                class: "content",
+                                button {
+                                    class: "content-btn",
+                                    "Import"
+                                }
+                                button {
+                                    class: "content-btn",
+                                    onclick: handle_export,
+                                    "Export"
+                                }
+                                button {
+                                    class: "content-btn",
+                                    "Save"
+                                }
+                            }
+                        }
+                    }
                 }
             }
             div {
@@ -123,9 +175,14 @@ pub fn CustomSub() -> Element {
                                     "Authors:"
                                 }
                                 for author in authors {
-                                    div {
-                                        class: "card custom-sub-author",
-                                        "{format_public_key(&author.to_hex(), Some(6))}"
+                                    // div {
+                                    //     class: "card custom-sub-author",
+                                    //     "{format_public_key(&author.to_hex(), Some(6))}"
+                                    // }
+                                    InputCard {
+                                        on_change: move |_| {},
+                                        placeholder: None,
+                                        value: format_public_key(&author.to_hex(), Some(6)),
                                     }
                                 }
                                 button {
