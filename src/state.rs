@@ -1,3 +1,5 @@
+pub mod subscription;
+
 use std::collections::HashSet;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -142,7 +144,7 @@ impl Filter {
         }
     }
 
-    pub fn empty_account(self, ) -> Self {
+    pub fn empty_account(self) -> Self {
         let mut accounts = self.accounts.unwrap_or(HashSet::new());
         accounts.insert(Account {
             alt_name: String::from(""),
