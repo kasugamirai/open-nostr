@@ -6,6 +6,8 @@ use crate::components::icons::{FALSE, TRUE};
 pub struct InputCardProps {
     on_change: EventHandler<String>,
     placeholder: Option<String>,
+    #[props(default = false)]
+    edit: bool,
     value: String,
 }
 
@@ -13,7 +15,7 @@ pub struct InputCardProps {
 pub fn InputCard(props: InputCardProps) -> Element {
     let mut value = use_signal(|| props.value);
     let mut bak = use_signal(|| String::new());
-    let mut edit = use_signal(|| false);
+    let mut edit = use_signal(|| props.edit);
     rsx! {
         div {
             class: "com-input_card",

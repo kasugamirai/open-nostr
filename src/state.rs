@@ -132,6 +132,27 @@ impl Filter {
             ..self
         }
     }
+
+    pub fn remove_kind(self, k: Kind) -> Self {
+        let mut kinds = self.kinds.unwrap_or(HashSet::new());
+        kinds.remove(&k);
+        Self {
+            kinds: Some(kinds),
+            ..self
+        }
+    }
+
+    pub fn empty_account(self, ) -> Self {
+        let mut accounts = self.accounts.unwrap_or(HashSet::new());
+        accounts.insert(Account {
+            alt_name: String::from(""),
+            npub: String::from(""),
+        });
+        Self {
+            accounts: Some(accounts),
+            ..self
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]

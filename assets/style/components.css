@@ -30,7 +30,7 @@
     z-index: 1;
 }
 
-.com-dropdown:hover .com-dropdown-content {
+.com-dropdown.hover:hover .com-dropdown-content {
     display: block;
 }
 
@@ -216,6 +216,7 @@
 .com-input_card-input input {
     border: none;
     border-bottom: 2px solid var(--boc-1);
+    font-size: 16px;
 }
 
 .com-input_card-input .btn {

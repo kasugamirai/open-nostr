@@ -64,3 +64,33 @@ body {
 svg path {
     fill: var(--txt-1);
 }
+
+.btn-icon {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-circle);
+    border: none;
+    background: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-icon.right,
+.btn-icon.add {
+    background-color: var(--bgc-1);
+}
+
+.btn-icon.remove {
+    background-color: var(--col-error);
+}
+
+.btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-icon svg path {
+    fill: var(--bgc-0);
+}

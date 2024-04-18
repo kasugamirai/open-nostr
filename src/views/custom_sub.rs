@@ -9,6 +9,9 @@ use crate::{
 #[component]
 pub fn CustomSub() -> Element {
     let mut custom_subs_signal = consume_context::<Signal<CustomSubs>>();
+    let mut relay_name = use_signal(|| custom_subs_signal().relays.name);
+    let mut relays = use_signal(|| custom_subs_signal().relays.relays);
+    let mut new_relay = use_signal(|| String::new());
     let mut subs = use_signal(|| custom_subs_signal().clone().filters);
     let mut edit = use_signal(|| false);
 
@@ -36,10 +39,19 @@ pub fn CustomSub() -> Element {
         };
         subs.push(f);
     };
-    let mut handle_add_kind = move |index: usize| {
+    let mut handle_kind = move |index: usize, add: bool, kind: nostr_sdk::Kind| {
         // TODO: Remove first and then insert to update the page, should be better
         let mut f = subs.remove(index).clone();
-        f = f.kind(Kind::from(nostr_sdk::Kind::Metadata));
+        if add {
+            f = f.kind(Kind::from(kind));
+        } else {
+            f = f.remove_kind(Kind::from(kind));
+        }
+        subs.insert(index, f);
+    };
+    let mut handle_add_account = move |index: usize| {
+        let mut f = subs.remove(index).clone();
+        f = f.empty_account();
         subs.insert(index, f);
     };
     let mut handle_remove = move |index: usize| {
@@ -122,17 +134,119 @@ pub fn CustomSub() -> Element {
                 div {
                     class: "custom-sub-name",
                     "Name:"
-                    div {
-                        class: "card disabled",
-                        "{custom_subs_signal().name}"
+                    InputCard {
+                        edit: false,
+                        on_change: move |v| {
+                            let mut tmp = custom_subs_signal();
+                            tmp.name = v;
+                            custom_subs_signal.set(tmp);
+                        },
+                        placeholder: None,
+                        value: custom_subs_signal().name,
                     }
                 }
                 div {
                     class: "custom-sub-relays",
                     "Relays:"
                     div {
-                        class: "card disabled",
-                        "{custom_subs_signal().relays.name}"
+                        style: "display: inline-block;",
+                        Dropdown {
+                            pos: "left".to_string(),
+                            trigger: rsx! {
+                                div {
+                                    class: "card disabled",
+                                    "{custom_subs_signal().relays.name}"
+                                }
+                            },
+                            div {
+                                style: r#"
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 10px;
+                                    padding: 10px;
+                                    border-radius: var(--radius-1);
+                                    border: 1px solid var(--boc-1);
+                                    background-color: var(--bgc-0);
+                                "#,
+                                div {
+                                    style: "display: flex; gap: 10px;",
+                                    input {
+                                        style: r#"
+                                            border: none;
+                                            border-bottom: 1px solid var(--boc-1);
+                                            font-size: 16px;
+                                        "#,
+                                        r#type: "text",
+                                        value: "{relay_name}",
+                                        oninput: move |event| {
+                                            relay_name.set(event.value());
+                                        }
+                                    }
+                                    button {
+                                        class: "btn-icon right",
+                                        onclick: move |_| {
+                                            let mut tmp = custom_subs_signal();
+                                            tmp.relays.name = relay_name();
+                                            custom_subs_signal.set(tmp);
+                                        },
+                                        div {
+                                            dangerous_inner_html: "{TRUE}"
+                                        }
+                                    }
+                                }
+                                for (i, relay) in relays.iter().enumerate() {
+                                    div {
+                                        style: "display: flex; gap: 10px;",
+                                        input {
+                                            style: r#"
+                                                border: none;
+                                                border-bottom: 1px solid var(--boc-1);
+                                                font-size: 16px;
+                                            "#,
+                                            r#type: "text",
+                                            value: "{relay}",
+                                            oninput: move |event| {
+                                                relays.write()[i] = event.value();
+                                            }
+                                        }
+                                        button {
+                                            class: "btn-icon remove",
+                                            onclick: move |_| {
+                                                relays.remove(i);
+                                            },
+                                            div {
+                                                dangerous_inner_html: "{FALSE}"
+                                            }
+                                        }
+                                    }
+                                }
+                                div {
+                                    style: "display: flex; gap: 10px;",
+                                    input {
+                                        style: r#"
+                                            border: none;
+                                            border-bottom: 1px solid var(--boc-1);
+                                            font-size: 16px;
+                                        "#,
+                                        r#type: "text",
+                                        value: "{new_relay}",
+                                        oninput: move |event| {
+                                            new_relay.set(event.value());
+                                        }
+                                    }
+                                    button {
+                                        class: "btn-icon add",
+                                        onclick: move |_| {
+                                            relays.push(new_relay());
+                                            new_relay.set("".to_string());
+                                        },
+                                        div {
+                                            dangerous_inner_html: "{ADD}"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 div {
@@ -155,19 +269,18 @@ pub fn CustomSub() -> Element {
                                     "Authors:"
                                 }
                                 for author in authors {
-                                    // div {
-                                    //     class: "card custom-sub-author",
-                                    //     "{format_public_key(&author.to_hex(), Some(6))}"
-                                    // }
-                                    InputCard {
-                                        on_change: move |_| {},
-                                        placeholder: None,
-                                        value: format_public_key(&author.npub, Some(6)),
+                                    div {
+                                        "{author.npub}"
                                     }
+                                    // InputCard {
+                                    //     on_change: move |_| {},
+                                    //     placeholder: None,
+                                    //     value: format_public_key(&author.npub, Some(6)),
+                                    // }
                                 }
                                 button {
                                     class: "btn-add {edit}",
-                                    onclick: move |_| handle_add_kind(i) ,
+                                    onclick: move |_| handle_add_account(i) ,
                                     dangerous_inner_html: "{ADD}"
                                 }
                             }
@@ -185,10 +298,34 @@ pub fn CustomSub() -> Element {
                                         "{kind.text}"
                                     }
                                 }
-                                button {
-                                    class: "btn-add {edit}",
-                                    onclick: move |_| handle_add_kind(i) ,
-                                    dangerous_inner_html: "{ADD}"
+                                Dropdown {
+                                    trigger: rsx! {
+                                        button {
+                                            class: "btn-add {edit}",
+                                            dangerous_inner_html: "{ADD}"
+                                        }
+                                    },
+                                    children: rsx! {
+                                        div {
+                                            class: "btn-add-content",
+                                            input {
+                                                r#type: "checkbox",
+                                                oninput: move |event| {
+                                                    let is_enabled = event.value() == "true";
+                                                    handle_kind(i, is_enabled, nostr_sdk::Kind::TextNote)
+                                                }
+                                            }
+                                            "Note"
+                                            input {
+                                                r#type: "checkbox",
+                                                oninput: move |event| {
+                                                    let is_enabled = event.value() == "true";
+                                                    handle_kind(i, is_enabled, nostr_sdk::Kind::Repost)
+                                                }
+                                            }
+                                            "Repost"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -288,6 +425,15 @@ pub fn CustomSub() -> Element {
                     }
                 }
             }
+        }
+    }
+}
+
+#[component]
+fn EditRelays() -> Element {
+    rsx! {
+        div {
+            "Relays"
         }
     }
 }

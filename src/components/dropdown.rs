@@ -4,6 +4,8 @@ use dioxus::prelude::*;
 pub struct DropdowntProps {
     #[props(default = "left".to_string())]
     pos: String,
+    #[props(default = "hover".to_string())]
+    show: String,
     trigger: Element,
     children: Element,
 }
@@ -17,7 +19,7 @@ pub fn Dropdown(props: DropdowntProps) -> Element {
     };
     rsx! {
         div {
-            class: "com-dropdown",
+            class: "com-dropdown {props.show}",
             { props.trigger }
             div {
                 class: "com-dropdown-content",
