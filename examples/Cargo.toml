@@ -1,0 +1,29 @@
+[package]
+name = "capybastr"
+version = "0.1.0"
+authors = ["ahriknow <ahriknow@ahriknow.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nostr-sdk = "0.30"
+nostr-indexeddb = "0.30"
+# TODO: Add tokio will cause dioxus compilation failure
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0"
+dioxus = { version = "0.5", features = ["fullstack", "router"] }
+manganis = "0.2.2"
+regex = "1.10"
+# Debug
+log = "0.4.19"
+dioxus-logger = "0.5.0"
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+
+[features]
+default = []
+server = ["dioxus/axum"]
+web = ["dioxus/web"]
