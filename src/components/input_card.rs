@@ -12,7 +12,7 @@ pub struct InputCardProps {
 #[component]
 pub fn InputCard(props: InputCardProps) -> Element {
     let mut value = use_signal(|| props.value);
-    let mut bak = use_signal(|| String::new());
+    let mut bak = use_signal(String::new);
     let mut edit = use_signal(|| false);
     rsx! {
         div {
@@ -30,7 +30,7 @@ pub fn InputCard(props: InputCardProps) -> Element {
                 input {
                     r#type: "text",
                     value: "{value}",
-                    placeholder: if let Some(placeholder) = props.placeholder { placeholder } else { String::new() },
+                    placeholder: props.placeholder.unwrap_or_default(),
                     oninput: move |event| {
                         let v = event.value();
                         value.set(v.clone());
