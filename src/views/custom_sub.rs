@@ -61,7 +61,7 @@ pub fn CustomSub() -> Element {
             "#,
         );
         let mut tmp = custom_subs_signal();
-        tmp.filters = subs().clone();
+        tmp.filters = subs();
         custom_subs_signal.set(tmp.clone());
         eval.send(tmp.json().into()).unwrap();
     };
@@ -172,7 +172,7 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        if let Some(kinds) = sub.kinds.clone() {
+                        if let Some(kinds) = &sub.kinds {
                             div {
                                 class: "custom-sub-filter-item",
                                 span {
@@ -199,7 +199,7 @@ pub fn CustomSub() -> Element {
                                     class: "title",
                                     "Time:"
                                 }
-                                if let Some(since) = sub.since.clone() {
+                                if let Some(since) = sub.since {
                                     div {
                                         class: "card custom-sub-time",
                                         "{format_timestamp(since, None)}"
@@ -208,7 +208,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                 }
-                                if let Some(until) = sub.until.clone() {
+                                if let Some(until) = sub.until {
                                     div {
                                         class: "card custom-sub-time",
                                         span {
@@ -219,7 +219,7 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        if let Some(limit) = sub.limit.clone() {
+                        if let Some(limit) = &sub.limit {
                             div {
                                 class: "custom-sub-filter-item",
                                 span {
@@ -232,7 +232,7 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        if let Some(tags) = sub.tags.clone() {
+                        if let Some(tags) = &sub.tags {
                             div {
                                 class: "custom-sub-filter-item",
                                 span {
