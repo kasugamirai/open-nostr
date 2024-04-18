@@ -7,7 +7,7 @@ use crate::components::{Button, Post, PostData};
 
 #[component]
 pub fn Home() -> Element {
-    let mut post_datas = use_signal(|| Vec::<PostData>::new());
+    let mut post_datas = use_signal(Vec::<PostData>::new);
     let get_events = move || {
         spawn(async move {
             println!("pk: npub156jqdy53ceqahp25jjh5ky6u959ldk3h2eu5h4clhmu8vdhucvnqrrt7yt");
