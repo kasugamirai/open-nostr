@@ -21,3 +21,4 @@ package-lock.json
 package.json
 tailwind.config.js
 public/tailwind.css
+.DS_Store
