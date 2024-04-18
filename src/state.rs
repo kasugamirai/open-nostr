@@ -125,7 +125,7 @@ impl Filter {
     }
 
     pub fn kind(self, k: Kind) -> Self {
-        let mut kinds = self.kinds.unwrap_or(HashSet::new());
+        let mut kinds = self.kinds.unwrap_or_default();
         kinds.insert(k);
         Self {
             kinds: Some(kinds),
