@@ -7,7 +7,7 @@ mod utils;
 mod views;
 
 use dioxus::prelude::*;
-use log::LevelFilter;
+use tracing::Level;
 
 use nostr_sdk::Filter;
 use router::Route;
@@ -16,7 +16,7 @@ use crate::state::CustomSubs;
 
 fn main() {
     // Init debug
-    dioxus_logger::init(LevelFilter::Info).expect("failed to init logger");
+    dioxus_logger::init(Level::INFO).expect("failed to init logger");
 
     launch(App);
 }
