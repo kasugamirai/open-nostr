@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use nostr_sdk::{Filter, Kind};
 
 use crate::{
-    components::{icons::*, Dropdown, InputCard},
+    components::{icons::*, Dropdown, InputCard, InputKv},
     state::subscription::{CustomSub, FilterTemp},
     utils::format::{format_public_key, format_timestamp},
 };
@@ -13,6 +13,77 @@ fn kind_to_str(index: u64) -> String {
         _ => format!("{:?}", kind),
     }
 }
+
+static KINDS: [(Kind, &str, u64); 64] = [
+    (Kind::Metadata, "Metadata", 0),
+    (Kind::TextNote, "TextNote", 1),
+    (Kind::RecommendRelay, "RecommendRelay", 2),
+    (Kind::ContactList, "ContactList", 3),
+    (Kind::OpenTimestamps, "OpenTimestamps", 1040),
+    (Kind::EncryptedDirectMessage, "EncryptedDirectMessage", 4),
+    (Kind::EventDeletion, "EventDeletion", 5),
+    (Kind::Repost, "Repost", 6),
+    (Kind::GenericRepost, "GenericRepost", 16),
+    (Kind::Reaction, "Reaction", 7),
+    (Kind::BadgeAward, "BadgeAward", 8),
+    (Kind::ChannelCreation, "ChannelCreation", 40),
+    (Kind::ChannelMetadata, "ChannelMetadata", 41),
+    (Kind::ChannelMessage, "ChannelMessage", 42),
+    (Kind::ChannelHideMessage, "ChannelHideMessage", 43),
+    (Kind::ChannelMuteUser, "ChannelMuteUser", 44),
+    (Kind::PublicChatReserved45, "PublicChatReserved45", 45),
+    (Kind::PublicChatReserved46, "PublicChatReserved46", 46),
+    (Kind::PublicChatReserved47, "PublicChatReserved47", 47),
+    (Kind::PublicChatReserved48, "PublicChatReserved48", 48),
+    (Kind::PublicChatReserved49, "PublicChatReserved49", 49),
+    (Kind::WalletConnectInfo, "WalletConnectInfo", 13194),
+    (Kind::Reporting, "Reporting", 1984),
+    (Kind::Label, "Label", 1985),
+    (Kind::ZapPrivateMessage, "ZapPrivateMessage", 9733),
+    (Kind::ZapRequest, "ZapRequest", 9734),
+    (Kind::ZapReceipt, "ZapReceipt", 9735),
+    (Kind::MuteList, "MuteList", 10000),
+    (Kind::PinList, "PinList", 10001),
+    (Kind::Bookmarks, "Bookmarks", 10003),
+    (Kind::Communities, "Communities", 10004),
+    (Kind::PublicChats, "PublicChats", 10005),
+    (Kind::BlockedRelays, "BlockedRelays", 10006),
+    (Kind::SearchRelays, "SearchRelays", 10007),
+    (Kind::SimpleGroups, "SimpleGroups", 10009),
+    (Kind::Interests, "Interests", 10015),
+    (Kind::Emojis, "Emojis", 10030),
+    (Kind::RelayList, "RelayList", 10002),
+    (Kind::Authentication, "Authentication", 22242),
+    (Kind::WalletConnectRequest, "WalletConnectRequest", 23194),
+    (Kind::WalletConnectResponse, "WalletConnectResponse", 23195),
+    (Kind::NostrConnect, "NostrConnect", 24133),
+    (Kind::LiveEvent, "LiveEvent", 30311),
+    (Kind::LiveEventMessage, "LiveEventMessage", 1311),
+    (Kind::ProfileBadges, "ProfileBadges", 30008),
+    (Kind::BadgeDefinition, "BadgeDefinition", 30009),
+    (Kind::Seal, "Seal", 13),
+    (Kind::GiftWrap, "GiftWrap", 1059),
+    (Kind::SealedDirect, "SealedDirect", 14),
+    (Kind::SetStall, "SetStall", 30017),
+    (Kind::SetProduct, "SetProduct", 30018),
+    (Kind::JobFeedback, "JobFeedback", 7000),
+    (Kind::FollowSets, "FollowSets", 30000),
+    (Kind::RelaySets, "RelaySets", 30002),
+    (Kind::BookmarkSets, "BookmarkSets", 30003),
+    (Kind::ArticlesCurationSets, "ArticlesCurationSets", 30004),
+    (Kind::VideosCurationSets, "VideosCurationSets", 30005),
+    (Kind::InterestSets, "InterestSets", 30015),
+    (Kind::EmojiSets, "EmojiSets", 30030),
+    (Kind::ReleaseArtifactSets, "ReleaseArtifactSets", 30063),
+    (Kind::LongFormTextNote, "LongFormTextNote", 30023),
+    (Kind::FileMetadata, "FileMetadata", 1063),
+    (Kind::HttpAuth, "HttpAuth", 27235),
+    (
+        Kind::ApplicationSpecificData,
+        "ApplicationSpecificData",
+        30078,
+    ),
+];
 
 #[component]
 pub fn CustomSub() -> Element {
@@ -256,7 +327,7 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        FilterTemp::Aaccounts(kinds, authors) => {
+                        FilterTemp::Aaccounts(kinds, accounts) => {
                             rsx! {
                                 div {
                                     class: "custom-sub-filter-item",
@@ -285,6 +356,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                     Dropdown {
+                                        pos: "right",
                                         trigger: rsx! {
                                             button {
                                                 class: "btn-add",
@@ -294,48 +366,38 @@ pub fn CustomSub() -> Element {
                                         children: rsx! {
                                             div {
                                                 class: "btn-add-content",
-                                                input {
-                                                    r#type: "checkbox",
-                                                    oninput: move |event| {
-                                                        let is_enabled = event.value() == "true";
-                                                        let index = nostr_sdk::Kind::TextNote.as_u64();
-                                                        if is_enabled {
-                                                            let mut sub = custom_sub.write();
-                                                            if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
-                                                                if !kinds_ref.contains(&index) {
-                                                                    kinds_ref.push(index);
+                                                // grid 布局，每行三个
+                                                style: r#"
+                                                    display: grid;
+                                                    grid-template-columns: repeat(3, 1fr);
+                                                    gap: 8px;
+                                                "#,
+                                                for kind in KINDS.iter() {
+                                                    div {
+                                                        style: "display: flex; gap: 8px;",
+                                                        "{kind.1}"
+                                                        input {
+                                                            r#type: "checkbox",
+                                                            oninput: move |event| {
+                                                                let is_enabled = event.value() == "true";
+                                                                let index = kind.2;
+                                                                if is_enabled {
+                                                                    let mut sub = custom_sub.write();
+                                                                    if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
+                                                                        if !kinds_ref.contains(&index) {
+                                                                            kinds_ref.push(index);
+                                                                        }
+                                                                    }
+                                                                } else {
+                                                                    let mut sub = custom_sub.write();
+                                                                    if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
+                                                                        kinds_ref.retain(|&x| x != index);
+                                                                    }
                                                                 }
-                                                            }
-                                                        } else {
-                                                            let mut sub = custom_sub.write();
-                                                            if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
-                                                                kinds_ref.retain(|&x| x != index);
                                                             }
                                                         }
                                                     }
                                                 }
-                                                "Note"
-                                                input {
-                                                    r#type: "checkbox",
-                                                    oninput: move |event| {
-                                                        let is_enabled = event.value() == "true";
-                                                        let index = nostr_sdk::Kind::Repost.as_u64();
-                                                        if is_enabled {
-                                                            let mut sub = custom_sub.write();
-                                                            if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
-                                                                if !kinds_ref.contains(&index) {
-                                                                    kinds_ref.push(index);
-                                                                }
-                                                            }
-                                                        } else {
-                                                            let mut sub = custom_sub.write();
-                                                            if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
-                                                                kinds_ref.retain(|&x| x != index);
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                "Repost"
                                             }
                                         }
                                     }
@@ -346,7 +408,175 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Accounts:"
                                     }
+                                    for (j, account) in accounts.iter().enumerate() {
+                                        div {
+                                            class: "custom-sub-account",
+                                            InputKv {
+                                                edit: account[1].is_empty(),
+                                                on_change: move |(k, v): (String, String)| {
+                                                    let mut sub = custom_sub.write();
+                                                    if let FilterTemp::Aaccounts(_, ref mut accounts_ref) = sub.filters[i] {
+                                                        if v.is_empty() {
+                                                            accounts_ref.remove(j);
+                                                        } else {
+                                                            accounts_ref[j] = vec![k, v];
+                                                        }
+                                                    }
+                                                },
+                                                placeholder: Some(("pubkey/npub".to_string(), "alt name".to_string())),
+                                                value: (account[0].clone(), account[1].clone()),
+                                            }
+                                        }
+                                    }
+                                    button {
+                                        class: "btn-add",
+                                        dangerous_inner_html: "{ADD}",
+                                        onclick: move |_| {
+                                            let mut sub = custom_sub.write();
+                                            if let FilterTemp::Aaccounts(_, ref mut accounts_ref) = sub.filters[i] {
+                                                accounts_ref.push(vec![String::from(""), String::from("")]);
+                                            }
+                                        }
+                                    }
                                 }
+                            }
+                        }
+                        FilterTemp::Events(events) => {
+                            rsx! {
+                                div {
+                                    class: "custom-sub-filter-item",
+                                    span {
+                                        class: "title",
+                                        "Notes:"
+                                    }
+                                    for (j, event) in events.iter().enumerate() {
+                                        div {
+                                            class: "custom-sub-event",
+                                            InputKv {
+                                                edit: event[1].is_empty(),
+                                                on_change: move |(k, v): (String, String)| {
+                                                    let mut sub = custom_sub.write();
+                                                    if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
+                                                        if v.is_empty() {
+                                                            events_ref.remove(j);
+                                                        } else {
+                                                            events_ref[j] = vec!["id/nevent".to_string(), v];
+                                                        }
+                                                    }
+                                                },
+                                                placeholder: Some(("id/nevent".to_string(), "alt name".to_string())),
+                                                value: (event[0].clone(), event[1].clone()),
+                                            }
+                                        }
+                                    }
+                                    button {
+                                        class: "btn-add",
+                                        dangerous_inner_html: "{ADD}",
+                                        onclick: move |_| {
+                                            let mut sub = custom_sub.write();
+                                            if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
+                                                events_ref.push(vec![String::from(""), String::from("")]);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        FilterTemp::Customize(filter) => {
+                            rsx! {
+                                div {
+                                    class: "custom-sub-filter-item",
+                                    span {
+                                        class: "title",
+                                        "Kinds:"
+                                    }
+                                    for kind in filter.kinds.clone().unwrap().iter() {
+                                        div {
+                                            class: "card custom-sub-kind",
+                                            "{kind_to_str(kind.as_u64())}"
+                                        }
+                                    }
+                                    Dropdown {
+                                        pos: "right",
+                                        trigger: rsx! {
+                                            button {
+                                                class: "btn-add",
+                                                dangerous_inner_html: "{ADD}",
+                                            }
+                                        },
+                                        children: rsx! {
+                                            div {
+                                                class: "btn-add-content",
+                                                // grid 布局，每行三个
+                                                style: r#"
+                                                    display: grid;
+                                                    grid-template-columns: repeat(3, 1fr);
+                                                    gap: 8px;
+                                                "#,
+                                                for kind in KINDS.iter() {
+                                                    div {
+                                                        style: "display: flex; gap: 8px;",
+                                                        "{kind.1}"
+                                                        input {
+                                                            r#type: "checkbox",
+                                                            oninput: move |event| {
+                                                                let is_enabled = event.value() == "true";
+                                                                let index = kind.2;
+                                                                let mut sub = custom_sub.write();
+                                                                if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
+                                                                    let mut tmp = filter_ref.kinds.clone().unwrap();
+                                                                    if is_enabled {
+                                                                        tmp.insert(Kind::from(index));
+                                                                    } else {
+                                                                        tmp.remove(&Kind::from(index));
+                                                                    }
+                                                                    filter_ref.kinds = Some(tmp);
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                // div {
+                                //     class: "custom-sub-filter-item",
+                                //     span {
+                                //         class: "title",
+                                //         "Accounts:"
+                                //     }
+                                //     for (j, account) in accounts.iter().enumerate() {
+                                //         div {
+                                //             class: "custom-sub-account",
+                                //             InputKv {
+                                //                 edit: account[1].is_empty(),
+                                //                 on_change: move |(k, v): (String, String)| {
+                                //                     let mut sub = custom_sub.write();
+                                //                     if let FilterTemp::Aaccounts(_, ref mut accounts_ref) = sub.filters[i] {
+                                //                         if v.is_empty() {
+                                //                             accounts_ref.remove(j);
+                                //                         } else {
+                                //                             accounts_ref[j] = vec![k, v];
+                                //                         }
+                                //                     }
+                                //                 },
+                                //                 placeholder: Some(("pubkey/npub".to_string(), "alt name".to_string())),
+                                //                 value: (account[0].clone(), account[1].clone()),
+                                //             }
+                                //         }
+                                //     }
+                                //     button {
+                                //         class: "btn-add",
+                                //         dangerous_inner_html: "{ADD}",
+                                //         onclick: move |_| {
+                                //             let mut sub = custom_sub.write();
+                                //             if let FilterTemp::Aaccounts(_, ref mut accounts_ref) = sub.filters[i] {
+                                //                 accounts_ref.push(vec![String::from(""), String::from("")]);
+                                //             }
+                                //         }
+                                //     }
+                                // }
                             }
                         }
                         _ => {
@@ -396,7 +626,9 @@ pub fn CustomSub() -> Element {
                                     class: "btn-add-item",
                                     onclick: move |_| {
                                         let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Customize(Filter::new()));
+                                        let mut f = Filter::new();
+                                        f = f.kind(Kind::TextNote);
+                                        sub.filters.push(FilterTemp::Customize(f));
                                     },
                                     "Customize"
                                 }
