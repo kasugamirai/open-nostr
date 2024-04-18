@@ -32,7 +32,7 @@ pub fn InputCard(props: InputCardProps) -> Element {
                 input {
                     r#type: "text",
                     value: "{value}",
-                    placeholder: if let Some(placeholder) = props.placeholder { placeholder } else { String::new() },
+                    placeholder: props.placeholder.unwrap_or_default(),
                     oninput: move |event| {
                         let v = event.value();
                         value.set(v.clone());
