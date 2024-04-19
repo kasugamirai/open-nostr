@@ -247,3 +247,8 @@
 .com-input_card-input .btn-false {
     background-color: var(--col-error);
 }
+
+.com-dtpicker {
+    display: flex;
+    gap: 10px;
+}
