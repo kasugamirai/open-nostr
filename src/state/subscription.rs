@@ -87,7 +87,46 @@ impl RelaySet {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FilterTemp {
     HashTag(Vec<String>),
-    Aaccounts(Vec<u64>, Vec<Vec<String>>),
+    Aaccounts(Vec<u64>, Vec<Account>),
     Events(Vec<Vec<String>>),
-    Customize(Filter),
+    Customize(CustomFilter),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CustomFilter {
+    pub kinds: Vec<u64>,
+    pub accounts: Vec<Account>,
+    pub time: (u64, u64),
+    pub limit: u64,
+    pub tags: Vec<CustomTag>,
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct Account {
+    pub alt_name: String,
+    pub npub: String,
+}
+
+impl Account {
+    pub fn empty() -> Self {
+        Self {
+            alt_name: String::from(""),
+            npub: String::from(""),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct CustomTag {
+    pub tag: String,
+    pub value: String,
+}
+
+impl CustomTag {
+    pub fn empty() -> Self {
+        Self {
+            tag: String::from(""),
+            value: String::from(""),
+        }
+    }
 }
