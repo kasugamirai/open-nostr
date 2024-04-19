@@ -136,7 +136,7 @@ impl Filter {
     }
 
     pub fn remove_kind(self, k: Kind) -> Self {
-        let mut kinds = self.kinds.unwrap_or(HashSet::new());
+        let mut kinds = self.kinds.unwrap_or_default();
         kinds.remove(&k);
         Self {
             kinds: Some(kinds),
@@ -145,7 +145,7 @@ impl Filter {
     }
 
     pub fn empty_account(self) -> Self {
-        let mut accounts = self.accounts.unwrap_or(HashSet::new());
+        let mut accounts = self.accounts.unwrap_or_default();
         accounts.insert(Account {
             alt_name: String::from(""),
             npub: String::from(""),
