@@ -580,7 +580,12 @@ pub fn CustomSub() -> Element {
                                     DateTimePicker {
                                         value: filter.time.0,
                                         end: filter.time.1,
-                                        on_change: move |_| {},
+                                        on_change: move |(start, end): (u64, u64)| {
+                                            let mut sub = custom_sub.write();
+                                            if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
+                                                filter_ref.time = (start, end);
+                                            }
+                                        },
                                     }
                                 }
                                 div {
