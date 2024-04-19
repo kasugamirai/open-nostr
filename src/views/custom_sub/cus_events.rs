@@ -2,22 +2,23 @@ use dioxus::prelude::*;
 
 use crate::{
     components::icons::{FALSE, TRUE},
+    state::subscription::Event,
     utils::format::format_public_key,
 };
 
 #[derive(PartialEq, Clone, Props)]
-pub struct InputKvProps {
-    on_change: EventHandler<(String, String)>,
+pub struct CusEventProps {
+    on_change: EventHandler<Event>,
     placeholder: Option<(String, String)>,
     #[props(default = false)]
     edit: bool,
-    value: (String, String),
+    value: Event,
 }
 
 #[component]
-pub fn InputKv(props: InputKvProps) -> Element {
-    let mut value = use_signal(|| props.value);
-    let mut bak = use_signal(|| (String::new(), String::new()));
+pub fn InputCusEvent(props: CusEventProps) -> Element {
+    let mut value = use_signal(|| props.value.clone());
+    let mut bak = use_signal(|| props.value);
     let mut edit = use_signal(|| props.edit);
     let (p1, p2) = props.placeholder.unwrap_or_default();
     rsx! {
@@ -29,32 +30,30 @@ pub fn InputKv(props: InputKvProps) -> Element {
                     bak.set(value());
                     edit.set(true);
                 },
-                if value().1.is_empty() {
-                    "{format_public_key(&value().0, None)}"
+                if value().alt_name.is_empty() {
+                    "{format_public_key(&value().nevent, None)}"
                 } else {
-                    "{value().1}"
+                    "{value().alt_name}"
                 }
             }
             div {
                 class: "com-input_card-input {edit() == true}",
                 input {
+                    style: "max-width: 50px",
                     r#type: "text",
-                    style: "max-width: 110px;",
-                    value: "{value().0}",
+                    value: "{value().nevent}",
                     placeholder: p1,
                     oninput: move |event| {
-                        let mut tmp = value.write();
-                        tmp.0 = event.value();
+                        value.write().nevent = event.value();
                     }
                 }
                 input {
                     r#type: "text",
-                    style: "max-width: 100px;",
-                    value: "{value().1}",
+                    style: "max-width: 100px",
+                    value: "{value().alt_name}",
                     placeholder: p2,
                     oninput: move |event| {
-                        let mut tmp = value.write();
-                        tmp.1 = event.value();
+                        value.write().alt_name = event.value();
                     }
                 }
                 button {
@@ -62,7 +61,7 @@ pub fn InputKv(props: InputKvProps) -> Element {
                     onclick: move |_| {
                         bak.set(value());
                         edit.set(false);
-                        props.on_change.call(bak());
+                        props.on_change.call(value());
                     },
                     dangerous_inner_html: "{TRUE}"
                 }
@@ -71,8 +70,8 @@ pub fn InputKv(props: InputKvProps) -> Element {
                     onclick: move |_| {
                         let v = bak();
                         value.set(v.clone());
-                        props.on_change.call(v);
                         edit.set(false);
+                        props.on_change.call(value());
                     },
                     dangerous_inner_html: "{FALSE}"
                 }

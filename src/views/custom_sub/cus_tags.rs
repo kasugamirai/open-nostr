@@ -2,16 +2,16 @@ use dioxus::prelude::*;
 
 use crate::{
     components::icons::{FALSE, TRUE},
-    state::subscription::CustomTag,
+    state::subscription::Tag,
 };
 
 #[derive(PartialEq, Clone, Props)]
 pub struct CusTagProps {
-    on_change: EventHandler<CustomTag>,
+    on_change: EventHandler<Tag>,
     placeholder: Option<(String, String)>,
     #[props(default = false)]
     edit: bool,
-    value: CustomTag,
+    value: Tag,
 }
 
 #[component]
