@@ -20,9 +20,7 @@ use limit::InputLimit;
 
 fn kind_to_str(index: u64) -> String {
     let kind = Kind::from(index);
-    match kind {
-        _ => format!("{:?}", kind),
-    }
+    format!("{:?}", kind)
 }
 
 static KINDS: [(Kind, &str, u64); 64] = [
@@ -98,8 +96,8 @@ static KINDS: [(Kind, &str, u64); 64] = [
 
 #[component]
 pub fn CustomSub() -> Element {
-    let mut custom_sub = use_signal(|| CustomSub::default());
-    let mut new_relay = use_signal(|| String::new());
+    let mut custom_sub = use_signal(CustomSub::default);
+    let mut new_relay = use_signal(String::new);
     let mut edit = use_signal(|| false);
     let handle_export = move || {
         let eval = eval(

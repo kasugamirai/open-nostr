@@ -51,7 +51,7 @@ pub fn InputLimit(props: InputLimitProps) -> Element {
                     class: "btn btn-false",
                     onclick: move |_| {
                         let v = bak();
-                        value.set(v.clone());
+                        value.set(v);
                         props.on_change.call(v);
                         edit.set(false);
                     },
