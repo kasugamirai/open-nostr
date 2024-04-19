@@ -14,7 +14,7 @@ pub struct InputCardProps {
 #[component]
 pub fn InputCard(props: InputCardProps) -> Element {
     let mut value = use_signal(|| props.value);
-    let mut bak = use_signal(|| String::new());
+    let mut bak = use_signal(String::new);
     let mut edit = use_signal(|| props.edit);
     rsx! {
         div {
