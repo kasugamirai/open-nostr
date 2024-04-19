@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, NaiveDateTime};
 use dioxus::prelude::*;
 
 #[derive(PartialEq, Clone, Props)]
@@ -11,12 +11,32 @@ pub struct DateTimePickerProps {
     range: bool,
 }
 
+/// DateTimePicker
+///
+/// # Example
+///
+/// ```
+/// DateTimePicker {
+///     value: 0,  // start time
+///     end: 1000,  // end time
+///     range: true,  // select time range
+///     on_change: move |(start, end): (u64, u64)| {
+///         
+///     },
+/// }
+/// ```
 #[component]
 pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
     let mut value = use_signal(|| props.value);
     let mut end = use_signal(|| props.end);
-    let start_value = DateTime::from_timestamp(value() as i64, 0).unwrap().format("%Y-%m-%dT%H:%M").to_string();
-    let end_value = DateTime::from_timestamp(end() as i64, 0).unwrap().format("%Y-%m-%dT%H:%M").to_string();
+    let start_value = DateTime::from_timestamp(value() as i64, 0)
+        .unwrap()
+        .format("%Y-%m-%dT%H:%M")
+        .to_string();
+    let end_value = DateTime::from_timestamp(end() as i64, 0)
+        .unwrap()
+        .format("%Y-%m-%dT%H:%M")
+        .to_string();
     rsx! {
         div {
             class: "com-dtpicker",
