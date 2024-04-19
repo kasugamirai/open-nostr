@@ -1,3 +1,4 @@
+use chrono::{DateTime, NaiveDateTime, Utc};
 use dioxus::prelude::*;
 
 #[derive(PartialEq, Clone, Props)]
@@ -14,21 +15,28 @@ pub struct DateTimePickerProps {
 pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
     let mut value = use_signal(|| props.value);
     let mut end = use_signal(|| props.end);
+    let start_value = DateTime::from_timestamp(value() as i64, 0).unwrap().format("%Y-%m-%dT%H:%M").to_string();
+    let end_value = DateTime::from_timestamp(end() as i64, 0).unwrap().format("%Y-%m-%dT%H:%M").to_string();
     rsx! {
         div {
             class: "com-dtpicker",
             input {
                 r#type: "datetime-local",
-                value: "{value()}",
+                value: "{start_value}",
                 oninput: move |event| {
-                    value.set(event.value().parse::<u64>().unwrap_or(0));
+                    let parsed_datetime = NaiveDateTime::parse_from_str(&event.value(), "%Y-%m-%dT%H:%M").unwrap();
+                    let timestamp = parsed_datetime.and_utc().timestamp() as u64;
+                    value.set(timestamp);
+                    props.on_change.call((value(), end()));
                 }
             }
             input {
                 r#type: "datetime-local",
-                value: "{end()}",
+                value: "{end_value}",
                 oninput: move |event| {
-                    end.set(event.value().parse::<u64>().unwrap_or(0));
+                    let parsed_datetime = NaiveDateTime::parse_from_str(&event.value(), "%Y-%m-%dT%H:%M").unwrap();
+                    let timestamp = parsed_datetime.and_utc().timestamp() as u64;
+                    end.set(timestamp);
                     props.on_change.call((value(), end()));
                 }
             }
