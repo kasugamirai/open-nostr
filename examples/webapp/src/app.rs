@@ -66,6 +66,7 @@ pub fn app() -> Html {
                             nip04::decrypt(key.secret_key()?, event.author_ref(), event.content())
                         {
                             println!("DM: {msg}");
+                            database.save_event(&event).await.unwrap();
                         } else {
                             println!("Impossible to decrypt direct message");
                         }
@@ -80,6 +81,15 @@ pub fn app() -> Html {
             })
             .await
             .unwrap();
+
+        let filter = Filter::new().kinds(vec![Kind::Metadata]).limit(20);
+        let events = database.query(vec![filter], Order::Asc).await.unwrap();
+        console::log_1(&format!("Events: {events:?}").into());
+        console::log_1(&format!("Got {} events", events.len()).into());
+
+        //delete event
+        let filter = Filter::new().kinds(vec![Kind::Metadata]).limit(10);
+        database.delete(filter).await.unwrap();
     });
 
     html! {

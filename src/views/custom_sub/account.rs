@@ -30,7 +30,7 @@ pub fn InputAccount(props: InputAccountProps) -> Element {
                     bak.set(value());
                     edit.set(true);
                 },
-                if (value().alt_name.is_empty()) {
+                if value().alt_name.is_empty() {
                     "{format_public_key(&value().npub, None)}"
                 } else {
                     "{value().alt_name}"
