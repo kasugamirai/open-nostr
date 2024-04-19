@@ -1,4 +1,5 @@
 mod account;
+mod cus_events;
 mod cus_tags;
 mod limit;
 
@@ -6,11 +7,14 @@ use dioxus::prelude::*;
 use nostr_sdk::Kind;
 
 use crate::{
-    components::{icons::*, DateTimePicker, Dropdown, InputCard, InputKv},
-    state::subscription::{Account, CustomFilter, CustomSub, CustomTag, FilterTemp},
-    utils::format::{format_public_key, format_timestamp},
+    components::{icons::*, DateTimePicker, Dropdown, InputCard},
+    state::subscription::{
+        Account, CustomAaccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
+        FilterTemp, Tag,
+    },
 };
 use account::InputAccount;
+use cus_events::InputCusEvent;
 use cus_tags::InputCusTag;
 use limit::InputLimit;
 
@@ -293,7 +297,7 @@ pub fn CustomSub() -> Element {
                 div {
                     class: "custom-sub-item",
                     match filter {
-                        FilterTemp::HashTag(tags) => {
+                        FilterTemp::HashTag(hashtag) => {
                             rsx! {
                                 div {
                                     class: "custom-sub-filter-item",
@@ -301,18 +305,18 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Tags:"
                                     }
-                                    for (j, tag) in tags.iter().enumerate() {
+                                    for (j, tag) in hashtag.tags.iter().enumerate() {
                                         div {
                                             class: "custom-sub-tag",
                                             InputCard {
                                                 edit: tag.is_empty(),
                                                 on_change: move |v: String| {
                                                     let mut sub = custom_sub.write();
-                                                    if let FilterTemp::HashTag(ref mut tags_ref) = sub.filters[i] {
+                                                    if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
                                                         if v.is_empty() {
-                                                            tags_ref.remove(j);
+                                                            hashtag_ref.tags.remove(j);
                                                         } else {
-                                                            tags_ref[j] = v;
+                                                            hashtag_ref.tags[j] = v;
                                                         }
                                                     }
                                                 },
@@ -326,15 +330,15 @@ pub fn CustomSub() -> Element {
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
-                                            if let FilterTemp::HashTag(ref mut tags_ref) = sub.filters[i] {
-                                                tags_ref.push("".to_string());
+                                            if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
+                                                hashtag_ref.tags.push("".to_string());
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                        FilterTemp::Aaccounts(kinds, accounts) => {
+                        FilterTemp::Aaccounts(accounts) => {
                             rsx! {
                                 div {
                                     class: "custom-sub-filter-item",
@@ -342,7 +346,7 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Kinds:"
                                     }
-                                    for kind in kinds.iter() {
+                                    for kind in accounts.kinds.iter() {
                                         div {
                                             class: "card custom-sub-kind",
                                             "{kind_to_str(*kind)}"
@@ -375,15 +379,15 @@ pub fn CustomSub() -> Element {
                                                                 let index = kind.2;
                                                                 if is_enabled {
                                                                     let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
-                                                                        if !kinds_ref.contains(&index) {
-                                                                            kinds_ref.push(index);
+                                                                    if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                                                        if !accounts_ref.kinds.contains(&index) {
+                                                                            accounts_ref.kinds.push(index);
                                                                         }
                                                                     }
                                                                 } else {
                                                                     let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Aaccounts(ref mut kinds_ref, _) = sub.filters[i] {
-                                                                        kinds_ref.retain(|&x| x != index);
+                                                                    if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                                                        accounts_ref.kinds.retain(|&x| x != index);
                                                                     }
                                                                 }
                                                             }
@@ -400,18 +404,18 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Accounts:"
                                     }
-                                    for (j, account) in accounts.iter().enumerate() {
+                                    for (j, account) in accounts.accounts.iter().enumerate() {
                                         div {
                                             class: "custom-sub-account",
                                             InputAccount {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
                                                     let mut sub = custom_sub.write();
-                                                    if let FilterTemp::Aaccounts(_, ref mut accounts_ref) = sub.filters[i] {
+                                                    if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
                                                         if a.npub.is_empty() {
-                                                            accounts_ref.remove(j);
+                                                            accounts_ref.accounts.remove(j);
                                                         } else {
-                                                            accounts_ref[j] = a;
+                                                            accounts_ref.accounts[j] = a;
                                                         }
                                                     }
                                                 },
@@ -425,8 +429,8 @@ pub fn CustomSub() -> Element {
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
-                                            if let FilterTemp::Aaccounts(_, ref mut accounts_ref) = sub.filters[i] {
-                                                accounts_ref.push(Account::empty());
+                                            if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                                accounts_ref.accounts.push(Account::empty());
                                             }
                                         }
                                     }
@@ -441,23 +445,23 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Notes:"
                                     }
-                                    for (j, event) in events.iter().enumerate() {
+                                    for (j, event) in events.events.iter().enumerate() {
                                         div {
                                             class: "custom-sub-event",
-                                            InputKv {
-                                                edit: event[1].is_empty(),
-                                                on_change: move |(k, v): (String, String)| {
+                                            InputCusEvent {
+                                                edit: event.nevent.is_empty(),
+                                                on_change: move |e: Event| {
                                                     let mut sub = custom_sub.write();
                                                     if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
-                                                        if v.is_empty() {
-                                                            events_ref.remove(j);
+                                                        if e.nevent.is_empty() {
+                                                            events_ref.events.remove(j);
                                                         } else {
-                                                            events_ref[j] = vec!["id/nevent".to_string(), v];
+                                                            events_ref.events[j] = e;
                                                         }
                                                     }
                                                 },
                                                 placeholder: Some(("id/nevent".to_string(), "alt name".to_string())),
-                                                value: (event[0].clone(), event[1].clone()),
+                                                value: event.clone(),
                                             }
                                         }
                                     }
@@ -467,7 +471,7 @@ pub fn CustomSub() -> Element {
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
                                             if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
-                                                events_ref.push(vec![String::from(""), String::from("")]);
+                                                events_ref.events.push(Event::empty());
                                             }
                                         }
                                     }
@@ -617,7 +621,7 @@ pub fn CustomSub() -> Element {
                                             class: "custom-sub-tag",
                                             InputCusTag {
                                                 edit: tag.value.is_empty(),
-                                                on_change: move |c: CustomTag| {
+                                                on_change: move |c: Tag| {
                                                     let mut sub = custom_sub.write();
                                                     if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                         if c.value.is_empty() {
@@ -638,7 +642,7 @@ pub fn CustomSub() -> Element {
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                filter_ref.tags.push(CustomTag::empty());
+                                                filter_ref.tags.push(Tag::empty());
                                             }
                                         }
                                     }
@@ -665,7 +669,9 @@ pub fn CustomSub() -> Element {
                                     class: "btn-add-item",
                                     onclick: move |_| {
                                         let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::HashTag(vec![]));
+                                        sub.filters.push(FilterTemp::HashTag(
+                                            CustomHashTag::empty()
+                                        ));
                                     },
                                     "Only Tags"
                                 }
@@ -673,7 +679,7 @@ pub fn CustomSub() -> Element {
                                     class: "btn-add-item",
                                     onclick: move |_| {
                                         let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Aaccounts(vec![], vec![]));
+                                        sub.filters.push(FilterTemp::Aaccounts(CustomAaccounts::empty()));
                                     },
                                     "Follow People"
                                 }
@@ -681,7 +687,7 @@ pub fn CustomSub() -> Element {
                                     class: "btn-add-item",
                                     onclick: move |_| {
                                         let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Events(vec![]));
+                                        sub.filters.push(FilterTemp::Events(CustomEvents::empty()));
                                     },
                                     "Follow Notes"
                                 }
@@ -689,14 +695,7 @@ pub fn CustomSub() -> Element {
                                     class: "btn-add-item",
                                     onclick: move |_| {
                                         let mut sub = custom_sub.write();
-                                        let cf = CustomFilter {
-                                            kinds: vec![],
-                                            accounts: vec![],
-                                            time: (0, 0),
-                                            limit: 500,
-                                            tags: vec![]
-                                        };
-                                        sub.filters.push(FilterTemp::Customize(cf));
+                                        sub.filters.push(FilterTemp::Customize(CustomFilter::empty()));
                                     },
                                     "Customize"
                                 }
