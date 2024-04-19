@@ -5,6 +5,7 @@ mod router;
 mod state;
 mod utils;
 mod views;
+mod nostr;
 
 use dioxus::prelude::*;
 use tracing::Level;
