@@ -9,7 +9,6 @@ const BECH32_SK: &str = "nsec1przf9ascez0rty5yyflh5lk6hfu2pc0e2tyh8ed97esf25gg7z
 
 #[tokio::main]
 async fn main() -> Result<()> {
-
     let secret_key = SecretKey::from_bech32(BECH32_SK)?;
     let my_keys = Keys::new(secret_key);
 

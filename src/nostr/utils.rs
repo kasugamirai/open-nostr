@@ -1,11 +1,11 @@
 use indextree::{Arena, NodeId};
 
 /// Utility function to get all children of a specified node in an Arena.
-/// 
+///
 /// # Arguments
 /// * `arena` - A reference to an Arena where the nodes are stored.
 /// * `node_id` - The NodeId of the parent node whose children are to be collected.
-/// 
+///
 /// # Returns
 /// A vector of references to the child node data.
 pub fn get_children<T>(arena: &Arena<T>, node_id: NodeId) -> Vec<&T> {

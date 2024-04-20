@@ -47,7 +47,7 @@ impl<'a> TextNote<'a> {
     }
 
     pub fn is_root(&self) -> bool {
-        self.root.is_none() && self.reply_to.is_none()
+        matches!((&self.root, &self.reply_to), (None, None))
     }
 
     fn parse_event_tags(
