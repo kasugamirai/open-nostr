@@ -20,13 +20,14 @@ impl fmt::Display for Error {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TextNote<'a> {
     inner_ref: &'a Event,
     root: Option<&'a EventId>,
     reply_to: Option<&'a EventId>,
 }
 
+/*
 impl<'a> Clone for TextNote<'a> {
     fn clone(&self) -> Self {
         TextNote {
@@ -36,6 +37,7 @@ impl<'a> Clone for TextNote<'a> {
         }
     }
 }
+*/
 
 impl<'a> TextNote<'a> {
     pub fn new(event: &'a Event) -> Self {
