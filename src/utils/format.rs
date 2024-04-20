@@ -1,19 +1,19 @@
 /// format public key
-/// 
+///
 /// # Parameters
-/// 
+///
 /// * `public_key`: public key
 /// * `len`: length
-/// 
+///
 /// # Returns
-/// 
+///
 /// formatted public key
-/// 
+///
 /// # Examples
-/// 
+///
 /// ```
 /// use crate::utils::format::format_public_key;
-/// 
+///
 /// let public_key = "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3";
 /// let formatted = format_public_key(public_key, None);
 /// assert_eq!(formatted, "5KQwrP");
@@ -47,8 +47,7 @@ pub fn format_public_key(public_key: &str, len: Option<usize>) -> String {
 /// assert_eq!(formatted, "2022-01-01 00:01:00");
 pub fn format_timestamp(timestamp: u64, format: Option<&str>) -> String {
     let date = chrono::DateTime::from_timestamp(timestamp as i64, 0).unwrap();
-    date.format(format.unwrap_or("%Y-%m-%d %H:%M"))
-        .to_string()
+    date.format(format.unwrap_or("%Y-%m-%d %H:%M")).to_string()
 }
 
 /// format create time
