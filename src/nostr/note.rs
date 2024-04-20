@@ -52,11 +52,9 @@ impl<'a> TextNote<'a> {
         matches!((&self.root, &self.reply_to), (None, None))
     }
 
-    fn parse_event_tags(
-        event: &'a Event,
-        text_note: &mut Self,
-        no_marker_array: &mut Vec<&'a EventId>,
-    ) {
+    fn parse_event_tags(event: &'a Event, text_note: &mut Self) {
+        let mut no_marker_array: Vec<&EventId> = vec![];
+
         event.iter_tags().for_each(|t| {
             if let Tag::Event {
                 event_id, marker, ..
@@ -70,6 +68,24 @@ impl<'a> TextNote<'a> {
                 }
             }
         });
+
+        // a reply for root
+        if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
+            text_note.root = Some(reply);
+        } // no marker at all
+        if text_note.reply_to.is_none() {
+            match no_marker_array.len() {
+                1 => {
+                    text_note.root = no_marker_array.first().copied();
+                    text_note.reply_to = no_marker_array.first().copied();
+                }
+                n if n >= 2 => {
+                    text_note.root = no_marker_array.first().copied();
+                    text_note.reply_to = no_marker_array.get(1).copied();
+                }
+                _ => {}
+            }
+        }
     }
 }
 
@@ -79,26 +95,7 @@ impl<'a> TryFrom<&'a Event> for TextNote<'a> {
     fn try_from(event: &'a Event) -> Result<Self, Self::Error> {
         if event.kind == Kind::TextNote {
             let mut text_note = TextNote::new(event);
-            let mut no_marker_array: Vec<&EventId> = vec![];
-            //try to use marker to match root & reply_to
-            TextNote::parse_event_tags(event, &mut text_note, &mut no_marker_array);
-            // a reply for root
-            if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
-                text_note.root = Some(reply);
-            } // no marker at all
-            if text_note.reply_to.is_none() {
-                match no_marker_array.len() {
-                    1 => {
-                        text_note.root = no_marker_array.first().copied();
-                        text_note.reply_to = no_marker_array.first().copied();
-                    }
-                    n if n >= 2 => {
-                        text_note.root = no_marker_array.first().copied();
-                        text_note.reply_to = no_marker_array.get(1).copied();
-                    }
-                    _ => {}
-                }
-            }
+            TextNote::parse_event_tags(event, &mut text_note);
             Ok(text_note)
         } else {
             Err(Error::KindNotMatch)
