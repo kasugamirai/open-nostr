@@ -1,14 +1,23 @@
-use std::collections::{HashMap, HashSet};
 use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
 
-use nostr_sdk::prelude::*;
 use indextree::{Arena, NodeId};
+use nostr_sdk::prelude::*;
+use std::fmt;
 
 use super::utils::{self, get_ancestors, get_children};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     KindNotMatch,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::KindNotMatch => write!(f, "Kind does not match"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -22,8 +31,8 @@ impl<'a> Clone for TextNote<'a> {
     fn clone(&self) -> Self {
         TextNote {
             inner_ref: self.inner_ref, // This just copies the reference
-            root: self.root, // This just copies the reference
-            reply_to: self.reply_to, // This just copies the reference
+            root: self.root,           // This just copies the reference
+            reply_to: self.reply_to,   // This just copies the reference
         }
     }
 }
@@ -40,6 +49,26 @@ impl<'a> TextNote<'a> {
     pub fn is_root(&self) -> bool {
         self.root.is_none() && self.reply_to.is_none()
     }
+
+    fn parse_event_tags(
+        event: &'a Event,
+        text_note: &mut Self,
+        no_marker_array: &mut Vec<&'a EventId>,
+    ) {
+        event.iter_tags().for_each(|t| {
+            if let Tag::Event {
+                event_id, marker, ..
+            } = t
+            {
+                match marker {
+                    Some(Marker::Root) => text_note.root = Some(event_id),
+                    Some(Marker::Reply) => text_note.reply_to = Some(event_id),
+                    None => no_marker_array.push(event_id),
+                    _ => {} //do nothing
+                }
+            }
+        });
+    }
 }
 
 impl<'a> TryFrom<&'a Event> for TextNote<'a> {
@@ -50,26 +79,11 @@ impl<'a> TryFrom<&'a Event> for TextNote<'a> {
             let mut text_note = TextNote::new(event);
             let mut no_marker_array: Vec<&EventId> = vec![];
             //try to use marker to match root & reply_to
-            event.iter_tags().for_each(|t| {
-                if let Tag::Event {
-                    event_id,
-                    relay_url: _,
-                    marker,
-                } = t
-                {
-                    match marker {
-                        Some(Marker::Root) => text_note.root = Some(event_id),
-                        Some(Marker::Reply) => text_note.reply_to = Some(event_id),
-                        None => no_marker_array.push(event_id),
-                        _ => {} //do nothing
-                    }
-                }
-            });
+            TextNote::parse_event_tags(event, &mut text_note, &mut no_marker_array);
             // a reply for root
-            if text_note.root.is_none() && text_note.reply_to.is_some() {
-                text_note.root = text_note.reply_to;
-            }
-            // no marker at all
+            if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
+                text_note.root = Some(reply);
+            } // no marker at all
             if text_note.reply_to.is_none() {
                 match no_marker_array.len() {
                     1 => {
@@ -93,28 +107,29 @@ impl<'a> TryFrom<&'a Event> for TextNote<'a> {
 #[derive(Debug)]
 pub struct ReplyTrees<'a> {
     id2id: HashMap<&'a EventId, NodeId>,
-    arena: Arena<TextNote<'a>>
+    arena: Arena<TextNote<'a>>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum DisplayOrder {
     NewestFirst,
-    DeepestFirst
+    DeepestFirst,
 }
 
 impl<'a> ReplyTrees<'a> {
-    
     pub fn new() -> Self {
         ReplyTrees {
             id2id: HashMap::new(),
-            arena: Arena::new()
+            arena: Arena::new(),
         }
     }
 
     //todo
     pub fn accept(&mut self, events: &[&'a Event]) {
-
-        let text_notes: Vec<TextNote<'_>> = events.iter().filter_map(|e| TextNote::try_from(*e).ok()).collect();
+        let text_notes: Vec<TextNote<'_>> = events
+            .iter()
+            .filter_map(|e| TextNote::try_from(*e).ok())
+            .collect();
 
         for event in &text_notes {
             let node_id = self.arena.new_node(event.clone());
@@ -131,23 +146,24 @@ impl<'a> ReplyTrees<'a> {
         }
     }
 
-
     pub fn get_note_by_id(&self, id: &EventId) -> Option<&'a TextNote> {
-        self.id2id.get(id).and_then(|node_id| self.arena.get(*node_id).map(|node| node.get()))
+        self.id2id
+            .get(id)
+            .and_then(|node_id| self.arena.get(*node_id).map(|node| node.get()))
     }
 
     pub fn get_replies(&self, id: &EventId, order: Option<DisplayOrder>) -> Vec<&'a TextNote> {
-        if let Some(node_id) =  self.id2id.get(id) {
+        if let Some(node_id) = self.id2id.get(id) {
             let mut results = get_children(&self.arena, *node_id);
             match order {
                 Some(DisplayOrder::NewestFirst) => {
                     results.sort_by(|b, a| a.inner_ref.created_at.cmp(&b.inner_ref.created_at));
                     results
-                },
-                _ => results
+                }
+                _ => results,
             }
         } else {
-            vec![] 
+            vec![]
         }
     }
 
@@ -158,9 +174,7 @@ impl<'a> ReplyTrees<'a> {
             vec![]
         }
     }
-
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -183,7 +197,6 @@ mod tests {
     const R_Z: &str = r#"{"content":"R -> Z","created_at":1713517740,"id":"e9356a18293d8122c233d19b405ab8523773fa9419db0bd634bd592ebd250a87","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"5a4c8c02a75b2fb9ffb567995366629d28c2d131b0e5359bbdc008211b400c265384a5d743cedb794526f54f6474ac6151ca02a5ca150a464d0b11840e0c2ffe","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","reply"]]}"#;
     const R_Z_O: &str = r#"{"content":"R -> Z -> O","created_at":1713517783,"id":"b3ec05726a7b456a7a2212981c7278ccb08d366c5caa9d1e29f2b5d652b00cf5","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"63ea4e6e43006c0dc7501a111eebf348006813d9abb359a317214a6941bb6eceb889b57fca2c57b1deef568f10ca9e3f2105b43da814644612466b04185f7033","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","e9356a18293d8122c233d19b405ab8523773fa9419db0bd634bd592ebd250a87","wss://relay.damus.io/","reply"]]}"#;
 
-
     fn event_from(raw: &str) -> Event {
         Event::from_json(raw).unwrap()
     }
@@ -191,31 +204,52 @@ mod tests {
     #[test]
     fn test_no_note() {
         let event = event_from(NOT_NOTE);
-        assert!(TextNote::try_from(&event).is_err(), "Expect an event with kind 1");
+        assert!(
+            TextNote::try_from(&event).is_err(),
+            "Expect an event with kind 1"
+        );
     }
 
     #[test]
     fn test_reply_with_marker() {
         let event = event_from(REPLY_WITH_MARKER);
         let textNote = TextNote::try_from(&event).unwrap();
-        assert!(textNote.root.unwrap().to_hex() == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935");
-        assert!(textNote.reply_to.unwrap().to_hex() == *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345");
+        assert!(
+            textNote.root.unwrap().to_hex()
+                == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"
+        );
+        assert!(
+            textNote.reply_to.unwrap().to_hex()
+                == *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345"
+        );
     }
 
     #[test]
     fn test_reply_with_no_marker() {
         let event = event_from(REPLY_WITH_NO_MARKER);
         let textNote = TextNote::try_from(&event).unwrap();
-        assert!(textNote.root.unwrap().to_hex() == *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc");
-        assert!(textNote.reply_to.unwrap().to_hex() == *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430");
+        assert!(
+            textNote.root.unwrap().to_hex()
+                == *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc"
+        );
+        assert!(
+            textNote.reply_to.unwrap().to_hex()
+                == *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430"
+        );
     }
 
     #[test]
     fn test_reply_to_root_no_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_NO_MARKER);
         let textNote = TextNote::try_from(&event).unwrap();
-        assert!(textNote.root.unwrap().to_hex() == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24");
-        assert!(textNote.reply_to.unwrap().to_hex() == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24");
+        assert!(
+            textNote.root.unwrap().to_hex()
+                == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
+        );
+        assert!(
+            textNote.reply_to.unwrap().to_hex()
+                == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
+        );
     }
 
     #[test]
@@ -230,7 +264,9 @@ mod tests {
         let event = event_from(ROOT_NOTE);
         let mut reply_tree = ReplyTrees::new();
         reply_tree.accept(&[&event]);
-        let event_id = EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38").unwrap();
+        let event_id =
+            EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
+                .unwrap();
         assert!(event.id == event_id);
         assert!(event.content == *"If i do createElement and rhen appendChild for a lot of number of time, It took a lot of RAM compared to writting the entire HTML manually.");
     }
@@ -239,16 +275,25 @@ mod tests {
     fn test_get_replies_ordered() {
         let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z, R_Z_O]
             .iter()
-            .map(|raw: &&str| event_from(raw)).collect();
+            .map(|raw: &&str| event_from(raw))
+            .collect();
         let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::new();
         reply_tree.accept(&event_refs);
-        let R_Children = reply_tree.get_replies(&EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651").unwrap(), Some(DisplayOrder::NewestFirst));
+        let R_Children = reply_tree.get_replies(
+            &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
+                .unwrap(),
+            Some(DisplayOrder::NewestFirst),
+        );
         assert!(R_Children.len() == 3);
         assert!(R_Children.first().unwrap().inner_ref.content == "R -> Z");
         assert!(R_Children.last().unwrap().inner_ref.content == "R -> A");
         //pick a child
-        let R_A_Children = reply_tree.get_replies(&EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511").unwrap(), Some(DisplayOrder::NewestFirst));
+        let R_A_Children = reply_tree.get_replies(
+            &EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511")
+                .unwrap(),
+            Some(DisplayOrder::NewestFirst),
+        );
         assert!(R_A_Children.len() == 1);
         assert!(R_A_Children.first().unwrap().inner_ref.content == "R -> A -> B");
     }
@@ -257,11 +302,16 @@ mod tests {
     fn test_get_replies_with_orphan() {
         let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z_O]
             .iter()
-            .map(|raw: &&str| event_from(raw)).collect();
+            .map(|raw: &&str| event_from(raw))
+            .collect();
         let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::new();
         reply_tree.accept(&event_refs);
-        let R_Children = reply_tree.get_replies(&EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651").unwrap(), Some(DisplayOrder::NewestFirst));
+        let R_Children = reply_tree.get_replies(
+            &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
+                .unwrap(),
+            Some(DisplayOrder::NewestFirst),
+        );
         assert!(R_Children.len() == 2);
         assert!(R_Children.last().unwrap().inner_ref.content == "R -> A");
     }
@@ -270,11 +320,15 @@ mod tests {
     fn test_get_ancestors() {
         let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z, R_Z_O]
             .iter()
-            .map(|raw: &&str| event_from(raw)).collect();
+            .map(|raw: &&str| event_from(raw))
+            .collect();
         let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::new();
         reply_tree.accept(&event_refs);
-        let ancestors = reply_tree.get_ancestors(&EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541").unwrap());
+        let ancestors = reply_tree.get_ancestors(
+            &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
+                .unwrap(),
+        );
         assert!(ancestors.first().unwrap().inner_ref.content == "R -> A");
         assert!(ancestors.last().unwrap().inner_ref.content == "This is the Root!");
     }

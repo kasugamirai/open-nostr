@@ -64,7 +64,7 @@ pub fn InputCusTag(props: CusTagProps) -> Element {
                     class: "btn btn-false",
                     onclick: move |_| {
                         let v = bak();
-                        value.set(v.clone());
+                        value.set(v);
                         edit.set(false);
                         props.on_change.call(value());
                     },

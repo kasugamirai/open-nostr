@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 #[derive(PartialEq, Clone, Props)]
-pub struct DropdowntProps {
+pub struct DropdownProps {
     #[props(default = "left".to_string())]
     pos: String,
     #[props(default = "hover".to_string())]
@@ -11,7 +11,7 @@ pub struct DropdowntProps {
 }
 
 #[component]
-pub fn Dropdown(props: DropdowntProps) -> Element {
+pub fn Dropdown(props: DropdownProps) -> Element {
     let style = if props.pos == "left" {
         "left: 0;"
     } else {

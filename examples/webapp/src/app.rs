@@ -94,7 +94,7 @@ pub fn app() -> Html {
 
     html! {
         <main>
-            <img class="logo" src="https://yew.rs/img/logo.png" alt="Yew logo" />
+            <img class="logo" src="https://pbs.twimg.com/media/GJz0TM_aAAAX28k?format=jpg&name=4096x4096" alt="Yew logo" />
             <h1>{ "Hello World!" }</h1>
             <span class="subtitle">{ "from Yew with " }<i class="heart" /></span>
         </main>
