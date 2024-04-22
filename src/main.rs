@@ -12,6 +12,8 @@ use tracing::Level;
 
 use router::Route;
 
+use crate::state::subscription::CustomSub;
+
 fn main() {
     // Init debug
     dioxus_logger::init(Level::INFO).expect("failed to init logger");
@@ -21,6 +23,7 @@ fn main() {
 
 fn App() -> Element {
     let state = use_context_provider(|| Signal::new(String::from("light")));
+    let _custom_sub_global = use_context_provider(|| Signal::new(CustomSub::default()));
 
     rsx! {
         div {

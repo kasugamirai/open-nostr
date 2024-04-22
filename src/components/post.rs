@@ -48,6 +48,7 @@ pub fn Post(props: PostProps) -> Element {
                 div {
                     class: "com-post-author-more",
                     Dropdown {
+                        pos: "right",
                         trigger: rsx! {
                             div {
                                 class: "more-trigger",

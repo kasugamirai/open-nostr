@@ -13,7 +13,7 @@ use serde_json::Value;
 /// ```
 /// let custom_sub = CustomSub::new();
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
     pub name: String,
     pub relay_set: RelaySet,
@@ -60,7 +60,7 @@ impl CustomSub {
 /// ```
 /// let relay_set = RelaySet::new();
 /// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct RelaySet {
     pub name: String,
     pub relays: Vec<String>,
@@ -80,7 +80,7 @@ impl RelaySet {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum FilterTemp {
     HashTag(CustomHashTag),
     Aaccounts(CustomAaccounts),
@@ -111,7 +111,7 @@ impl FilterTemp {
                         .collect::<Vec<PublicKey>>(),
                 );
             }
-            FilterTemp::Events(events) => {}
+            FilterTemp::Events(_events) => {}
             FilterTemp::Customize(customize) => {
                 if customize.kinds.len() > 0 {
                     filter = filter.kinds(
@@ -194,7 +194,7 @@ impl<'de> Deserialize<'de> for FilterTemp {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomHashTag {
     pub r#type: String,
     pub tags: Vec<String>,
@@ -209,7 +209,7 @@ impl CustomHashTag {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomAaccounts {
     pub r#type: String,
     pub kinds: Vec<u64>,
@@ -226,7 +226,7 @@ impl CustomAaccounts {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomEvents {
     pub r#type: String,
     pub events: Vec<Event>,
@@ -256,7 +256,7 @@ impl Event {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomFilter {
     pub r#type: String,
     pub kinds: Vec<u64>,
