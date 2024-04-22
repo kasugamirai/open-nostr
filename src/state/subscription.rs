@@ -1,4 +1,4 @@
-use nostr_sdk::{Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
+use nostr_sdk::{EventId, Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
@@ -111,7 +111,11 @@ impl FilterTemp {
                         .collect::<Vec<PublicKey>>(),
                 );
             }
-            FilterTemp::Events(_events) => {}
+            FilterTemp::Events(events) => {
+                for x in &events.events {
+                    filter = filter.event(EventId::from_hex(&x.nevent).unwrap());
+                }
+            }
             FilterTemp::Customize(customize) => {
                 if !customize.kinds.is_empty() {
                     filter = filter.kinds(
@@ -424,13 +428,13 @@ mod test {
                 }],
             })],
         };
-        let custom_filter = custom_sub.to_sub();
+        let custom_filter = custom_sub.filters[0].to_sub();
 
         let filter = Filter::new().event(event_id);
         println!("filter: {:?}", filter);
         println!("custom_filter: {:?}", custom_filter);
 
-        assert_eq!(filter, custom_filter[0]);
+        assert_eq!(filter, custom_filter);
     }
 
     #[test]
