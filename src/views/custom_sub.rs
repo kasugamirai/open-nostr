@@ -23,80 +23,81 @@ fn kind_to_str(index: u64) -> String {
     format!("{:?}", kind)
 }
 
-static KINDS: [(Kind, &str, u64); 64] = [
-    (Kind::Metadata, "Metadata", 0),
+static KINDS: [(Kind, &str, u64); 2] = [
+    // (Kind::Metadata, "Metadata", 0),
     (Kind::TextNote, "TextNote", 1),
-    (Kind::RecommendRelay, "RecommendRelay", 2),
-    (Kind::ContactList, "ContactList", 3),
-    (Kind::OpenTimestamps, "OpenTimestamps", 1040),
-    (Kind::EncryptedDirectMessage, "EncryptedDirectMessage", 4),
-    (Kind::EventDeletion, "EventDeletion", 5),
+    // (Kind::RecommendRelay, "RecommendRelay", 2),
+    // (Kind::ContactList, "ContactList", 3),
+    // (Kind::OpenTimestamps, "OpenTimestamps", 1040),
+    // (Kind::EncryptedDirectMessage, "EncryptedDirectMessage", 4),
+    // (Kind::EventDeletion, "EventDeletion", 5),
     (Kind::Repost, "Repost", 6),
-    (Kind::GenericRepost, "GenericRepost", 16),
-    (Kind::Reaction, "Reaction", 7),
-    (Kind::BadgeAward, "BadgeAward", 8),
-    (Kind::ChannelCreation, "ChannelCreation", 40),
-    (Kind::ChannelMetadata, "ChannelMetadata", 41),
-    (Kind::ChannelMessage, "ChannelMessage", 42),
-    (Kind::ChannelHideMessage, "ChannelHideMessage", 43),
-    (Kind::ChannelMuteUser, "ChannelMuteUser", 44),
-    (Kind::PublicChatReserved45, "PublicChatReserved45", 45),
-    (Kind::PublicChatReserved46, "PublicChatReserved46", 46),
-    (Kind::PublicChatReserved47, "PublicChatReserved47", 47),
-    (Kind::PublicChatReserved48, "PublicChatReserved48", 48),
-    (Kind::PublicChatReserved49, "PublicChatReserved49", 49),
-    (Kind::WalletConnectInfo, "WalletConnectInfo", 13194),
-    (Kind::Reporting, "Reporting", 1984),
-    (Kind::Label, "Label", 1985),
-    (Kind::ZapPrivateMessage, "ZapPrivateMessage", 9733),
-    (Kind::ZapRequest, "ZapRequest", 9734),
-    (Kind::ZapReceipt, "ZapReceipt", 9735),
-    (Kind::MuteList, "MuteList", 10000),
-    (Kind::PinList, "PinList", 10001),
-    (Kind::Bookmarks, "Bookmarks", 10003),
-    (Kind::Communities, "Communities", 10004),
-    (Kind::PublicChats, "PublicChats", 10005),
-    (Kind::BlockedRelays, "BlockedRelays", 10006),
-    (Kind::SearchRelays, "SearchRelays", 10007),
-    (Kind::SimpleGroups, "SimpleGroups", 10009),
-    (Kind::Interests, "Interests", 10015),
-    (Kind::Emojis, "Emojis", 10030),
-    (Kind::RelayList, "RelayList", 10002),
-    (Kind::Authentication, "Authentication", 22242),
-    (Kind::WalletConnectRequest, "WalletConnectRequest", 23194),
-    (Kind::WalletConnectResponse, "WalletConnectResponse", 23195),
-    (Kind::NostrConnect, "NostrConnect", 24133),
-    (Kind::LiveEvent, "LiveEvent", 30311),
-    (Kind::LiveEventMessage, "LiveEventMessage", 1311),
-    (Kind::ProfileBadges, "ProfileBadges", 30008),
-    (Kind::BadgeDefinition, "BadgeDefinition", 30009),
-    (Kind::Seal, "Seal", 13),
-    (Kind::GiftWrap, "GiftWrap", 1059),
-    (Kind::SealedDirect, "SealedDirect", 14),
-    (Kind::SetStall, "SetStall", 30017),
-    (Kind::SetProduct, "SetProduct", 30018),
-    (Kind::JobFeedback, "JobFeedback", 7000),
-    (Kind::FollowSets, "FollowSets", 30000),
-    (Kind::RelaySets, "RelaySets", 30002),
-    (Kind::BookmarkSets, "BookmarkSets", 30003),
-    (Kind::ArticlesCurationSets, "ArticlesCurationSets", 30004),
-    (Kind::VideosCurationSets, "VideosCurationSets", 30005),
-    (Kind::InterestSets, "InterestSets", 30015),
-    (Kind::EmojiSets, "EmojiSets", 30030),
-    (Kind::ReleaseArtifactSets, "ReleaseArtifactSets", 30063),
-    (Kind::LongFormTextNote, "LongFormTextNote", 30023),
-    (Kind::FileMetadata, "FileMetadata", 1063),
-    (Kind::HttpAuth, "HttpAuth", 27235),
-    (
-        Kind::ApplicationSpecificData,
-        "ApplicationSpecificData",
-        30078,
-    ),
+    // (Kind::GenericRepost, "GenericRepost", 16),
+    // (Kind::Reaction, "Reaction", 7),
+    // (Kind::BadgeAward, "BadgeAward", 8),
+    // (Kind::ChannelCreation, "ChannelCreation", 40),
+    // (Kind::ChannelMetadata, "ChannelMetadata", 41),
+    // (Kind::ChannelMessage, "ChannelMessage", 42),
+    // (Kind::ChannelHideMessage, "ChannelHideMessage", 43),
+    // (Kind::ChannelMuteUser, "ChannelMuteUser", 44),
+    // (Kind::PublicChatReserved45, "PublicChatReserved45", 45),
+    // (Kind::PublicChatReserved46, "PublicChatReserved46", 46),
+    // (Kind::PublicChatReserved47, "PublicChatReserved47", 47),
+    // (Kind::PublicChatReserved48, "PublicChatReserved48", 48),
+    // (Kind::PublicChatReserved49, "PublicChatReserved49", 49),
+    // (Kind::WalletConnectInfo, "WalletConnectInfo", 13194),
+    // (Kind::Reporting, "Reporting", 1984),
+    // (Kind::Label, "Label", 1985),
+    // (Kind::ZapPrivateMessage, "ZapPrivateMessage", 9733),
+    // (Kind::ZapRequest, "ZapRequest", 9734),
+    // (Kind::ZapReceipt, "ZapReceipt", 9735),
+    // (Kind::MuteList, "MuteList", 10000),
+    // (Kind::PinList, "PinList", 10001),
+    // (Kind::Bookmarks, "Bookmarks", 10003),
+    // (Kind::Communities, "Communities", 10004),
+    // (Kind::PublicChats, "PublicChats", 10005),
+    // (Kind::BlockedRelays, "BlockedRelays", 10006),
+    // (Kind::SearchRelays, "SearchRelays", 10007),
+    // (Kind::SimpleGroups, "SimpleGroups", 10009),
+    // (Kind::Interests, "Interests", 10015),
+    // (Kind::Emojis, "Emojis", 10030),
+    // (Kind::RelayList, "RelayList", 10002),
+    // (Kind::Authentication, "Authentication", 22242),
+    // (Kind::WalletConnectRequest, "WalletConnectRequest", 23194),
+    // (Kind::WalletConnectResponse, "WalletConnectResponse", 23195),
+    // (Kind::NostrConnect, "NostrConnect", 24133),
+    // (Kind::LiveEvent, "LiveEvent", 30311),
+    // (Kind::LiveEventMessage, "LiveEventMessage", 1311),
+    // (Kind::ProfileBadges, "ProfileBadges", 30008),
+    // (Kind::BadgeDefinition, "BadgeDefinition", 30009),
+    // (Kind::Seal, "Seal", 13),
+    // (Kind::GiftWrap, "GiftWrap", 1059),
+    // (Kind::SealedDirect, "SealedDirect", 14),
+    // (Kind::SetStall, "SetStall", 30017),
+    // (Kind::SetProduct, "SetProduct", 30018),
+    // (Kind::JobFeedback, "JobFeedback", 7000),
+    // (Kind::FollowSets, "FollowSets", 30000),
+    // (Kind::RelaySets, "RelaySets", 30002),
+    // (Kind::BookmarkSets, "BookmarkSets", 30003),
+    // (Kind::ArticlesCurationSets, "ArticlesCurationSets", 30004),
+    // (Kind::VideosCurationSets, "VideosCurationSets", 30005),
+    // (Kind::InterestSets, "InterestSets", 30015),
+    // (Kind::EmojiSets, "EmojiSets", 30030),
+    // (Kind::ReleaseArtifactSets, "ReleaseArtifactSets", 30063),
+    // (Kind::LongFormTextNote, "LongFormTextNote", 30023),
+    // (Kind::FileMetadata, "FileMetadata", 1063),
+    // (Kind::HttpAuth, "HttpAuth", 27235),
+    // (
+    //     Kind::ApplicationSpecificData,
+    //     "ApplicationSpecificData",
+    //     30078,
+    // ),
 ];
 
 #[component]
 pub fn CustomSub() -> Element {
-    let mut custom_sub = use_signal(CustomSub::default);
+    let mut custom_sub_global = use_context::<Signal<CustomSub>>();
+    let mut custom_sub = use_signal(|| CustomSub::default());
     let mut new_relay = use_signal(String::new);
     let mut edit = use_signal(|| false);
     let handle_export = move || {
@@ -148,12 +149,18 @@ pub fn CustomSub() -> Element {
                                 if edit() {
                                     button {
                                         class: "content-btn",
-                                        onclick: move |_| edit.set(false),
+                                        onclick: move |_| {
+                                            custom_sub_global.set(custom_sub.read().clone());
+                                            edit.set(false);
+                                        },
                                         "Save"
                                     }
                                     button {
                                         class: "content-btn",
-                                        onclick: move |_| edit.set(false),
+                                        onclick: move |_| {
+                                            custom_sub.set(custom_sub_global.read().clone());
+                                            edit.set(false);
+                                        },
                                         "Reset"
                                     }
                                 } else {
@@ -294,6 +301,14 @@ pub fn CustomSub() -> Element {
             for (i, filter) in custom_sub.read().filters.iter().enumerate() {
                 div {
                     class: "custom-sub-item",
+                    button {
+                        class: "custom-sub-item-remove {edit}",
+                        dangerous_inner_html: "{FALSE}",
+                        onclick: move |_| {
+                            let mut sub = custom_sub.write();
+                            sub.filters.remove(i);
+                        }
+                    }
                     match filter {
                         FilterTemp::HashTag(hashtag) => {
                             rsx! {

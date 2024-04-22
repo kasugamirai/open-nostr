@@ -118,12 +118,15 @@
     top: -16px;
     left: -16px;
     border-radius: var(--radius-circle);
-    transform: rotate(45deg);
     background-color: var(--col-error);
     border: none;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.custom-sub-item-remove.false {
+    display: none;
 }
 
 .custom-sub-item-remove svg {
