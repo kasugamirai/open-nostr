@@ -438,7 +438,7 @@ mod test {
     }
 
     #[test]
-    fn test_multiply_sub() {
+    fn test_multiple_filters_sub() {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
             name: String::from("Test"),
@@ -457,20 +457,39 @@ mod test {
                 }),
                 FilterTemp::HashTag(CustomHashTag {
                     r#type: String::from("hashtag"),
-                    tags: vec![String::from("#steakstr"), String::from("#steak")],
+                    tags: vec![String::from("#rust"), String::from("#programming")],
                 }),
             ],
         };
-        let custom_filter = custom_sub.to_sub();
+        let filters = custom_sub.to_sub();
 
         let filter1 = Filter::new()
             .author(PublicKey::from_str(public_key).unwrap())
             .kind(Kind::TextNote);
-
         let filter2 =
-            Filter::new().hashtags(vec![String::from("#steakstr"), String::from("#steak")]);
+            Filter::new().hashtags(vec![String::from("#rust"), String::from("#programming")]);
 
-        assert_eq!(filter1, custom_filter[0]);
-        assert_eq!(filter2, custom_filter[1]);
+        assert_eq!(filters.len(), 2);
+        assert_eq!(filters[0], filter1);
+        assert_eq!(filters[1], filter2);
+    }
+
+    #[test]
+    fn test_empty_filters() {
+        let custom_sub = CustomSub {
+            name: String::from("EmptyTest"),
+            relay_set: RelaySet {
+                name: String::from("EmptyRelaySet"),
+                relays: vec![String::from("wss://relay.damus.io")],
+            },
+            filters: vec![],
+        };
+
+        let filters = custom_sub.to_sub();
+        assert!(
+            filters.is_empty(),
+            "Filters should be empty but found {:?}",
+            filters
+        );
     }
 }

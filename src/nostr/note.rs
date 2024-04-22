@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
+use dioxus::prelude::server_fn::response::Res;
 use indextree::{Arena, NodeId};
 use nostr_sdk::prelude::*;
 use std::fmt;
@@ -10,12 +11,14 @@ use super::utils::{self, get_ancestors, get_children};
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
     KindNotMatch,
+    NotEnoughElements,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::KindNotMatch => write!(f, "Kind does not match"),
+            Error::NotEnoughElements => write!(f, "Not enough elements in no_marker_array"),
         }
     }
 }
@@ -52,7 +55,7 @@ impl<'a> TextNote<'a> {
         matches!((&self.root, &self.reply_to), (None, None))
     }
 
-    fn parse_event_tags(event: &'a Event, text_note: &mut Self) {
+    fn parse_event_tags(event: &'a Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<&EventId> = vec![];
 
         event.iter_tags().for_each(|t| {
@@ -83,9 +86,13 @@ impl<'a> TextNote<'a> {
                     text_note.root = no_marker_array.first().copied();
                     text_note.reply_to = no_marker_array.get(1).copied();
                 }
-                _ => {}
+                _ => {
+                    return Err(Error::NotEnoughElements);
+                }
             }
         }
+
+        Ok(())
     }
 }
 
