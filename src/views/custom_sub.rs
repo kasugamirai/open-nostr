@@ -324,7 +324,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                     button {
-                                        class: "btn-add",
+                                        class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
@@ -354,7 +354,7 @@ pub fn CustomSub() -> Element {
                                         pos: "right",
                                         trigger: rsx! {
                                             button {
-                                                class: "btn-add",
+                                                class: "btn-add {edit}",
                                                 dangerous_inner_html: "{ADD}",
                                             }
                                         },
@@ -423,7 +423,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                     button {
-                                        class: "btn-add",
+                                        class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
@@ -464,7 +464,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                     button {
-                                        class: "btn-add",
+                                        class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
@@ -494,7 +494,7 @@ pub fn CustomSub() -> Element {
                                         pos: "right",
                                         trigger: rsx! {
                                             button {
-                                                class: "btn-add",
+                                                class: "btn-add {edit}",
                                                 dangerous_inner_html: "{ADD}",
                                             }
                                         },
@@ -563,7 +563,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                     button {
-                                        class: "btn-add",
+                                        class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
@@ -636,7 +636,7 @@ pub fn CustomSub() -> Element {
                                         }
                                     }
                                     button {
-                                        class: "btn-add",
+                                        class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
@@ -657,7 +657,7 @@ pub fn CustomSub() -> Element {
                     Dropdown {
                         trigger: rsx! {
                             button {
-                                class: "btn-add",
+                                class: "btn-add {edit}",
                                 dangerous_inner_html: "{ADD}"
                             }
                         },
