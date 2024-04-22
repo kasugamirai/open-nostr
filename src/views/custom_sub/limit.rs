@@ -4,11 +4,11 @@ use crate::components::icons::{FALSE, TRUE};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct InputLimitProps {
-    on_change: EventHandler<u64>,
+    on_change: EventHandler<usize>,
     placeholder: Option<String>,
     #[props(default = false)]
     edit: bool,
-    value: u64,
+    value: usize,
 }
 
 #[component]
@@ -34,7 +34,7 @@ pub fn InputLimit(props: InputLimitProps) -> Element {
                     value: "{value}",
                     placeholder: props.placeholder.unwrap_or_default(),
                     oninput: move |event| {
-                        let v = event.value().parse::<u64>().unwrap_or(0);
+                        let v = event.value().parse::<usize>().unwrap_or(0);
                         value.set(v);
                         props.on_change.call(v);
                     }

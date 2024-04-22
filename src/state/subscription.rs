@@ -1,3 +1,4 @@
+use nostr_sdk::{Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
@@ -40,6 +41,13 @@ impl CustomSub {
     pub fn json(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
+
+    pub fn to_sub(&self) -> Vec<Filter> {
+        self.filters
+            .iter()
+            .map(|x| x.to_sub())
+            .collect::<Vec<Filter>>()
+    }
 }
 
 /// RelaySet
@@ -78,6 +86,69 @@ pub enum FilterTemp {
     Aaccounts(CustomAaccounts),
     Events(CustomEvents),
     Customize(CustomFilter),
+}
+
+impl FilterTemp {
+    pub fn to_sub(&self) -> Filter {
+        let mut filter = Filter::new();
+        match self {
+            FilterTemp::HashTag(hashtag) => {
+                filter = filter.hashtags(hashtag.tags.clone());
+            }
+            FilterTemp::Aaccounts(accounts) => {
+                filter = filter.kinds(
+                    accounts
+                        .kinds
+                        .iter()
+                        .map(|&x| Kind::from(x))
+                        .collect::<Vec<Kind>>(),
+                );
+                filter = filter.authors(
+                    accounts
+                        .accounts
+                        .iter()
+                        .map(|x| PublicKey::parse(&x.npub).unwrap())
+                        .collect::<Vec<PublicKey>>(),
+                );
+            }
+            FilterTemp::Events(events) => {}
+            FilterTemp::Customize(customize) => {
+                if customize.kinds.len() > 0 {
+                    filter = filter.kinds(
+                        customize
+                            .kinds
+                            .iter()
+                            .map(|&x| Kind::from(x))
+                            .collect::<Vec<Kind>>(),
+                    );
+                }
+                if customize.accounts.len() > 0 {
+                    filter = filter.authors(
+                        customize
+                            .accounts
+                            .iter()
+                            .map(|x| PublicKey::parse(&x.npub).unwrap())
+                            .collect::<Vec<PublicKey>>(),
+                    )
+                }
+                if customize.since > 0 {
+                    filter = filter.since(Timestamp::from(customize.since));
+                }
+                if customize.until > 0 {
+                    filter = filter.until(Timestamp::from(customize.until));
+                }
+                if customize.limit > 0 {
+                    filter = filter.limit(customize.limit);
+                }
+                for tag in customize.tags.clone() {
+                    let k: SingleLetterTag = tag.tag.parse().unwrap();
+                    let parts: Vec<&str> = tag.value.split(',').map(|s| s.trim()).collect();
+                    filter = filter.custom_tag(k, parts);
+                }
+            }
+        }
+        filter
+    }
 }
 
 impl Serialize for FilterTemp {
@@ -190,8 +261,9 @@ pub struct CustomFilter {
     pub r#type: String,
     pub kinds: Vec<u64>,
     pub accounts: Vec<Account>,
-    pub time: (u64, u64),
-    pub limit: u64,
+    pub since: u64,
+    pub until: u64,
+    pub limit: usize,
     pub tags: Vec<Tag>,
 }
 
@@ -201,7 +273,8 @@ impl CustomFilter {
             r#type: String::from("customized"),
             kinds: vec![],
             accounts: vec![],
-            time: (0, 0),
+            since: 0,
+            until: 0,
             limit: 0,
             tags: vec![],
         }

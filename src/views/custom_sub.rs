@@ -580,12 +580,13 @@ pub fn CustomSub() -> Element {
                                         "Time:"
                                     }
                                     DateTimePicker {
-                                        value: filter.time.0,
-                                        end: filter.time.1,
+                                        value: filter.since,
+                                        end: filter.until,
                                         on_change: move |(start, end): (u64, u64)| {
                                             let mut sub = custom_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                filter_ref.time = (start, end);
+                                                filter_ref.since = start;
+                                                filter_ref.until = end;
                                             }
                                         },
                                     }
@@ -598,7 +599,7 @@ pub fn CustomSub() -> Element {
                                     }
                                     InputLimit {
                                         edit: false,
-                                        on_change: move |v: u64| {
+                                        on_change: move |v: usize| {
                                             let mut sub = custom_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.limit = v;
