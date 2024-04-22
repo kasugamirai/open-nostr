@@ -39,6 +39,7 @@ pub fn InputAccount(props: InputAccountProps) -> Element {
             div {
                 class: "com-input_card-input {edit() == true}",
                 input {
+                    style: "max-width: 70px",
                     r#type: "text",
                     value: "{value().npub}",
                     placeholder: p1,
@@ -47,6 +48,7 @@ pub fn InputAccount(props: InputAccountProps) -> Element {
                     }
                 }
                 input {
+                    style: "max-width: 70px",
                     r#type: "text",
                     value: "{value().alt_name}",
                     placeholder: p2,
