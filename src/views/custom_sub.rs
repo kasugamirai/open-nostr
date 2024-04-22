@@ -9,7 +9,7 @@ use nostr_sdk::Kind;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{
-        Account, CustomAaccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
+        Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
         FilterTemp, Tag,
     },
 };
@@ -351,7 +351,7 @@ pub fn CustomSub() -> Element {
                                 }
                             }
                         }
-                        FilterTemp::Aaccounts(accounts) => {
+                        FilterTemp::Accounts(accounts) => {
                             rsx! {
                                 div {
                                     class: "custom-sub-filter-item",
@@ -392,14 +392,14 @@ pub fn CustomSub() -> Element {
                                                                 let index = kind.2;
                                                                 if is_enabled {
                                                                     let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                                                    if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                                         if !accounts_ref.kinds.contains(&index) {
                                                                             accounts_ref.kinds.push(index);
                                                                         }
                                                                     }
                                                                 } else {
                                                                     let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                                                    if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                                         accounts_ref.kinds.retain(|&x| x != index);
                                                                     }
                                                                 }
@@ -424,7 +424,7 @@ pub fn CustomSub() -> Element {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
                                                     let mut sub = custom_sub.write();
-                                                    if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                                    if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                         if a.npub.is_empty() {
                                                             accounts_ref.accounts.remove(j);
                                                         } else {
@@ -442,7 +442,7 @@ pub fn CustomSub() -> Element {
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
-                                            if let FilterTemp::Aaccounts(ref mut accounts_ref) = sub.filters[i] {
+                                            if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                 accounts_ref.accounts.push(Account::empty());
                                             }
                                         }
@@ -693,7 +693,7 @@ pub fn CustomSub() -> Element {
                                     class: "btn-add-item",
                                     onclick: move |_| {
                                         let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Aaccounts(CustomAaccounts::empty()));
+                                        sub.filters.push(FilterTemp::Accounts(CustomAccounts::empty()));
                                     },
                                     "Follow People"
                                 }

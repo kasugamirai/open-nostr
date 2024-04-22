@@ -83,7 +83,7 @@ impl RelaySet {
 #[derive(Debug, PartialEq, Clone)]
 pub enum FilterTemp {
     HashTag(CustomHashTag),
-    Aaccounts(CustomAaccounts),
+    Accounts(CustomAccounts),
     Events(CustomEvents),
     Customize(CustomFilter),
 }
@@ -95,7 +95,7 @@ impl FilterTemp {
             FilterTemp::HashTag(hashtag) => {
                 filter = filter.hashtags(hashtag.tags.clone());
             }
-            FilterTemp::Aaccounts(accounts) => {
+            FilterTemp::Accounts(accounts) => {
                 filter = filter.kinds(
                     accounts
                         .kinds
@@ -113,7 +113,7 @@ impl FilterTemp {
             }
             FilterTemp::Events(_events) => {}
             FilterTemp::Customize(customize) => {
-                if customize.kinds.len() > 0 {
+                if !customize.kinds.is_empty() {
                     filter = filter.kinds(
                         customize
                             .kinds
@@ -122,7 +122,7 @@ impl FilterTemp {
                             .collect::<Vec<Kind>>(),
                     );
                 }
-                if customize.accounts.len() > 0 {
+                if !customize.accounts.is_empty() {
                     filter = filter.authors(
                         customize
                             .accounts
@@ -158,7 +158,7 @@ impl Serialize for FilterTemp {
     {
         match self {
             FilterTemp::HashTag(hashtag) => hashtag.serialize(serializer),
-            FilterTemp::Aaccounts(accounts) => accounts.serialize(serializer),
+            FilterTemp::Accounts(accounts) => accounts.serialize(serializer),
             FilterTemp::Events(events) => events.serialize(serializer),
             FilterTemp::Customize(custom) => custom.serialize(serializer),
         }
@@ -179,7 +179,7 @@ impl<'de> Deserialize<'de> for FilterTemp {
             }
             Some("accounts") => {
                 let accounts = serde_json::from_value(value).unwrap();
-                Ok(FilterTemp::Aaccounts(accounts))
+                Ok(FilterTemp::Accounts(accounts))
             }
             Some("events") => {
                 let events = serde_json::from_value(value).unwrap();
@@ -210,13 +210,13 @@ impl CustomHashTag {
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct CustomAaccounts {
+pub struct CustomAccounts {
     pub r#type: String,
     pub kinds: Vec<u64>,
     pub accounts: Vec<Account>,
 }
 
-impl CustomAaccounts {
+impl CustomAccounts {
     pub fn empty() -> Self {
         Self {
             r#type: String::from("accounts"),
@@ -313,9 +313,10 @@ impl Tag {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     #[test]
     fn test_json() {
-        let custom_sub = super::CustomSub::default();
+        let custom_sub = CustomSub::default();
         println!("custom_sub: {:?}", custom_sub);
 
         let json = custom_sub.json();
