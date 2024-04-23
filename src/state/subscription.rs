@@ -22,18 +22,25 @@ pub struct CustomSub {
 
 impl CustomSub {
     pub fn default() -> Self {
+        let now: u64 = Timestamp::now().as_u64();
         Self {
             name: String::from("#steakstr"),
             relay_set: RelaySet {
                 name: String::from("Default"),
-                relays: vec![
-                    String::from("wss://nostr-pub.wellorder.net"),
-                    String::from("wss://relay.damus.io"),
-                ],
+                relays: vec![String::from("wss://nostr.pjv.me")],
             },
-            filters: vec![FilterTemp::HashTag(CustomHashTag {
-                r#type: String::from("hashtag"),
-                tags: vec![String::from("#steakstr"), String::from("#steak")],
+            filters: vec![FilterTemp::Customize(CustomFilter {
+                r#type: String::from("customized"),
+                kinds: vec![Kind::TextNote.as_u64()],
+                accounts: vec![Account {
+                    alt_name: "AltName".to_string(),
+                    npub: "npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42"
+                        .to_string(),
+                }],
+                since: 0,
+                until: now,
+                limit: 10,
+                tags: vec![],
             })],
         }
     }

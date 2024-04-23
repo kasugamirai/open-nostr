@@ -17,6 +17,7 @@ serde_json = "1.0"
 dioxus = { version = "0.5", features = ["fullstack", "router"] }
 manganis = "0.2.2"
 regex = "1.10"
+rand = "0.8"
 # Debug
 log = "0.4.19"
 dioxus-logger = "0.5.0"

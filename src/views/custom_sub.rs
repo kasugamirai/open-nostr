@@ -5,13 +5,14 @@ mod limit;
 
 use dioxus::prelude::*;
 use nostr_sdk::Kind;
+use serde_json::Value;
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{
         Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
         FilterTemp, Tag,
-    },
+    }, utils::random::random_string,
 };
 use account::InputAccount;
 use cus_events::InputCusEvent;
@@ -128,8 +129,9 @@ pub fn CustomSub() -> Element {
                     class: "custom-sub-header-more",
                     Dropdown {
                         pos: "right".to_string(),
+                        show: "active".to_string(),
                         trigger: rsx! {
-                            button {
+                            div {
                                 class: "trigger",
                                 dangerous_inner_html: "{MORE}"
                             }
