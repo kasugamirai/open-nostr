@@ -21,7 +21,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
 
     let mut show = use_signal(|| false);
 
-    let hash = format!("com-dropdown");
+    let hash = "com-dropdown".to_string();
     let id = hash.clone();
 
     let get_events = move |id: String| {
@@ -60,7 +60,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
             }
         });
     };
-    get_events(hash.clone());
+    get_events(hash);
     rsx! {
         div {
             class: "com-dropdown {props.show}",

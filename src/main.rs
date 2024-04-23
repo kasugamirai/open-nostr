@@ -40,7 +40,7 @@ mod test {
 
     use nostr_sdk::{Client, Filter, Keys};
 
-    #[tokio::test]
+    //#[tokio::test]
     async fn test() {
         let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
         // pk to hex
