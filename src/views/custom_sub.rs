@@ -1,4 +1,5 @@
 mod account;
+mod add_filter;
 mod cus_events;
 mod hashtag;
 mod kind;
@@ -17,6 +18,7 @@ use crate::{
     },
 };
 use account::AccountInput;
+use add_filter::AddFilter;
 use cus_events::InputCusEvent;
 use hashtag::HashTagInput;
 use kind::KindInput;
@@ -539,51 +541,10 @@ pub fn CustomSub() -> Element {
             div {
                 class: "custom-sub-add",
                 span {
-                    Dropdown {
-                        trigger: rsx! {
-                            button {
-                                class: "btn-add {edit}",
-                                dangerous_inner_html: "{ADD}"
-                            }
-                        },
-                        children: rsx! {
-                            div {
-                                class: "btn-add-content",
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::HashTag(
-                                            CustomHashTag::empty()
-                                        ));
-                                    },
-                                    "Only Tags"
-                                }
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Accounts(CustomAccounts::empty()));
-                                    },
-                                    "Follow People"
-                                }
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Events(CustomEvents::empty()));
-                                    },
-                                    "Follow Notes"
-                                }
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Customize(CustomFilter::empty()));
-                                    },
-                                    "Customize"
-                                }
-                            }
+                    AddFilter {
+                        on_click: move |filter| {
+                            let mut sub = custom_sub.write();
+                            sub.filters.push(filter);
                         }
                     }
                 }
