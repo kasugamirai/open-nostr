@@ -6,7 +6,6 @@ mod tag;
 
 use dioxus::prelude::*;
 use nostr_sdk::Kind;
-use serde_json::Value;
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
@@ -14,7 +13,6 @@ use crate::{
         Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
         FilterTemp, Tag,
     },
-    utils::random::random_string,
 };
 use account::AccountInput;
 use cus_events::InputCusEvent;
