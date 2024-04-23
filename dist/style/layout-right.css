@@ -219,6 +219,35 @@
     text-align: center;
 }
 
+.btn-circle {
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-circle);
+    background-color: var(--bgc-1);
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-circle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-circle path {
+    fill: var(--bgc-0);
+}
+
+.btn-circle-true {
+    background-color: var(--bgc-1);
+}
+
+.btn-circle-false {
+    background-color: var(--col-error);
+}
+
 /* Media Queries 0 - 1000 */
 @media screen and (max-width: 1000px) {
     .layout-right {

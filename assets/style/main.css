@@ -61,6 +61,10 @@ body {
     display: flex;
 }
 
+.show-false {
+    display: none !important;
+}
+
 input[type="datetime-local"] {
     appearance: none;
     -webkit-appearance: none;
