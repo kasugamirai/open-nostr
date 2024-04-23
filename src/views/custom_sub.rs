@@ -1,7 +1,8 @@
 mod account;
 mod cus_events;
-mod cus_tags;
+mod kind;
 mod limit;
+mod tag;
 
 use dioxus::prelude::*;
 use nostr_sdk::Kind;
@@ -12,12 +13,14 @@ use crate::{
     state::subscription::{
         Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
         FilterTemp, Tag,
-    }, utils::random::random_string,
+    },
+    utils::random::random_string,
 };
-use account::InputAccount;
+use account::AccountInput;
 use cus_events::InputCusEvent;
-use cus_tags::InputCusTag;
-use limit::InputLimit;
+use kind::KindInput;
+use limit::LimitInput;
+use tag::TagInput;
 
 fn kind_to_str(index: u64) -> String {
     let kind = Kind::from(index);
@@ -422,7 +425,7 @@ pub fn CustomSub() -> Element {
                                     for (j, account) in accounts.accounts.iter().enumerate() {
                                         div {
                                             class: "custom-sub-account",
-                                            InputAccount {
+                                            AccountInput {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
                                                     let mut sub = custom_sub.write();
@@ -434,8 +437,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("pubkey/npub".to_string(), "alt name".to_string())),
-                                                value: account.clone(),
+                                                account: account.clone(),
                                             }
                                         }
                                     }
@@ -501,54 +503,12 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Kinds:"
                                     }
-                                    for kind in filter.kinds.iter() {
-                                        div {
-                                            class: "card custom-sub-kind",
-                                            "{kind_to_str(*kind)}"
-                                        }
-                                    }
-                                    Dropdown {
-                                        pos: "right",
-                                        trigger: rsx! {
-                                            button {
-                                                class: "btn-add {edit}",
-                                                dangerous_inner_html: "{ADD}",
-                                            }
-                                        },
-                                        children: rsx! {
-                                            div {
-                                                class: "btn-add-content",
-                                                style: r#"
-                                                    display: grid;
-                                                    grid-template-columns: repeat(3, 1fr);
-                                                    gap: 8px;
-                                                "#,
-                                                for kind in KINDS.iter() {
-                                                    div {
-                                                        style: "display: flex; gap: 8px;",
-                                                        "{kind.1}"
-                                                        input {
-                                                            r#type: "checkbox",
-                                                            oninput: move |event| {
-                                                                let is_enabled = event.value() == "true";
-                                                                let index = kind.2;
-                                                                if is_enabled {
-                                                                    let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                                        if !filter_ref.kinds.contains(&index) {
-                                                                            filter_ref.kinds.push(index);
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                                        filter_ref.kinds.retain(|&x| x != index);
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                    KindInput {
+                                        value: filter.kinds.clone(),
+                                        on_change: move |kinds| {
+                                            let mut sub = custom_sub.write();
+                                            if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
+                                                filter_ref.kinds = kinds;
                                             }
                                         }
                                     }
@@ -562,7 +522,7 @@ pub fn CustomSub() -> Element {
                                     for (j, account) in filter.accounts.iter().enumerate() {
                                         div {
                                             class: "custom-sub-account",
-                                            InputAccount {
+                                            AccountInput {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
                                                     let mut sub = custom_sub.write();
@@ -574,8 +534,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("pubkey/npub".to_string(), "alt name".to_string())),
-                                                value: account.clone(),
+                                                account: account.clone(),
                                             }
                                         }
                                     }
@@ -614,7 +573,7 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Limit:"
                                     }
-                                    InputLimit {
+                                    LimitInput {
                                         edit: false,
                                         on_change: move |v: usize| {
                                             let mut sub = custom_sub.write();
@@ -622,8 +581,7 @@ pub fn CustomSub() -> Element {
                                                 filter_ref.limit = v;
                                             }
                                         },
-                                        placeholder: "limit".to_string(),
-                                        value: filter.limit,
+                                        limit: filter.limit,
                                     }
                                 }
                                 div {
@@ -635,7 +593,7 @@ pub fn CustomSub() -> Element {
                                     for (j, tag) in filter.tags.iter().enumerate() {
                                         div {
                                             class: "custom-sub-tag",
-                                            InputCusTag {
+                                            TagInput {
                                                 edit: tag.value.is_empty(),
                                                 on_change: move |c: Tag| {
                                                     let mut sub = custom_sub.write();
@@ -647,8 +605,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("tag".to_string(), "value".to_string())),
-                                                value: tag.clone(),
+                                                tag: tag.clone(),
                                             }
                                         }
                                     }
