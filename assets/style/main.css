@@ -26,6 +26,7 @@ body {
     --trans-default: 0.4s;
     --link: rgb(159, 116, 235);
     --col-error: #fc4e55;
+    --col-success: #94f6a7;
 }
 
 #app.light {
@@ -59,6 +60,10 @@ body {
     background-color: var(--bgc-0);
     overflow-y: auto;
     display: flex;
+}
+
+.show-false {
+    display: none !important;
 }
 
 input[type="datetime-local"] {

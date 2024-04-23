@@ -32,19 +32,25 @@ impl CustomSub {
                     // String::from("wss://nostr.pjv.me"),
                 ],
             },
-            filters: vec![FilterTemp::Customize(CustomFilter {
-                r#type: String::from("customized"),
-                kinds: vec![Kind::TextNote.as_u64()],
-                accounts: vec![Account {
-                    alt_name: "AltName".to_string(),
-                    npub: "npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42"
-                        .to_string(),
-                }],
-                since: 0,
-                until: now,
-                limit: 10,
-                tags: vec![],
-            })],
+            filters: vec![
+                FilterTemp::HashTag(CustomHashTag {
+                    r#type: String::from("hashtag"),
+                    tags: vec![String::from("dog")],
+                }),
+                FilterTemp::Customize(CustomFilter {
+                    r#type: String::from("customized"),
+                    kinds: vec![Kind::TextNote.as_u64()],
+                    accounts: vec![Account {
+                        alt_name: "AltName".to_string(),
+                        npub: "npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42"
+                            .to_string(),
+                    }],
+                    since: 0,
+                    until: now,
+                    limit: 10,
+                    tags: vec![],
+                }),
+            ],
         }
     }
 
@@ -74,20 +80,6 @@ impl CustomSub {
 pub struct RelaySet {
     pub name: String,
     pub relays: Vec<String>,
-}
-
-impl RelaySet {
-    pub fn push(&mut self, v: String) {
-        self.relays.push(v);
-    }
-
-    pub fn remove(&mut self, index: usize) -> String {
-        self.relays.remove(index)
-    }
-
-    pub fn iter(&self) -> std::slice::Iter<'_, String> {
-        self.relays.iter()
-    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
