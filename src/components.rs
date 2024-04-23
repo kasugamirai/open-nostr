@@ -8,7 +8,6 @@ mod post;
 mod switch;
 
 pub use button::Button;
-pub use checkbox::Checkbox;
 pub use dropdown::Dropdown;
 pub use dtpicker::DateTimePicker;
 pub use input_card::InputCard;
