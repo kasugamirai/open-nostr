@@ -27,7 +27,10 @@ impl CustomSub {
             name: String::from("#steakstr"),
             relay_set: RelaySet {
                 name: String::from("Default"),
-                relays: vec![String::from("wss://nostr.pjv.me")],
+                relays: vec![
+                    String::from("wss://btc.klendazu.com"),
+                    // String::from("wss://nostr.pjv.me"),
+                ],
             },
             filters: vec![FilterTemp::Customize(CustomFilter {
                 r#type: String::from("customized"),
