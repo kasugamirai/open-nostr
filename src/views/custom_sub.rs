@@ -1,23 +1,30 @@
 mod account;
+mod add_filter;
 mod cus_events;
-mod cus_tags;
+mod hashtag;
+mod kind;
 mod limit;
+mod relays;
+mod tag;
 
 use dioxus::prelude::*;
 use nostr_sdk::Kind;
-use serde_json::Value;
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{
         Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
-        FilterTemp, Tag,
-    }, utils::random::random_string,
+        FilterTemp, RelaySet, Tag,
+    },
 };
-use account::InputAccount;
+use account::AccountInput;
+use add_filter::AddFilter;
 use cus_events::InputCusEvent;
-use cus_tags::InputCusTag;
-use limit::InputLimit;
+use hashtag::HashTagInput;
+use kind::KindInput;
+use limit::LimitInput;
+use relays::RelaysInput;
+use tag::TagInput;
 
 fn kind_to_str(index: u64) -> String {
     let kind = Kind::from(index);
@@ -99,7 +106,6 @@ static KINDS: [(Kind, &str, u64); 2] = [
 pub fn CustomSub() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut custom_sub = use_signal(|| CustomSub::default());
-    let mut new_relay = use_signal(String::new);
     let mut edit = use_signal(|| false);
     let handle_export = move || {
         let eval = eval(
@@ -197,101 +203,12 @@ pub fn CustomSub() -> Element {
                     "Relays:"
                     div {
                         style: "display: inline-block;",
-                        Dropdown {
-                            pos: "left".to_string(),
-                            trigger: rsx! {
-                                div {
-                                    class: "card disabled",
-                                    "{custom_sub.read().relay_set.name}"
-                                }
+                        RelaysInput {
+                            on_change: move |v: RelaySet| {
+                                let mut sub = custom_sub.write();
+                                sub.relay_set = v;
                             },
-                            div {
-                                style: r#"
-                                    display: flex;
-                                    flex-direction: column;
-                                    gap: 10px;
-                                    padding: 10px;
-                                    border-radius: var(--radius-1);
-                                    border: 1px solid var(--boc-1);
-                                    background-color: var(--bgc-0);
-                                "#,
-                                div {
-                                    style: "display: flex; gap: 10px;",
-                                    input {
-                                        style: r#"
-                                            border: none;
-                                            border-bottom: 1px solid var(--boc-1);
-                                            font-size: 16px;
-                                        "#,
-                                        r#type: "text",
-                                        value: "{custom_sub.read().relay_set.name}",
-                                        oninput: move |event| {
-                                            let mut sub = custom_sub.write();
-                                            sub.relay_set.name = event.value();
-                                        }
-                                    }
-                                    button {
-                                        class: "btn-icon right",
-                                        onclick: move |_| {},
-                                        div {
-                                            dangerous_inner_html: "{TRUE}"
-                                        }
-                                    }
-                                }
-                                for (i, relay) in custom_sub.read().relay_set.iter().enumerate() {
-                                    div {
-                                        style: "display: flex; gap: 10px;",
-                                        input {
-                                            style: r#"
-                                                border: none;
-                                                border-bottom: 1px solid var(--boc-1);
-                                                font-size: 16px;
-                                            "#,
-                                            r#type: "text",
-                                            value: "{relay}",
-                                            oninput: move |event| {
-                                                let mut sub = custom_sub.write();
-                                                sub.relay_set.relays[i] = event.value();
-                                            }
-                                        }
-                                        button {
-                                            class: "btn-icon remove",
-                                            onclick: move |_| {
-                                                let mut sub = custom_sub.write();
-                                                sub.relay_set.remove(i);
-                                            },
-                                            div {
-                                                dangerous_inner_html: "{FALSE}"
-                                            }
-                                        }
-                                    }
-                                }
-                                div {
-                                    style: "display: flex; gap: 10px;",
-                                    input {
-                                        style: r#"
-                                            border: none;
-                                            border-bottom: 1px solid var(--boc-1);
-                                            font-size: 16px;
-                                        "#,
-                                        r#type: "text",
-                                        value: "{new_relay}",
-                                        oninput: move |event| {
-                                            new_relay.set(event.value());
-                                        }
-                                    }
-                                    button {
-                                        class: "btn-icon add",
-                                        onclick: move |_| {
-                                            let mut sub = custom_sub.write();
-                                            sub.relay_set.push(new_relay());
-                                        },
-                                        div {
-                                            dangerous_inner_html: "{ADD}"
-                                        }
-                                    }
-                                }
-                            }
+                            relay_set: custom_sub.read().relay_set.clone(),
                         }
                     }
                 }
@@ -323,7 +240,7 @@ pub fn CustomSub() -> Element {
                                     for (j, tag) in hashtag.tags.iter().enumerate() {
                                         div {
                                             class: "custom-sub-tag",
-                                            InputCard {
+                                            HashTagInput {
                                                 edit: tag.is_empty(),
                                                 on_change: move |v: String| {
                                                     let mut sub = custom_sub.write();
@@ -335,8 +252,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some("Input".to_string()),
-                                                value: tag,
+                                                tag: tag,
                                             }
                                         }
                                     }
@@ -422,7 +338,7 @@ pub fn CustomSub() -> Element {
                                     for (j, account) in accounts.accounts.iter().enumerate() {
                                         div {
                                             class: "custom-sub-account",
-                                            InputAccount {
+                                            AccountInput {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
                                                     let mut sub = custom_sub.write();
@@ -434,8 +350,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("pubkey/npub".to_string(), "alt name".to_string())),
-                                                value: account.clone(),
+                                                account: account.clone(),
                                             }
                                         }
                                     }
@@ -501,54 +416,12 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Kinds:"
                                     }
-                                    for kind in filter.kinds.iter() {
-                                        div {
-                                            class: "card custom-sub-kind",
-                                            "{kind_to_str(*kind)}"
-                                        }
-                                    }
-                                    Dropdown {
-                                        pos: "right",
-                                        trigger: rsx! {
-                                            button {
-                                                class: "btn-add {edit}",
-                                                dangerous_inner_html: "{ADD}",
-                                            }
-                                        },
-                                        children: rsx! {
-                                            div {
-                                                class: "btn-add-content",
-                                                style: r#"
-                                                    display: grid;
-                                                    grid-template-columns: repeat(3, 1fr);
-                                                    gap: 8px;
-                                                "#,
-                                                for kind in KINDS.iter() {
-                                                    div {
-                                                        style: "display: flex; gap: 8px;",
-                                                        "{kind.1}"
-                                                        input {
-                                                            r#type: "checkbox",
-                                                            oninput: move |event| {
-                                                                let is_enabled = event.value() == "true";
-                                                                let index = kind.2;
-                                                                if is_enabled {
-                                                                    let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                                        if !filter_ref.kinds.contains(&index) {
-                                                                            filter_ref.kinds.push(index);
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                                        filter_ref.kinds.retain(|&x| x != index);
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                    KindInput {
+                                        value: filter.kinds.clone(),
+                                        on_change: move |kinds| {
+                                            let mut sub = custom_sub.write();
+                                            if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
+                                                filter_ref.kinds = kinds;
                                             }
                                         }
                                     }
@@ -562,7 +435,7 @@ pub fn CustomSub() -> Element {
                                     for (j, account) in filter.accounts.iter().enumerate() {
                                         div {
                                             class: "custom-sub-account",
-                                            InputAccount {
+                                            AccountInput {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
                                                     let mut sub = custom_sub.write();
@@ -574,8 +447,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("pubkey/npub".to_string(), "alt name".to_string())),
-                                                value: account.clone(),
+                                                account: account.clone(),
                                             }
                                         }
                                     }
@@ -614,7 +486,7 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Limit:"
                                     }
-                                    InputLimit {
+                                    LimitInput {
                                         edit: false,
                                         on_change: move |v: usize| {
                                             let mut sub = custom_sub.write();
@@ -622,8 +494,7 @@ pub fn CustomSub() -> Element {
                                                 filter_ref.limit = v;
                                             }
                                         },
-                                        placeholder: "limit".to_string(),
-                                        value: filter.limit,
+                                        limit: filter.limit,
                                     }
                                 }
                                 div {
@@ -635,7 +506,7 @@ pub fn CustomSub() -> Element {
                                     for (j, tag) in filter.tags.iter().enumerate() {
                                         div {
                                             class: "custom-sub-tag",
-                                            InputCusTag {
+                                            TagInput {
                                                 edit: tag.value.is_empty(),
                                                 on_change: move |c: Tag| {
                                                     let mut sub = custom_sub.write();
@@ -647,8 +518,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("tag".to_string(), "value".to_string())),
-                                                value: tag.clone(),
+                                                tag: tag.clone(),
                                             }
                                         }
                                     }
@@ -671,51 +541,10 @@ pub fn CustomSub() -> Element {
             div {
                 class: "custom-sub-add",
                 span {
-                    Dropdown {
-                        trigger: rsx! {
-                            button {
-                                class: "btn-add {edit}",
-                                dangerous_inner_html: "{ADD}"
-                            }
-                        },
-                        children: rsx! {
-                            div {
-                                class: "btn-add-content",
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::HashTag(
-                                            CustomHashTag::empty()
-                                        ));
-                                    },
-                                    "Only Tags"
-                                }
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Accounts(CustomAccounts::empty()));
-                                    },
-                                    "Follow People"
-                                }
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Events(CustomEvents::empty()));
-                                    },
-                                    "Follow Notes"
-                                }
-                                button {
-                                    class: "btn-add-item",
-                                    onclick: move |_| {
-                                        let mut sub = custom_sub.write();
-                                        sub.filters.push(FilterTemp::Customize(CustomFilter::empty()));
-                                    },
-                                    "Customize"
-                                }
-                            }
+                    AddFilter {
+                        on_click: move |filter| {
+                            let mut sub = custom_sub.write();
+                            sub.filters.push(filter);
                         }
                     }
                 }

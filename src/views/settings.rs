@@ -28,7 +28,7 @@ pub fn Settings() -> Element {
 #[component]
 pub fn Dropdown() -> Element {
     let mut show = use_signal(|| true);
-    let mut test = use_signal(|| Value::Bool(false));
+    let test = use_signal(|| Value::Bool(false));
 
     let get_events = move || {
         spawn(async move {
