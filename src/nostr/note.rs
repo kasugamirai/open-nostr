@@ -102,7 +102,7 @@ impl<'a> TryFrom<&'a Event> for TextNote<'a> {
     fn try_from(event: &'a Event) -> Result<Self, Self::Error> {
         if event.kind == Kind::TextNote {
             let mut text_note = TextNote::new(event);
-            TextNote::parse_event_tags(event, &mut text_note);
+            let _ = TextNote::parse_event_tags(event, &mut text_note);
             Ok(text_note)
         } else {
             Err(Error::KindNotMatch)
