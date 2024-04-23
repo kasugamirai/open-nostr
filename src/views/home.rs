@@ -3,33 +3,33 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use nostr_sdk::prelude::*;
 
-use crate::components::{Button, Post, PostData};
+use crate::{
+    components::{Button, Post, PostData},
+    state::subscription::CustomSub,
+};
 
 #[component]
 pub fn Home() -> Element {
+    let custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut post_datas = use_signal(Vec::<PostData>::new);
     let get_events = move || {
         spawn(async move {
-            println!("pk: npub156jqdy53ceqahp25jjh5ky6u959ldk3h2eu5h4clhmu8vdhucvnqrrt7yt");
-            // pk: npub156jqdy53ceqahp25jjh5ky6u959ldk3h2eu5h4clhmu8vdhucvnqrrt7yt
-            // sk: nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64
             let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
             // pk to hex
             let my_keys = Keys::parse(pk).unwrap();
 
             let client = Client::new(&my_keys);
 
-            client.add_relay("wss://nostr.pjv.me").await.unwrap();
+            for i in custom_sub_global.read().relay_set.relays.iter() {
+                client.add_relay(i.clone().as_str()).await.unwrap();
+            }
 
             client.connect().await;
 
-            let filter: Filter = Filter::new().limit(10).kind(Kind::TextNote).author(
-                PublicKey::parse("npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42")
-                    .unwrap(),
-            );
+            let filters = custom_sub_global.read().to_sub();
 
             let events = client
-                .get_events_of(vec![filter], Some(Duration::from_secs(30)))
+                .get_events_of(filters, Some(Duration::from_secs(30)))
                 .await
                 .unwrap();
 
