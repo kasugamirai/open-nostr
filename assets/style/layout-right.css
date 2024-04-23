@@ -248,6 +248,10 @@
     background-color: var(--col-error);
 }
 
+.btn-circle-success {
+    background-color: var(--col-success);
+}
+
 /* Media Queries 0 - 1000 */
 @media screen and (max-width: 1000px) {
     .layout-right {
