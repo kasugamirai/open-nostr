@@ -1,7 +1,9 @@
 mod account;
 mod cus_events;
+mod hashtag;
 mod kind;
 mod limit;
+mod relays;
 mod tag;
 
 use dioxus::prelude::*;
@@ -11,13 +13,15 @@ use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{
         Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
-        FilterTemp, Tag,
+        FilterTemp, RelaySet, Tag,
     },
 };
 use account::AccountInput;
 use cus_events::InputCusEvent;
+use hashtag::HashTagInput;
 use kind::KindInput;
 use limit::LimitInput;
+use relays::RelaysInput;
 use tag::TagInput;
 
 fn kind_to_str(index: u64) -> String {
@@ -100,7 +104,6 @@ static KINDS: [(Kind, &str, u64); 2] = [
 pub fn CustomSub() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut custom_sub = use_signal(|| CustomSub::default());
-    let mut new_relay = use_signal(String::new);
     let mut edit = use_signal(|| false);
     let handle_export = move || {
         let eval = eval(
@@ -198,101 +201,12 @@ pub fn CustomSub() -> Element {
                     "Relays:"
                     div {
                         style: "display: inline-block;",
-                        Dropdown {
-                            pos: "left".to_string(),
-                            trigger: rsx! {
-                                div {
-                                    class: "card disabled",
-                                    "{custom_sub.read().relay_set.name}"
-                                }
+                        RelaysInput {
+                            on_change: move |v: RelaySet| {
+                                let mut sub = custom_sub.write();
+                                sub.relay_set = v;
                             },
-                            div {
-                                style: r#"
-                                    display: flex;
-                                    flex-direction: column;
-                                    gap: 10px;
-                                    padding: 10px;
-                                    border-radius: var(--radius-1);
-                                    border: 1px solid var(--boc-1);
-                                    background-color: var(--bgc-0);
-                                "#,
-                                div {
-                                    style: "display: flex; gap: 10px;",
-                                    input {
-                                        style: r#"
-                                            border: none;
-                                            border-bottom: 1px solid var(--boc-1);
-                                            font-size: 16px;
-                                        "#,
-                                        r#type: "text",
-                                        value: "{custom_sub.read().relay_set.name}",
-                                        oninput: move |event| {
-                                            let mut sub = custom_sub.write();
-                                            sub.relay_set.name = event.value();
-                                        }
-                                    }
-                                    button {
-                                        class: "btn-icon right",
-                                        onclick: move |_| {},
-                                        div {
-                                            dangerous_inner_html: "{TRUE}"
-                                        }
-                                    }
-                                }
-                                for (i, relay) in custom_sub.read().relay_set.iter().enumerate() {
-                                    div {
-                                        style: "display: flex; gap: 10px;",
-                                        input {
-                                            style: r#"
-                                                border: none;
-                                                border-bottom: 1px solid var(--boc-1);
-                                                font-size: 16px;
-                                            "#,
-                                            r#type: "text",
-                                            value: "{relay}",
-                                            oninput: move |event| {
-                                                let mut sub = custom_sub.write();
-                                                sub.relay_set.relays[i] = event.value();
-                                            }
-                                        }
-                                        button {
-                                            class: "btn-icon remove",
-                                            onclick: move |_| {
-                                                let mut sub = custom_sub.write();
-                                                sub.relay_set.remove(i);
-                                            },
-                                            div {
-                                                dangerous_inner_html: "{FALSE}"
-                                            }
-                                        }
-                                    }
-                                }
-                                div {
-                                    style: "display: flex; gap: 10px;",
-                                    input {
-                                        style: r#"
-                                            border: none;
-                                            border-bottom: 1px solid var(--boc-1);
-                                            font-size: 16px;
-                                        "#,
-                                        r#type: "text",
-                                        value: "{new_relay}",
-                                        oninput: move |event| {
-                                            new_relay.set(event.value());
-                                        }
-                                    }
-                                    button {
-                                        class: "btn-icon add",
-                                        onclick: move |_| {
-                                            let mut sub = custom_sub.write();
-                                            sub.relay_set.push(new_relay());
-                                        },
-                                        div {
-                                            dangerous_inner_html: "{ADD}"
-                                        }
-                                    }
-                                }
-                            }
+                            relay_set: custom_sub.read().relay_set.clone(),
                         }
                     }
                 }
@@ -324,7 +238,7 @@ pub fn CustomSub() -> Element {
                                     for (j, tag) in hashtag.tags.iter().enumerate() {
                                         div {
                                             class: "custom-sub-tag",
-                                            InputCard {
+                                            HashTagInput {
                                                 edit: tag.is_empty(),
                                                 on_change: move |v: String| {
                                                     let mut sub = custom_sub.write();
@@ -336,8 +250,7 @@ pub fn CustomSub() -> Element {
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some("Input".to_string()),
-                                                value: tag,
+                                                tag: tag,
                                             }
                                         }
                                     }
