@@ -44,6 +44,7 @@ pub fn Home() -> Element {
                 };
                 post_datas.push(post_data);
             }
+            let _ = client.disconnect().await;
         });
     };
 
