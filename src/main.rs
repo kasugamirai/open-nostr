@@ -1,18 +1,11 @@
 #![allow(non_snake_case)]
 
-mod components;
-mod nostr;
-mod router;
-mod state;
-mod utils;
-mod views;
-
 use dioxus::prelude::*;
 use tracing::Level;
 
-use router::Route;
+use capybastr::Route;
 
-use crate::state::subscription::CustomSub;
+use capybastr::CustomSub;
 
 fn main() {
     // Init debug
