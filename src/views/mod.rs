@@ -9,6 +9,7 @@ mod relay;
 mod search;
 mod settings;
 mod test;
+mod topic;
 
 pub use bookmark::Bookmark;
 pub use channel::Channel;
@@ -21,3 +22,4 @@ pub use relay::Relay;
 pub use search::Search;
 pub use settings::Settings;
 pub use test::Test;
+pub use topic::Topic;
