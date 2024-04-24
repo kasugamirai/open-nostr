@@ -162,7 +162,7 @@ impl FilterTemp {
                 if customize.limit > 0 {
                     filter = filter.limit(customize.limit);
                 }
-                for tag in customize.tags.clone() {
+                for tag in &customize.tags {
                     let k: SingleLetterTag = tag.tag.parse().unwrap();
                     let parts: Vec<&str> = tag.value.split(',').map(|s| s.trim()).collect();
                     filter = filter.custom_tag(k, parts);
@@ -196,19 +196,19 @@ impl<'de> Deserialize<'de> for FilterTemp {
 
         match value.get("type").and_then(Value::as_str) {
             Some("hashtag") => {
-                let hashtag = serde_json::from_value(value).unwrap();
+                let hashtag = serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                 Ok(FilterTemp::HashTag(hashtag))
             }
             Some("accounts") => {
-                let accounts = serde_json::from_value(value).unwrap();
+                let accounts = serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                 Ok(FilterTemp::Accounts(accounts))
             }
             Some("events") => {
-                let events = serde_json::from_value(value).unwrap();
+                let events = serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                 Ok(FilterTemp::Events(events))
             }
             Some("custom") => {
-                let custom = serde_json::from_value(value).unwrap();
+                let custom = serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                 Ok(FilterTemp::Customize(custom))
             }
             _ => Err(serde::de::Error::custom("Unknown filter type")),
