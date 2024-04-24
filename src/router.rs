@@ -4,6 +4,7 @@ use crate::{
     components::{icons::*, Button, Dropdown},
     views::{
         Bookmark, Channel, CustomSub, Group, Home, Message, Profile, Relay, Search, Settings, Test,
+        Topic,
     },
 };
 
@@ -152,22 +153,47 @@ pub enum Route {
     #[layout(Layout)]
     #[route("/")]
     Home {},
+
+    #[route("/topic/:topic_id")]
+    Topic { topic_id: String },
+
     #[route("/profile")]
     Profile {},
+
     #[route("/search")]
     Search {},
+
     #[route("/relay")]
     Relay {},
+
     #[route("/message")]
     Message {},
+
     #[route("/channel")]
     Channel {},
+
     #[route("/group")]
     Group {},
+
     #[route("/bookmark")]
     Bookmark {},
+
     #[route("/settings")]
     Settings {},
+
     #[route("/test/:id")]
     Test { id: i32 },
+    
+    #[end_layout]
+    #[route("/:..route")]
+    PageNotFound { route: Vec<String> },
+}
+
+#[component]
+fn PageNotFound(route: Vec<String>) -> Element {
+    rsx! {
+        h1 { "Page not found" }
+        p { "We are terribly sorry, but the page you requested doesn't exist." }
+        pre { color: "red", "log:\nattemped to navigate to: {route:?}" }
+    }
 }
