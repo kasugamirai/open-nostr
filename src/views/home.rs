@@ -14,7 +14,7 @@ pub fn Home() -> Element {
     let mut post_datas = use_signal(Vec::<PostData>::new);
     let get_events = move || {
         spawn(async move {
-            let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
+            let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
             // pk to hex
             let my_keys = Keys::parse(pk).unwrap();
 
