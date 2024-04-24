@@ -35,8 +35,8 @@ pub fn Dropdown(props: DropdownProps) -> Element {
                         while (target != null) {
                             if (target.classList.contains(eid)) {
                                 // The element is a child of the dropdown
-                                dioxus.send(true)
-                                break
+                                dioxus.send("")
+                                return
                             } else {
                                 if (target === document.documentElement) {
                                     break

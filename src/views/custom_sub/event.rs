@@ -3,13 +3,14 @@ use serde_json::Value;
 
 use crate::{
     components::icons::{FALSE, TRUE},
-    state::subscription::Tag,
+    state::subscription::Event,
+    utils::format::format_public_key,
 };
 
 #[derive(PartialEq, Clone, Props)]
-pub struct TagInputProps {
-    on_change: EventHandler<Tag>,
-    tag: Tag,
+pub struct EventInputProps {
+    on_change: EventHandler<Event>,
+    event: Event,
     #[props(default = false)]
     edit: bool,
     #[props(default = 0)]
@@ -17,9 +18,9 @@ pub struct TagInputProps {
 }
 
 #[component]
-pub fn TagInput(props: TagInputProps) -> Element {
-    let mut value = use_signal(|| props.tag.clone());
-    let mut bak = use_signal(|| props.tag);
+pub fn EventInput(props: EventInputProps) -> Element {
+    let mut value = use_signal(|| props.event.clone());
+    let mut bak = use_signal(|| props.event);
     let mut edit = use_signal(|| props.edit);
 
     let click_outside = move |cn: String| {
@@ -64,7 +65,7 @@ pub fn TagInput(props: TagInputProps) -> Element {
         });
     };
 
-    let cn = format!("custom-sub-tag-wapper-{}", props.index);
+    let cn = format!("custom-sub-account-wapper-{}", props.index);
 
     click_outside(cn.clone());
 
@@ -78,7 +79,11 @@ pub fn TagInput(props: TagInputProps) -> Element {
                     edit.set(!edit());
                     props.on_change.call(value.read().clone());
                 },
-                "#{value().tag} | {value().value}"
+                if value().alt_name.is_empty() {
+                    "{format_public_key(&value().nevent, None)}"
+                } else {
+                    "{value().alt_name}"
+                }
             }
             div {
                 class: "show-{edit}",
@@ -88,19 +93,19 @@ pub fn TagInput(props: TagInputProps) -> Element {
                     input {
                         r#type: "text",
                         style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px;",
-                        placeholder: "tag",
-                        value: "{value().tag}",
+                        placeholder: "id/nevent",
+                        value: "{value().nevent}",
                         oninput: move |event| {
-                            value.write().tag = event.value();
+                            value.write().nevent = event.value();
                         }
                     }
                     input {
                         r#type: "text",
                         style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px; width: 160px;",
-                        placeholder: "value",
-                        value: "{value().value}",
+                        placeholder: "alt name",
+                        value: "{value().alt_name}",
                         oninput: move |event| {
-                            value.write().value = event.value();
+                            value.write().alt_name = event.value();
                         }
                     }
                     button {

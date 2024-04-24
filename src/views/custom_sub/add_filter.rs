@@ -8,6 +8,8 @@ use crate::{
 #[derive(PartialEq, Clone, Props)]
 pub struct AddFilterProps {
     on_click: EventHandler<FilterTemp>,
+    #[props(default = 0)]
+    index: usize,
 }
 
 #[component]
