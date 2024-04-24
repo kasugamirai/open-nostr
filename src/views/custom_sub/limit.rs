@@ -15,7 +15,7 @@ pub struct LimitInputProps {
 
 #[component]
 pub fn LimitInput(props: LimitInputProps) -> Element {
-    let mut value = use_signal(|| props.limit.clone());
+    let mut value = use_signal(|| props.limit);
     let mut bak = use_signal(|| props.limit);
     let mut edit = use_signal(|| props.edit);
 
@@ -97,7 +97,7 @@ pub fn LimitInput(props: LimitInputProps) -> Element {
                             // TODO: Get 'alt name' if 'value.alt_name' is empty
                             bak.set(value());
                             edit.set(false);
-                            props.on_change.call(value.read().clone());
+                            props.on_change.call(*value.read());
                         },
                         dangerous_inner_html: "{TRUE}"
                     }
