@@ -1,6 +1,6 @@
 mod account;
 mod add_filter;
-mod cus_events;
+mod event;
 mod hashtag;
 mod kind;
 mod limit;
@@ -8,99 +8,19 @@ mod relays;
 mod tag;
 
 use dioxus::prelude::*;
-use nostr_sdk::Kind;
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
-    state::subscription::{
-        Account, CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, CustomSub, Event,
-        FilterTemp, RelaySet, Tag,
-    },
+    state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
 };
 use account::AccountInput;
 use add_filter::AddFilter;
-use cus_events::InputCusEvent;
+use event::EventInput;
 use hashtag::HashTagInput;
 use kind::KindInput;
 use limit::LimitInput;
 use relays::RelaysInput;
 use tag::TagInput;
-
-fn kind_to_str(index: u64) -> String {
-    let kind = Kind::from(index);
-    format!("{:?}", kind)
-}
-
-static KINDS: [(Kind, &str, u64); 2] = [
-    // (Kind::Metadata, "Metadata", 0),
-    (Kind::TextNote, "TextNote", 1),
-    // (Kind::RecommendRelay, "RecommendRelay", 2),
-    // (Kind::ContactList, "ContactList", 3),
-    // (Kind::OpenTimestamps, "OpenTimestamps", 1040),
-    // (Kind::EncryptedDirectMessage, "EncryptedDirectMessage", 4),
-    // (Kind::EventDeletion, "EventDeletion", 5),
-    (Kind::Repost, "Repost", 6),
-    // (Kind::GenericRepost, "GenericRepost", 16),
-    // (Kind::Reaction, "Reaction", 7),
-    // (Kind::BadgeAward, "BadgeAward", 8),
-    // (Kind::ChannelCreation, "ChannelCreation", 40),
-    // (Kind::ChannelMetadata, "ChannelMetadata", 41),
-    // (Kind::ChannelMessage, "ChannelMessage", 42),
-    // (Kind::ChannelHideMessage, "ChannelHideMessage", 43),
-    // (Kind::ChannelMuteUser, "ChannelMuteUser", 44),
-    // (Kind::PublicChatReserved45, "PublicChatReserved45", 45),
-    // (Kind::PublicChatReserved46, "PublicChatReserved46", 46),
-    // (Kind::PublicChatReserved47, "PublicChatReserved47", 47),
-    // (Kind::PublicChatReserved48, "PublicChatReserved48", 48),
-    // (Kind::PublicChatReserved49, "PublicChatReserved49", 49),
-    // (Kind::WalletConnectInfo, "WalletConnectInfo", 13194),
-    // (Kind::Reporting, "Reporting", 1984),
-    // (Kind::Label, "Label", 1985),
-    // (Kind::ZapPrivateMessage, "ZapPrivateMessage", 9733),
-    // (Kind::ZapRequest, "ZapRequest", 9734),
-    // (Kind::ZapReceipt, "ZapReceipt", 9735),
-    // (Kind::MuteList, "MuteList", 10000),
-    // (Kind::PinList, "PinList", 10001),
-    // (Kind::Bookmarks, "Bookmarks", 10003),
-    // (Kind::Communities, "Communities", 10004),
-    // (Kind::PublicChats, "PublicChats", 10005),
-    // (Kind::BlockedRelays, "BlockedRelays", 10006),
-    // (Kind::SearchRelays, "SearchRelays", 10007),
-    // (Kind::SimpleGroups, "SimpleGroups", 10009),
-    // (Kind::Interests, "Interests", 10015),
-    // (Kind::Emojis, "Emojis", 10030),
-    // (Kind::RelayList, "RelayList", 10002),
-    // (Kind::Authentication, "Authentication", 22242),
-    // (Kind::WalletConnectRequest, "WalletConnectRequest", 23194),
-    // (Kind::WalletConnectResponse, "WalletConnectResponse", 23195),
-    // (Kind::NostrConnect, "NostrConnect", 24133),
-    // (Kind::LiveEvent, "LiveEvent", 30311),
-    // (Kind::LiveEventMessage, "LiveEventMessage", 1311),
-    // (Kind::ProfileBadges, "ProfileBadges", 30008),
-    // (Kind::BadgeDefinition, "BadgeDefinition", 30009),
-    // (Kind::Seal, "Seal", 13),
-    // (Kind::GiftWrap, "GiftWrap", 1059),
-    // (Kind::SealedDirect, "SealedDirect", 14),
-    // (Kind::SetStall, "SetStall", 30017),
-    // (Kind::SetProduct, "SetProduct", 30018),
-    // (Kind::JobFeedback, "JobFeedback", 7000),
-    // (Kind::FollowSets, "FollowSets", 30000),
-    // (Kind::RelaySets, "RelaySets", 30002),
-    // (Kind::BookmarkSets, "BookmarkSets", 30003),
-    // (Kind::ArticlesCurationSets, "ArticlesCurationSets", 30004),
-    // (Kind::VideosCurationSets, "VideosCurationSets", 30005),
-    // (Kind::InterestSets, "InterestSets", 30015),
-    // (Kind::EmojiSets, "EmojiSets", 30030),
-    // (Kind::ReleaseArtifactSets, "ReleaseArtifactSets", 30063),
-    // (Kind::LongFormTextNote, "LongFormTextNote", 30023),
-    // (Kind::FileMetadata, "FileMetadata", 1063),
-    // (Kind::HttpAuth, "HttpAuth", 27235),
-    // (
-    //     Kind::ApplicationSpecificData,
-    //     "ApplicationSpecificData",
-    //     30078,
-    // ),
-];
 
 #[component]
 pub fn CustomSub() -> Element {
@@ -253,6 +173,7 @@ pub fn CustomSub() -> Element {
                                                     }
                                                 },
                                                 tag: tag,
+                                                index: i * 10 + j,
                                             }
                                         }
                                     }
@@ -277,56 +198,15 @@ pub fn CustomSub() -> Element {
                                         class: "title",
                                         "Kinds:"
                                     }
-                                    for kind in accounts.kinds.iter() {
-                                        div {
-                                            class: "card custom-sub-kind",
-                                            "{kind_to_str(*kind)}"
-                                        }
-                                    }
-                                    Dropdown {
-                                        pos: "right",
-                                        trigger: rsx! {
-                                            button {
-                                                class: "btn-add {edit}",
-                                                dangerous_inner_html: "{ADD}",
+                                    KindInput {
+                                        value: accounts.kinds.clone(),
+                                        on_change: move |kinds| {
+                                            let mut sub = custom_sub.write();
+                                            if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
+                                                accounts_ref.kinds = kinds;
                                             }
                                         },
-                                        children: rsx! {
-                                            div {
-                                                class: "btn-add-content",
-                                                style: r#"
-                                                    display: grid;
-                                                    grid-template-columns: repeat(3, 1fr);
-                                                    gap: 8px;
-                                                "#,
-                                                for kind in KINDS.iter() {
-                                                    div {
-                                                        style: "display: flex; gap: 8px;",
-                                                        "{kind.1}"
-                                                        input {
-                                                            r#type: "checkbox",
-                                                            oninput: move |event| {
-                                                                let is_enabled = event.value() == "true";
-                                                                let index = kind.2;
-                                                                if is_enabled {
-                                                                    let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
-                                                                        if !accounts_ref.kinds.contains(&index) {
-                                                                            accounts_ref.kinds.push(index);
-                                                                        }
-                                                                    }
-                                                                } else {
-                                                                    let mut sub = custom_sub.write();
-                                                                    if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
-                                                                        accounts_ref.kinds.retain(|&x| x != index);
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        index: i,
                                     }
                                 }
                                 div {
@@ -351,6 +231,7 @@ pub fn CustomSub() -> Element {
                                                     }
                                                 },
                                                 account: account.clone(),
+                                                index: i * 10 + j,
                                             }
                                         }
                                     }
@@ -378,20 +259,20 @@ pub fn CustomSub() -> Element {
                                     for (j, event) in events.events.iter().enumerate() {
                                         div {
                                             class: "custom-sub-event",
-                                            InputCusEvent {
+                                            EventInput {
                                                 edit: event.nevent.is_empty(),
-                                                on_change: move |e: Event| {
+                                                on_change: move |a: Event| {
                                                     let mut sub = custom_sub.write();
                                                     if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
-                                                        if e.nevent.is_empty() {
+                                                        if a.nevent.is_empty() {
                                                             events_ref.events.remove(j);
                                                         } else {
-                                                            events_ref.events[j] = e;
+                                                            events_ref.events[j] = a;
                                                         }
                                                     }
                                                 },
-                                                placeholder: Some(("id/nevent".to_string(), "alt name".to_string())),
-                                                value: event.clone(),
+                                                event: event.clone(),
+                                                index: i * 10 + j,
                                             }
                                         }
                                     }
@@ -423,7 +304,8 @@ pub fn CustomSub() -> Element {
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.kinds = kinds;
                                             }
-                                        }
+                                        },
+                                        index: i,
                                     }
                                 }
                                 div {
@@ -448,6 +330,7 @@ pub fn CustomSub() -> Element {
                                                     }
                                                 },
                                                 account: account.clone(),
+                                                index: i * 10 + j,
                                             }
                                         }
                                     }
@@ -495,6 +378,7 @@ pub fn CustomSub() -> Element {
                                             }
                                         },
                                         limit: filter.limit,
+                                        index: i,
                                     }
                                 }
                                 div {
@@ -519,6 +403,7 @@ pub fn CustomSub() -> Element {
                                                     }
                                                 },
                                                 tag: tag.clone(),
+                                                index: i * 10 + j,
                                             }
                                         }
                                     }
@@ -549,9 +434,9 @@ pub fn CustomSub() -> Element {
                     }
                 }
             }
-            div {
-                "{custom_sub.read().json()}"
-            }
+            // div {
+            //     "{custom_sub.read().json()}"
+            // }
         }
     }
 }

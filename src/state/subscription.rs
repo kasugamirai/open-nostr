@@ -37,6 +37,22 @@ impl CustomSub {
                     r#type: String::from("hashtag"),
                     tags: vec![String::from("dog")],
                 }),
+                FilterTemp::Accounts(CustomAccounts {
+                    r#type: String::from("accounts"),
+                    kinds: vec![1],
+                    accounts: vec![Account {
+                        alt_name: "AltName".to_string(),
+                        npub: "npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42"
+                            .to_string(),
+                    }],
+                }),
+                FilterTemp::Events(CustomEvents {
+                    r#type: String::from("events"),
+                    events: vec![Event {
+                        alt_name: "EventName".to_string(),
+                        nevent: "nevent hash".to_string(),
+                    }],
+                }),
                 FilterTemp::Customize(CustomFilter {
                     r#type: String::from("customized"),
                     kinds: vec![Kind::TextNote.as_u64()],
