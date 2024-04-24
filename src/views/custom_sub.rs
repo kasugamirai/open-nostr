@@ -25,7 +25,7 @@ use tag::TagInput;
 #[component]
 pub fn CustomSub() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
-    let mut custom_sub = use_signal(|| CustomSub::default());
+    let mut custom_sub = use_signal(CustomSub::default);
     let mut edit = use_signal(|| false);
     let handle_export = move || {
         let eval = eval(
