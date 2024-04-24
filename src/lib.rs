@@ -6,4 +6,4 @@ mod utils;
 mod views;
 
 pub use router::Route;
-pub use state::subscription::CustomSub;
+pub use state::CustomSub;
