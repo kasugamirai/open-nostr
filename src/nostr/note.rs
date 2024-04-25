@@ -185,7 +185,7 @@ impl<'a> ReplyTrees<'a> {
 #[cfg(test)]
 mod tests {
 
-    use std::borrow::Borrow;
+    //use std::borrow::Borrow;
 
     use super::*;
 
@@ -233,13 +233,13 @@ mod tests {
     #[test]
     fn test_reply_with_no_marker() {
         let event = event_from(REPLY_WITH_NO_MARKER);
-        let textNote = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(&event).unwrap();
         assert!(
-            textNote.root.unwrap().to_hex()
+            text_note.root.unwrap().to_hex()
                 == *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc"
         );
         assert!(
-            textNote.reply_to.unwrap().to_hex()
+            text_note.reply_to.unwrap().to_hex()
                 == *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430"
         );
     }
@@ -247,13 +247,13 @@ mod tests {
     #[test]
     fn test_reply_to_root_no_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_NO_MARKER);
-        let textNote = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(&event).unwrap();
         assert!(
-            textNote.root.unwrap().to_hex()
+            text_note.root.unwrap().to_hex()
                 == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
         );
         assert!(
-            textNote.reply_to.unwrap().to_hex()
+            text_note.reply_to.unwrap().to_hex()
                 == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
         );
     }
@@ -261,8 +261,8 @@ mod tests {
     #[test]
     fn test_is_root() {
         let event = event_from(ROOT_NOTE);
-        let textNote = TextNote::try_from(&event).unwrap();
-        assert!(textNote.is_root());
+        let text_note = TextNote::try_from(&event).unwrap();
+        assert!(text_note.is_root());
     }
 
     #[test]
@@ -286,22 +286,22 @@ mod tests {
         let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::new();
         reply_tree.accept(&event_refs);
-        let R_Children = reply_tree.get_replies(
+        let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
-        assert!(R_Children.len() == 3);
-        assert!(R_Children.first().unwrap().inner_ref.content == "R -> Z");
-        assert!(R_Children.last().unwrap().inner_ref.content == "R -> A");
+        assert!(r_children.len() == 3);
+        assert!(r_children.first().unwrap().inner_ref.content == "R -> Z");
+        assert!(r_children.last().unwrap().inner_ref.content == "R -> A");
         //pick a child
-        let R_A_Children = reply_tree.get_replies(
+        let r_a_children = reply_tree.get_replies(
             &EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511")
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
-        assert!(R_A_Children.len() == 1);
-        assert!(R_A_Children.first().unwrap().inner_ref.content == "R -> A -> B");
+        assert!(r_a_children.len() == 1);
+        assert!(r_a_children.first().unwrap().inner_ref.content == "R -> A -> B");
     }
 
     #[test]
@@ -313,13 +313,13 @@ mod tests {
         let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::new();
         reply_tree.accept(&event_refs);
-        let R_Children = reply_tree.get_replies(
+        let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
-        assert!(R_Children.len() == 2);
-        assert!(R_Children.last().unwrap().inner_ref.content == "R -> A");
+        assert!(r_children.len() == 2);
+        assert!(r_children.last().unwrap().inner_ref.content == "R -> A");
     }
 
     #[test]

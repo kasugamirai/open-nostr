@@ -20,15 +20,15 @@ pub struct CustomSub {
     pub filters: Vec<FilterTemp>,
 }
 
-impl CustomSub {
-    pub fn default() -> Self {
-        // let now: u64 = Timestamp::now().as_u64();
+impl Default for CustomSub {
+    fn default() -> Self {
+        let now: u64 = Timestamp::now().as_u64();
         Self {
             name: String::from("#steakstr"),
             relay_set: RelaySet {
                 name: String::from("Default"),
                 relays: vec![
-                    String::from("wss://btc.klendazu.com"),
+                    String::from("wss://relay.damus.io"),
                     // String::from("wss://nostr.pjv.me"),
                 ],
             },
@@ -69,7 +69,9 @@ impl CustomSub {
             ],
         }
     }
+}
 
+impl CustomSub {
     pub fn json(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
@@ -131,7 +133,14 @@ impl FilterTemp {
             }
             FilterTemp::Events(events) => {
                 for x in &events.events {
-                    filter = filter.event(EventId::from_hex(&x.nevent).unwrap());
+                    match EventId::from_hex(&x.nevent) {
+                        Ok(event_id) => {
+                            filter = filter.event(event_id);
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to parse event id from hex: {}", e);
+                        }
+                    }
                 }
             }
             FilterTemp::Customize(customize) => {

@@ -14,7 +14,7 @@ pub fn Home() -> Element {
     let mut post_datas = use_signal(Vec::<PostData>::new);
     let get_events = move || {
         spawn(async move {
-            let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
+            let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
             // pk to hex
             let my_keys = Keys::parse(pk).unwrap();
 
@@ -28,21 +28,27 @@ pub fn Home() -> Element {
 
             let filters = custom_sub_global.read().to_sub();
 
-            let events = client
+            let events_result = client
                 .get_events_of(filters, Some(Duration::from_secs(30)))
-                .await
-                .unwrap();
+                .await;
 
-            for event in events {
-                let post_data = PostData {
-                    id: event.id().to_hex(),
-                    author: event.author().to_hex(),
-                    created_at: event.created_at().as_u64(),
-                    kind: "".to_string(),
-                    tags: vec![],
-                    content: event.content.to_string(),
-                };
-                post_datas.push(post_data);
+            match events_result {
+                Ok(events) => {
+                    for event in events {
+                        let post_data = PostData {
+                            id: event.id().to_hex(),
+                            author: event.author().to_hex(),
+                            created_at: event.created_at().as_u64(),
+                            kind: "".to_string(),
+                            tags: vec![],
+                            content: event.content.to_string(),
+                        };
+                        post_datas.push(post_data);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to get events: {}", e);
+                }
             }
             let _ = client.disconnect().await;
         });
