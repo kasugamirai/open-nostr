@@ -28,7 +28,7 @@ impl Default for CustomSub {
             relay_set: RelaySet {
                 name: String::from("Default"),
                 relays: vec![
-                    String::from("wss://btc.klendazu.com"),
+                    String::from("wss://relay.damus.io"),
                     // String::from("wss://nostr.pjv.me"),
                 ],
             },

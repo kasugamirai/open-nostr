@@ -1,10 +1,6 @@
 use async_utility::tokio;
-use nostr_sdk::{bitcoin::XKeyIdentifier, prelude::*};
-use std::{
-    sync::{Arc, Mutex},
-    thread::sleep,
-    time::Duration,
-};
+use nostr_sdk::prelude::*;
+use std::sync::{Arc, Mutex};
 use tokio::spawn;
 
 #[tokio::main]
