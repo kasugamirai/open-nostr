@@ -1,3 +1,5 @@
+use regex::Regex;
+
 /// format public key
 ///
 /// # Parameters
@@ -90,13 +92,43 @@ pub fn format_create_at(timestamp: u64) -> String {
 /// assert_eq!(formatted_content, "<a class=\"post-link\" href=\"https://www.google.com\" target=\"_blank\">https://www.google.com</a>");
 /// ```
 pub fn format_content(content: &str) -> String {
-    // replace http or https link to 'a' tag use regex
-    let content = regex::Regex::new(r"(?P<url>https?://\S+)")
-        .unwrap()
-        .replace_all(
-            content,
-            "<a class=\"post-link\" href=\"$url\" target=\"_blank\">$url</a>",
-        );
+    let replaced_text = Regex::new(r"(?P<url>https?://\S+)").unwrap().replace_all(
+        content,
+        |caps: &regex::Captures| {
+            let url = &caps[1];
+            // 如果是图片
+            let url_upper = url.to_uppercase();
+            if url_upper.ends_with(".JPG")
+                || url_upper.ends_with(".PNG")
+                || url_upper.ends_with(".JPEG")
+                || url_upper.ends_with(".GIF")
+                || url_upper.ends_with(".BMP")
+                || url_upper.ends_with(".WEBP")
+                || url_upper.ends_with(".SVG")
+                || url_upper.ends_with(".ICO")
+                || url_upper.ends_with(".AVIF")
+                || url_upper.ends_with(".APNG")
+            {
+                format!(r#"<img class="post-image" src="{}" alt="Image">"#, url)
+            } else {
+                format!(
+                    r#"<a class="post-link" href="{}" target="_blank">{}</a>"#,
+                    url, url
+                )
+            }
+        },
+    );
 
-    content.to_string()
+    let replaced_text = Regex::new(r"#\S+(?: |$)").unwrap().replace_all(
+        &replaced_text,
+        |caps: &regex::Captures| {
+            let tag = caps.get(0).unwrap().as_str();
+            format!(
+                r#"<a class="post-tag-link" href="javascript:void(0)" target="_blank">{}</a>"#,
+                tag
+            )
+        },
+    );
+
+    replaced_text.to_string()
 }

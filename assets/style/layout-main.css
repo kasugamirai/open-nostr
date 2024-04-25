@@ -12,3 +12,19 @@
 .post-link {
     color: var(--link);
 }
+
+.post-tag-link {
+    color: var(--link);
+    text-decoration: none;
+}
+
+.post-tag-link:hover {
+    text-decoration: underline;
+}
+
+.post-image {
+    display: block;
+    height: 160px;
+    max-width: 100%;
+    margin: 5px;
+}

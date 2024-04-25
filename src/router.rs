@@ -154,8 +154,8 @@ pub enum Route {
     #[route("/")]
     Home {},
 
-    #[route("/topic/:topic_id")]
-    Topic { topic_id: String },
+    #[route("/topic")]
+    Topic {},
 
     #[route("/profile")]
     Profile {},
