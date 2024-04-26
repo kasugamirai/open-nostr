@@ -114,7 +114,7 @@ impl FilterTemp {
         let mut filter = Filter::new();
         match self {
             FilterTemp::HashTag(hashtag) => {
-                filter = filter.hashtags(&hashtag.tags);
+                filter = filter.kinds([Kind::TextNote, Kind::Repost]).hashtags(&hashtag.tags);
             }
             FilterTemp::Accounts(accounts) => {
                 filter = filter.kinds(
