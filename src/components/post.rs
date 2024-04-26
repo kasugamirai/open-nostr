@@ -13,11 +13,14 @@ pub struct PostData {
     pub kind: String,
     pub tags: Vec<String>,
     pub content: String,
+    pub index: usize,
+    pub event: nostr_sdk::Event,
 }
 
 #[derive(PartialEq, Clone, Props)]
 pub struct PostProps {
-    data: PostData,
+    pub on_detail: EventHandler<()>,
+    pub data: PostData,
 }
 
 #[component]
@@ -29,7 +32,7 @@ pub fn Post(props: PostProps) -> Element {
                 class: "com-post-author",
                 div {
                     class: "com-post-author-avatar",
-                    img { src: "https://image.baidu.com/search/down?url=https://tvax3.sinaimg.cn//large/0072Vf1pgy1foxkd3ae0mj31hc0u0tsr.jpg" }
+                    img { src: "https://file.service.ahriknow.com/avatar.jpg" }
                 }
                 div {
                     class: "com-post-author-profile",
@@ -47,49 +50,10 @@ pub fn Post(props: PostProps) -> Element {
                 }
                 div {
                     class: "com-post-author-more",
-                    Dropdown {
-                        pos: "right",
-                        trigger: rsx! {
-                            div {
-                                class: "more-trigger",
-                                div {
-                                    dangerous_inner_html: "{MORE}"
-                                }
-                            }
+                    MoreInfo {
+                        on_detail: move |_| {
+                            props.on_detail.call(());
                         },
-                        children: rsx! {
-                            div {
-                                class: "more-content",
-                                div {
-                                    class: "more-content-item",
-                                    div {
-                                        dangerous_inner_html: "{SHARE}"
-                                    }
-                                    "Share"
-                                }
-                                div {
-                                    class: "more-content-item",
-                                    div {
-                                        dangerous_inner_html: "{STAR}"
-                                    }
-                                    "Book Mark"
-                                }
-                                div {
-                                    class: "more-content-item",
-                                    div {
-                                        dangerous_inner_html: "{STATION}"
-                                    }
-                                    "Broadcast"
-                                }
-                                div {
-                                    class: "more-content-item",
-                                    div {
-                                        dangerous_inner_html: "{INFO}"
-                                    }
-                                    "Details"
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -143,6 +107,77 @@ pub fn Post(props: PostProps) -> Element {
                     class: "com-post-info-item com-post-info-reply",
                     span {
                         dangerous_inner_html: "{ADD}",
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
+    let mut edit = use_signal(|| false);
+    rsx! {
+        div {
+            style: "position: relative;",
+            div {
+                class: "more-trigger",
+                div {
+                    onclick: move |_| {
+                        edit.set(!edit());
+                    },
+                    dangerous_inner_html: "{MORE}"
+                }
+            }
+            div {
+                class: "show-{edit}",
+                style: "position: absolute; right: 0; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                div {
+                    style: "display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; width: 140px;",
+                    div {
+                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        onclick: move |_| {
+                            edit.set(false);
+                        },
+                        div {
+                            style: "transform: translateY(4px);",
+                            dangerous_inner_html: "{SHARE}"
+                        }
+                        "Share"
+                    }
+                    div {
+                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        onclick: move |_| {
+                            edit.set(false);
+                        },
+                        div {
+                            style: "transform: translateY(4px);",
+                            dangerous_inner_html: "{STAR}"
+                        }
+                        "Book Mark"
+                    }
+                    div {
+                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        onclick: move |_| {
+                            edit.set(false);
+                        },
+                        div {
+                            style: "transform: translateY(4px);",
+                            dangerous_inner_html: "{STATION}"
+                        }
+                        "Broadcast"
+                    }
+                    div {
+                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        onclick: move |_| {
+                            on_detail.call(());
+                            edit.set(false);
+                        },
+                        div {
+                            style: "transform: translateY(4px);",
+                            dangerous_inner_html: "{INFO}"
+                        }
+                        "Details"
                     }
                 }
             }

@@ -20,15 +20,16 @@ pub struct CustomSub {
     pub filters: Vec<FilterTemp>,
 }
 
-impl Default for CustomSub {
-    fn default() -> Self {
-        let now: u64 = Timestamp::now().as_u64();
+impl CustomSub {
+    pub fn default() -> Self {
+        // let now: u64 = Timestamp::now().as_u64();
         Self {
             name: String::from("#steakstr"),
             relay_set: RelaySet {
                 name: String::from("Default"),
                 relays: vec![
-                    String::from("wss://relay.damus.io"),
+                    String::from("wss://btc.klendazu.com"),
+                    // String::from("wss://relay.damus.io"),
                     // String::from("wss://nostr.pjv.me"),
                 ],
             },

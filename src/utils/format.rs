@@ -92,6 +92,7 @@ pub fn format_create_at(timestamp: u64) -> String {
 /// assert_eq!(formatted_content, "<a class=\"post-link\" href=\"https://www.google.com\" target=\"_blank\">https://www.google.com</a>");
 /// ```
 pub fn format_content(content: &str) -> String {
+    // replace url to link or image
     let replaced_text = Regex::new(r"(?P<url>https?://\S+)").unwrap().replace_all(
         content,
         |caps: &regex::Captures| {
@@ -119,6 +120,7 @@ pub fn format_content(content: &str) -> String {
         },
     );
 
+    // replace '#xxx' to '<a class="post-tag-link" href="javascript:void(0)" target="_blank">#xxx</a>'
     let replaced_text = Regex::new(r"#\S+(?: |$)").unwrap().replace_all(
         &replaced_text,
         |caps: &regex::Captures| {
@@ -129,6 +131,9 @@ pub fn format_content(content: &str) -> String {
             )
         },
     );
+
+    // replace '\n' to '<br>'
+    let replaced_text = Regex::new(r"\\n").unwrap().replace_all(&replaced_text, "<br>");
 
     replaced_text.to_string()
 }

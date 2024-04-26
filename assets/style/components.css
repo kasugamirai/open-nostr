@@ -82,6 +82,11 @@
     color: var(--txt-3)
 }
 
+.com-post svg.icon {
+    width: 24px;
+    height: 24px;
+}
+
 .more-trigger svg {
     cursor: pointer;
     width: 24px;

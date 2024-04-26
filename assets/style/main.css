@@ -72,6 +72,11 @@ input[type="datetime-local"] {
     border: none;
 }
 
+svg {
+    width: 24px;
+    height: 24px;
+}
+
 svg path {
     fill: var(--txt-1);
 }

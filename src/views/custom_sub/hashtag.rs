@@ -49,7 +49,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                         dioxus.send(false)
 
                         // Remove the event listener
-                        // document.removeEventListener('click', handle)
+                        document.removeEventListener('click', handle)
                     }
                     document.addEventListener('click', handle)
                 "#,
@@ -63,7 +63,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
 
     let cn = format!("custom-sub-hashtag-wapper-{}", props.index);
 
-    click_outside(cn.clone());
+    // click_outside(cn.clone());
 
     rsx! {
         div {

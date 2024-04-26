@@ -134,6 +134,25 @@ fn Layout() -> Element {
                         }
                     }
                 }
+                div {
+                    class: "subscriptions",
+                    button {
+                        class: "subscriptions-btn",
+                        "#steakstr"
+                    }
+                    button {
+                        class: "subscriptions-btn",
+                        "Movies # my collection"
+                    }
+                    button {
+                        class: "subscriptions-btn",
+                        "Movies # my collection 2"
+                    }
+                    button {
+                        class: "subscriptions-btn",
+                        "Movies # my collection 3"
+                    }
+                }
                 Button { on_click: toggle_theme, "{state}" }
             }
         }
