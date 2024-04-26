@@ -11,7 +11,7 @@ use serde_json::Value;
 /// # Example:
 ///
 /// ```
-/// let custom_sub = CustomSub::new();
+/// let custom_sub = CustomSub::deault();
 /// ```
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
@@ -20,8 +20,8 @@ pub struct CustomSub {
     pub filters: Vec<FilterTemp>,
 }
 
-impl CustomSub {
-    pub fn default() -> Self {
+impl Default for CustomSub {
+    fn default() -> Self {
         // let now: u64 = Timestamp::now().as_u64();
         Self {
             name: String::from("#steakstr"),
