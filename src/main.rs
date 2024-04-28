@@ -15,6 +15,7 @@ fn main() {
 }
 
 fn App() -> Element {
+    tracing::info!("Welcome to Capybastr!!");
     let state = use_context_provider(|| Signal::new(String::from("light")));
     let _custom_sub_global = use_context_provider(|| Signal::new(CustomSub::default()));
 

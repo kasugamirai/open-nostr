@@ -22,3 +22,4 @@ package.json
 tailwind.config.js
 public/tailwind.css
 .DS_Store
+.gitpod.yml

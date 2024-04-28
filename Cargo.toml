@@ -1,3 +1,4 @@
+workspace = { members = ["custom_db"] }
 [package]
 name = "capybastr"
 version = "0.1.0"
@@ -24,6 +25,7 @@ dioxus-logger = "0.5.0"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 indextree = "4.6.1"
+custom-db = { path = "./custom_db"}
 
 [features]
 default = []
