@@ -14,12 +14,14 @@ pub struct AddFilterProps {
 
 #[component]
 pub fn AddFilter(props: AddFilterProps) -> Element {
+    let allow_edit = use_context::<Signal<bool>>();
     let mut edit = use_signal(|| false);
     rsx! {
         div {
             style: "position: relative;",
             button {
                 class: "btn-circle btn-circle-true",
+                style: format!("display: {}", if *allow_edit.read() { "block" } else { "none" }),
                 onclick: move |_| {
                     edit.set(!edit());
                 },

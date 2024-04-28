@@ -26,7 +26,7 @@ use tag::TagInput;
 pub fn CustomSub() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut custom_sub = use_signal(CustomSub::default);
-    let mut edit = use_signal(|| false);
+    let mut edit = use_context_provider(|| Signal::new(false));
     let handle_export = move || {
         let eval = eval(
             r#"
@@ -183,7 +183,9 @@ pub fn CustomSub() -> Element {
                                         onclick: move |_| {
                                             let mut sub = custom_sub.write();
                                             if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
-                                                hashtag_ref.tags.push("".to_string());
+                                                if hashtag_ref.tags.len() == 0 || !hashtag_ref.tags.last().unwrap().is_empty() {
+                                                    hashtag_ref.tags.push("".to_string());
+                                                }
                                             }
                                         }
                                     }

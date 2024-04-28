@@ -15,9 +15,10 @@ pub struct HashTagInputProps {
 
 #[component]
 pub fn HashTagInput(props: HashTagInputProps) -> Element {
+    let allow_edit = use_context::<Signal<bool>>();
     let mut value = use_signal(|| props.tag.clone());
     let mut bak = use_signal(|| props.tag);
-    let mut edit = use_signal(|| props.edit);
+    let mut edit = use_signal(|| *allow_edit.read() && props.edit);
 
     let click_outside = move |cn: String| {
         spawn(async move {
@@ -72,7 +73,14 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
             div {
                 style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
                 onclick: move |_| {
-                    edit.set(!edit());
+                    let v = edit();
+                    if v {
+                        edit.set(false);
+                    } else {
+                        if allow_edit() {
+                            edit.set(true);
+                        }
+                    }
                     props.on_change.call(value.read().clone());
                 },
                 "{value}"

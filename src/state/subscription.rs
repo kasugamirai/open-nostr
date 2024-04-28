@@ -303,7 +303,7 @@ impl CustomFilter {
     pub fn empty() -> Self {
         Self {
             r#type: String::from("customized"),
-            kinds: vec![],
+            kinds: vec![1, 6],
             accounts: vec![],
             since: 0,
             until: 0,
