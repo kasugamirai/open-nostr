@@ -20,6 +20,12 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
     let mut bak = use_signal(|| props.tag);
     let mut edit = use_signal(|| *allow_edit.read() && props.edit);
 
+    use_effect(move || {
+        if !allow_edit() {
+            edit.set(false);
+        }
+    });
+
     let click_outside = move |cn: String| {
         spawn(async move {
             let mut eval = eval(
@@ -29,7 +35,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                     let ceid = `close-${eid}`
                     const handle = (e) => {
                         let target = e.target
-                        while (true) {
+                        while (true && target) {
                             if (target.classList.contains(ceid)) {
                                 // Clicked on the close button
                                 dioxus.send(false)

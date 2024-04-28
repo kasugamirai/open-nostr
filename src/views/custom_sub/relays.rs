@@ -32,7 +32,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     let ceid = `close-${eid}`
                     const handle = (e) => {
                         let target = e.target
-                        while (true) {
+                        while (true && target) {
                             if (target.classList.contains(ceid)) {
                                 // Clicked on the close button
                                 dioxus.send(false)

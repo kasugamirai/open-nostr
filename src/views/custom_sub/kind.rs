@@ -30,7 +30,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
                     let eid = await dioxus.recv()
                     const handle = (e) => {
                         let target = e.target
-                        while (true) {
+                        while (true && target) {
                             if (target.classList.contains(eid)) {
                                 // The element is a child of the dropdown
                                 dioxus.send(true)

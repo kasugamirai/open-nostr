@@ -16,6 +16,13 @@ pub struct AddFilterProps {
 pub fn AddFilter(props: AddFilterProps) -> Element {
     let allow_edit = use_context::<Signal<bool>>();
     let mut edit = use_signal(|| false);
+
+    use_effect(move || {
+        if !allow_edit() {
+            edit.set(false);
+        }
+    });
+
     rsx! {
         div {
             style: "position: relative;",

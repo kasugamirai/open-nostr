@@ -14,6 +14,7 @@ pub fn Home() -> Element {
     let custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut post_datas = use_signal(Vec::<PostData>::new);
     let mut btn_text = use_signal(|| String::from("Get Events"));
+
     let mut get_events = move || {
         btn_text.set("Loading ...".to_string());
         spawn(async move {
@@ -37,6 +38,7 @@ pub fn Home() -> Element {
 
             match events_result {
                 Ok(events) => {
+                    post_datas.clear();
                     for (i, event) in events.iter().enumerate() {
                         let post_data = PostData {
                             id: event.id().to_hex(),
@@ -59,6 +61,11 @@ pub fn Home() -> Element {
             btn_text.set("Get Events".to_string());
         });
     };
+    
+    use_effect(move || {
+        tracing::info!("{}", custom_sub_global().name);
+        get_events();
+    });
 
     let handle_get_events = move |_| {
         get_events();
