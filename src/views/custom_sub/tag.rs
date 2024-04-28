@@ -66,7 +66,7 @@ pub fn TagInput(props: TagInputProps) -> Element {
 
     let cn = format!("custom-sub-tag-wapper-{}", props.index);
 
-    click_outside(cn.clone());
+    // click_outside(cn.clone());
 
     rsx! {
         div {

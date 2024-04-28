@@ -10,7 +10,7 @@ use capybastr::CustomSub;
 fn main() {
     // Init debug
     dioxus_logger::init(Level::INFO).expect("failed to init logger");
-    log::info!("Starting Dioxus");
+    tracing::info!("Starting Dioxus");
     launch(App);
 }
 

@@ -67,7 +67,7 @@ pub fn AccountInput(props: AccountInputProps) -> Element {
 
     let cn = format!("custom-sub-account-wapper-{}", props.index);
 
-    click_outside(cn.clone());
+    // click_outside(cn.clone());
 
     rsx! {
         div {
