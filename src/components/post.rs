@@ -58,7 +58,7 @@ pub fn Post(props: PostProps) -> Element {
                     const dom = parseStringToDOM(data)
                     wrapImagesWithDiv(dom)
                     dioxus.send(dom.innerHTML)
-                "#
+                "#,
             );
             eval.send(data.into()).unwrap();
             if let Value::String(res) = eval.recv().await.unwrap() {

@@ -30,7 +30,6 @@ pub fn CustomSubscription() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut custom_sub = use_signal(CustomSub::default);
     let mut edit = use_context_provider(|| Signal::new(false));
-    let db: CapybastrDb = CapybastrDb::new("DEFAULT_STORE");
     let handle_export = move || {
         let eval = eval(
             r#"
@@ -99,10 +98,10 @@ pub fn CustomSubscription() -> Element {
                                         class: "content-btn",
                                         onclick: move |_| {
                                             custom_sub_global.set(custom_sub.read().clone());
-                                            let dbs = db.clone();
                                             spawn(async move {
-                                                dbs.delete_data("custom_sub").await.unwrap();
-                                                dbs.add_data("custom_sub", &custom_sub_global()).await.unwrap();
+                                                let db = CapybastrDb::new("subscriptions".to_string()).await.unwrap();
+                                                db.delete_data("custom_sub").await.unwrap();
+                                                db.add_data("custom_sub", &custom_sub_global()).await.unwrap();
                                             });
                                             edit.set(false);
                                         },
