@@ -76,7 +76,7 @@ pub fn MoreAction(props: AddFilterProps) -> Element {
             }
             div {
                 class: "show-{edit}",
-                style: "position: absolute; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                style: "position: absolute; right: 0; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
                 div {
                     style: "display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px;",
                     button {
