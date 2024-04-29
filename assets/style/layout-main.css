@@ -22,13 +22,19 @@
     text-decoration: underline;
 }
 
-.post-img-wrap {
+.post-media-wrap {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
 }
 
 .post-image {
+    display: block;
+    height: 160px;
+    max-width: 100%;
+}
+
+.post-video {
     display: block;
     height: 160px;
     max-width: 100%;

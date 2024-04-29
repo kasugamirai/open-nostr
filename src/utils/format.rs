@@ -110,7 +110,23 @@ pub fn format_content(content: &str) -> String {
                 || url_upper.ends_with(".AVIF")
                 || url_upper.ends_with(".APNG")
             {
-                format!(r#"<img class="post-image" src="{}" alt="Image">"#, url)
+                format!(r#"<img class="post-image media" src="{}" alt="Image">"#, url)
+            } else if url_upper.ends_with(".MOV")
+                || url_upper.ends_with(".MP4")
+                || url_upper.ends_with(".MKV")
+                || url_upper.ends_with(".AVI")
+                || url_upper.ends_with(".WEBM")
+                || url_upper.ends_with(".WMV")
+                || url_upper.ends_with(".MPG")
+                || url_upper.ends_with(".MPEG")
+                || url_upper.ends_with(".FLV")
+                || url_upper.ends_with(".F4V")
+                || url_upper.ends_with(".M4V")
+            {
+                format!(
+                    r#"<video class="post-video media" src="{}" controls></video>"#,
+                    url
+                )
             } else {
                 format!(
                     r#"<a class="post-link" href="{}" target="_blank">{}</a>"#,
@@ -133,7 +149,9 @@ pub fn format_content(content: &str) -> String {
     );
 
     // replace '\n' to '<br>'
-    let replaced_text = Regex::new(r"\\n").unwrap().replace_all(&replaced_text, "<br>");
+    let replaced_text = Regex::new(r"\\n")
+        .unwrap()
+        .replace_all(&replaced_text, "<br>");
 
     replaced_text.to_string()
 }

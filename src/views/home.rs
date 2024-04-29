@@ -16,50 +16,52 @@ pub fn Home() -> Element {
     let mut btn_text = use_signal(|| String::from("Get Events"));
 
     let mut get_events = move || {
-        btn_text.set("Loading ...".to_string());
-        spawn(async move {
-            let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
-            // pk to hex
-            let my_keys = Keys::parse(pk).unwrap();
+        if btn_text() == "Get Events" {
+            btn_text.set("Loading ...".to_string());
+            spawn(async move {
+                let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
+                // pk to hex
+                let my_keys = Keys::parse(pk).unwrap();
 
-            let client = Client::new(&my_keys);
+                let client = Client::new(&my_keys);
 
-            for i in custom_sub_global.read().relay_set.relays.iter() {
-                client.add_relay(i.clone().as_str()).await.unwrap();
-            }
+                for i in custom_sub_global.read().relay_set.relays.iter() {
+                    client.add_relay(i.clone().as_str()).await.unwrap();
+                }
 
-            client.connect().await;
+                client.connect().await;
 
-            let filters = custom_sub_global.read().to_sub();
+                let filters = custom_sub_global.read().to_sub();
 
-            let events_result = client
-                .get_events_of(filters, Some(Duration::from_secs(30)))
-                .await;
+                let events_result = client
+                    .get_events_of(filters, Some(Duration::from_secs(30)))
+                    .await;
 
-            match events_result {
-                Ok(events) => {
-                    post_datas.clear();
-                    for (i, event) in events.iter().enumerate() {
-                        let post_data = PostData {
-                            id: event.id().to_hex(),
-                            author: event.author().to_hex(),
-                            created_at: event.created_at().as_u64(),
-                            kind: "".to_string(),
-                            tags: vec![],
-                            content: event.content.to_string(),
-                            index: i,
-                            event: event.clone(),
-                        };
-                        post_datas.push(post_data);
+                match events_result {
+                    Ok(events) => {
+                        post_datas.clear();
+                        for (i, event) in events.iter().enumerate() {
+                            let post_data = PostData {
+                                id: event.id().to_hex(),
+                                author: event.author().to_hex(),
+                                created_at: event.created_at().as_u64(),
+                                kind: "".to_string(),
+                                tags: vec![],
+                                content: event.content.to_string(),
+                                index: i,
+                                event: event.clone(),
+                            };
+                            post_datas.push(post_data);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to get events: {}", e);
                     }
                 }
-                Err(e) => {
-                    eprintln!("Failed to get events: {}", e);
-                }
-            }
-            let _ = client.disconnect().await;
-            btn_text.set("Get Events".to_string());
-        });
+                let _ = client.disconnect().await;
+                btn_text.set("Get Events".to_string());
+            });
+        }
     };
 
     use_effect(move || {

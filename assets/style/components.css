@@ -47,6 +47,7 @@
     gap: 10px;
     color: var(--txt-1);
     border: 1px solid var(--boc-1);
+    word-wrap: break-word;
 }
 
 .com-post .com-post-author {
@@ -135,6 +136,7 @@
 .com-post .com-post-content {
     font-size: 16px;
     line-height: 1.6;
+    word-wrap: break-word;
 }
 
 .com-post .com-post-info {

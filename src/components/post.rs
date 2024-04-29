@@ -29,7 +29,7 @@ pub struct PostProps {
 pub fn Post(props: PostProps) -> Element {
     let mut content = use_signal(|| String::new());
 
-    let image_format = move |data: String| {
+    let media_format = move |data: String| {
         spawn(async move {
             let mut eval = eval(
                 r#"
@@ -40,7 +40,7 @@ pub fn Post(props: PostProps) -> Element {
                     }
                     
                     const wrapImagesWithDiv = (dom) => {
-                        let images = dom.querySelectorAll('img')
+                        let images = dom.querySelectorAll('.media')
                         let lastDiv = null
                     
                         images.forEach(img => {
@@ -51,7 +51,7 @@ pub fn Post(props: PostProps) -> Element {
                             lastDiv.appendChild(img)
                         })
 
-                        lastDiv.classList.add('post-img-wrap')
+                        lastDiv.classList.add('post-media-wrap')
                     }
                     
                     let data = await dioxus.recv()
@@ -70,7 +70,7 @@ pub fn Post(props: PostProps) -> Element {
     rsx! {
         div {
             onmounted: move |_| {
-                image_format(format_content(&props.data.content));
+                media_format(format_content(&props.data.content));
             },
             class: "com-post",
             div {
