@@ -12,6 +12,7 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+    storage::*,
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -23,7 +24,7 @@ use relays::RelaysInput;
 use tag::TagInput;
 
 #[component]
-pub fn CustomSub() -> Element {
+pub fn CustomSubscription() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut custom_sub = use_signal(CustomSub::default);
     let mut edit = use_context_provider(|| Signal::new(false));
@@ -90,6 +91,9 @@ pub fn CustomSub() -> Element {
                                         class: "content-btn",
                                         onclick: move |_| {
                                             custom_sub_global.set(custom_sub.read().clone());
+                                            spawn(async move {
+                                                add_data("custom_sub", &custom_sub_global()).await.unwrap();
+                                            });
                                             edit.set(false);
                                         },
                                         "Save"

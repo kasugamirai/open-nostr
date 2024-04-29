@@ -3,7 +3,8 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use nostr_sdk::{prelude::*, JsonUtil};
 use serde_json::to_string_pretty;
-use tracing::info;
+use tracing::debug;
+use tracing_subscriber::field::debug;
 
 use crate::{
     components::{icons::FALSE, Button, Post, PostData},
@@ -18,24 +19,9 @@ pub fn Home() -> Element {
     let mut btn_text = use_signal(|| String::from("Get Events"));
 
     let mut get_events = move |filters: Vec<Filter>| {
-        info!("Get Eventssssssssssssssssssssssssssssssssss");
         if btn_text() == "Get Events" {
             btn_text.set("Loading ...".to_string());
             spawn(async move {
-                // let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
-                // // pk to hex
-                // let my_keys = Keys::parse(pk).unwrap();
-
-                // let client = Client::new(&my_keys);
-
-                // for i in custom_sub_global.read().relay_set.relays.iter() {
-                //     client.add_relay(i.clone().as_str()).await.unwrap();
-                // }
-
-                // client.connect().await;
-
-                // let filters = custom_sub_global.read().to_sub();
-
                 let events_result = client
                     .read()
                     .get_events_of(filters, Some(Duration::from_secs(30)))
@@ -70,8 +56,7 @@ pub fn Home() -> Element {
 
     use_effect(move || {
         let cus = custom_sub_global();
-        tracing::info!("{}", cus.name);
-        // get_events(cus.to_sub());
+        debug!("{}", cus.name);
     });
 
     let handle_get_events = move |_| {
@@ -98,6 +83,10 @@ pub fn Home() -> Element {
 
     rsx! {
         ul {
+            onmounted: move |_| {
+                debug!("onmounted");
+                get_events(custom_sub_global.read().to_sub());
+            },
             style: "display: flex; flex-direction: column; gap: 10px;",
             for (i, p) in post_datas().iter().enumerate() {
                 Post {
@@ -129,6 +118,7 @@ pub fn Home() -> Element {
                 }
             }
         }
+        br {}
         Button { on_click: handle_get_events, "{btn_text}" }
     }
 }
