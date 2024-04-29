@@ -3,6 +3,7 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use nostr_sdk::{prelude::*, JsonUtil};
 use serde_json::to_string_pretty;
+use tracing::info;
 
 use crate::{
     components::{icons::FALSE, Button, Post, PostData},
@@ -12,28 +13,31 @@ use crate::{
 #[component]
 pub fn Home() -> Element {
     let custom_sub_global = use_context::<Signal<CustomSub>>();
+    let client = use_context::<Signal<Client>>();
     let mut post_datas = use_signal(Vec::<PostData>::new);
     let mut btn_text = use_signal(|| String::from("Get Events"));
 
-    let mut get_events = move || {
+    let mut get_events = move |filters: Vec<Filter>| {
+        info!("Get Eventssssssssssssssssssssssssssssssssss");
         if btn_text() == "Get Events" {
             btn_text.set("Loading ...".to_string());
             spawn(async move {
-                let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
-                // pk to hex
-                let my_keys = Keys::parse(pk).unwrap();
+                // let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
+                // // pk to hex
+                // let my_keys = Keys::parse(pk).unwrap();
 
-                let client = Client::new(&my_keys);
+                // let client = Client::new(&my_keys);
 
-                for i in custom_sub_global.read().relay_set.relays.iter() {
-                    client.add_relay(i.clone().as_str()).await.unwrap();
-                }
+                // for i in custom_sub_global.read().relay_set.relays.iter() {
+                //     client.add_relay(i.clone().as_str()).await.unwrap();
+                // }
 
-                client.connect().await;
+                // client.connect().await;
 
-                let filters = custom_sub_global.read().to_sub();
+                // let filters = custom_sub_global.read().to_sub();
 
                 let events_result = client
+                    .read()
                     .get_events_of(filters, Some(Duration::from_secs(30)))
                     .await;
 
@@ -58,19 +62,20 @@ pub fn Home() -> Element {
                         eprintln!("Failed to get events: {}", e);
                     }
                 }
-                let _ = client.disconnect().await;
+
                 btn_text.set("Get Events".to_string());
             });
         }
     };
 
     use_effect(move || {
-        tracing::info!("{}", custom_sub_global().name);
-        get_events();
+        let cus = custom_sub_global();
+        tracing::info!("{}", cus.name);
+        // get_events(cus.to_sub());
     });
 
     let handle_get_events = move |_| {
-        get_events();
+        get_events(custom_sub_global.read().to_sub());
     };
 
     let mut show_detail = use_signal(|| String::new());
@@ -93,9 +98,6 @@ pub fn Home() -> Element {
 
     rsx! {
         ul {
-            onmounted: move |_cx| {
-                get_events();
-            },
             style: "display: flex; flex-direction: column; gap: 10px;",
             for (i, p) in post_datas().iter().enumerate() {
                 Post {

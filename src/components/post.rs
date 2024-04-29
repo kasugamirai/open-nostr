@@ -186,7 +186,6 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                             edit.set(false);
                         },
                         div {
-                            style: "transform: translateY(4px);",
                             dangerous_inner_html: "{SHARE}"
                         }
                         "Share"
@@ -197,7 +196,6 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                             edit.set(false);
                         },
                         div {
-                            style: "transform: translateY(4px);",
                             dangerous_inner_html: "{STAR}"
                         }
                         "Book Mark"
@@ -208,7 +206,6 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                             edit.set(false);
                         },
                         div {
-                            style: "transform: translateY(4px);",
                             dangerous_inner_html: "{STATION}"
                         }
                         "Broadcast"
@@ -220,7 +217,6 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                             edit.set(false);
                         },
                         div {
-                            style: "transform: translateY(4px);",
                             dangerous_inner_html: "{INFO}"
                         }
                         "Details"
