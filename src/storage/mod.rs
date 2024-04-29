@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use indexed_db_futures::{prelude::*, web_sys::DomException};
-use serde::Serialize;
-//use std::sync::Arc;
+use serde::{de::DeserializeOwned, Serialize};
+use serde_wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 const DB_NAME: &str = "CAPYBASTR_DB";
@@ -11,7 +11,9 @@ const DB_VERSION: u32 = 1;
 #[derive(Debug)]
 pub enum CapybastrError {
     Dom(DomException),
+    DomError(String),
     SerializationError(serde_json::Error),
+    DeserializationError(serde_wasm_bindgen::Error),
 }
 
 impl From<DomException> for CapybastrError {
@@ -23,6 +25,12 @@ impl From<DomException> for CapybastrError {
 impl From<serde_json::Error> for CapybastrError {
     fn from(e: serde_json::Error) -> Self {
         CapybastrError::SerializationError(e)
+    }
+}
+
+impl From<serde_wasm_bindgen::Error> for CapybastrError {
+    fn from(e: serde_wasm_bindgen::Error) -> Self {
+        CapybastrError::DeserializationError(e)
     }
 }
 
@@ -73,5 +81,18 @@ impl CapybastrDb {
         let store = tx.object_store(&self.store_name)?;
         store.delete_owned(key)?;
         tx.await.into_result().map_err(CapybastrError::from)
+    }
+
+    pub async fn read_data<T: DeserializeOwned>(&self, key: &str) -> Result<T, CapybastrError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(&self.store_name, IdbTransactionMode::Readonly)?;
+        let store = tx.object_store(&self.store_name)?;
+        let value_js_opt = store.get_owned(key)?.await.map_err(CapybastrError::from)?;
+
+        let value_js = value_js_opt
+            .ok_or_else(|| CapybastrError::DomError(format!("No entry found for key: {}", key)))?;
+
+        serde_wasm_bindgen::from_value(value_js).map_err(CapybastrError::DeserializationError)
     }
 }
