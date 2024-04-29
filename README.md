@@ -8,6 +8,11 @@
 npx tailwindcss -i ./input.css -o ./public/tailwind.css --watch
 ```
 
+Install dioxus cli
+```bash
+cargo install dioxus-cli@0.5
+```
+
 
 Launch the Dioxus Fullstack app:
 
