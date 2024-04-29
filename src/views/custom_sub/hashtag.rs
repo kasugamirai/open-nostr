@@ -93,7 +93,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
             }
             div {
                 class: "show-{edit}",
-                style: "position: absolute; bottom: 42px; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                style: "position: absolute; left: 50%; transform: translateX(-50%); background-color: var(--bgc-0); border-radius: var(--radius-circle); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
                 label {
                     style: "display: flex; align-items: center; gap: 10px;",
                     input {

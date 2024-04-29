@@ -19,3 +19,4 @@ pub const RIGHT: &str = include_str!("../../public/static/right.svg");
 pub const LEFT: &str = include_str!("../../public/static/left.svg");
 pub const TRUE: &str = include_str!("../../public/static/true.svg");
 pub const FALSE: &str = include_str!("../../public/static/false.svg");
+pub const RELOAD: &str = include_str!("../../public/static/reload.svg");

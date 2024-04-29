@@ -1,8 +1,7 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, Event, Filter, JsonUtil, Keys, Kind};
-use serde_json::Value;
+use nostr_sdk::{Client, Event, EventId, Filter, Keys};
 
 use crate::{
     components::icons::*,
@@ -11,10 +10,10 @@ use crate::{
 };
 
 #[component]
-pub fn Topic() -> Element {
+pub fn Topic(id: String) -> Element {
     let custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut data = use_signal(|| Vec::<Event>::new());
-    let get_events = move || {
+    let get_events = move |id: String| {
         spawn(async move {
             let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
             // pk to hex
@@ -30,13 +29,7 @@ pub fn Topic() -> Element {
 
             let mut filter: Filter = Filter::new();
             filter = filter.limit(1);
-            filter = filter.kind(Kind::TextNote);
-            // filter = filter.event(
-            //     EventId::from_hex(
-            //         "6b5fde93c86ed41b25ad9c133b9117be323d1eeeb4ee46265dd6b6e72de2a25e",
-            //     )
-            //     .unwrap(),
-            // );
+            filter = filter.id(EventId::from_hex(id).unwrap());
 
             let events = client
                 .get_events_of(vec![filter], Some(Duration::from_secs(30)))
@@ -47,45 +40,6 @@ pub fn Topic() -> Element {
             let _ = client.disconnect().await;
         });
     };
-
-    let value: Value = serde_json::from_str(
-        r#"{
-            "id": "e2f29fe3b18a1b7849869b408039b57f35fcaa40fcedcb65d76b1e214da12f49",
-            "pubkey": "6d088b653a1bffe728b9b17e5c7afcfc18d85f70502feac83400524eb6a8d5e9",
-            "created_at": 1714027891,
-            "kind": 1,
-            "tags": [
-                [
-                    "e",
-                    "dcb8239faa514f6748fc161e09d94b672256f007d3d1e9099fc7e2ddc0ffdf06",
-                    "wss://bostr.lecturify.net/",
-                    "root"
-                ],
-                [
-                    "e",
-                    "0d8a0c9b6f3755288d942ccbd52c31572168ad8393fadc7706b26ebdd9c99fff",
-                    "wss://bostr.lecturify.net/",
-                    "reply"
-                ],
-                [
-                    "p",
-                    "583d76d7aa93b73a75b0e3911187664ba85e35b15fb31dc07bbb8dce55ead165"
-                ],
-                [
-                    "p",
-                    "07f48c2e46883be8e816d452f5bb6a0acd95b75c06bed88d117feea602aa2052"
-                ],
-                [
-                    "p",
-                    "6d088b653a1bffe728b9b17e5c7afcfc18d85f70502feac83400524eb6a8d5e9"
-                ]
-            ],
-            "content": "没动力学了😅",
-            "sig": "419e29563f70634d15f3f7390933640d53ef487bbf19edf874a1d98b62c394c900f8bffa8f63194d02c0d2566be08607e221c24a2a9543dd1b0f5cd18e5098fb"
-        }"#,
-    ).unwrap();
-
-    let event = Event::from_value(value).unwrap();
 
     rsx! {
         style {
@@ -119,9 +73,6 @@ pub fn Topic() -> Element {
                     justify-content: space-around;
                 }}
                 .topic-item .main {{
-                    display: flex;
-                    gap: 10px;
-                    padding-left: 60px;
                 }}
                 .topic-item .footer {{
                     display: flex;
@@ -148,9 +99,8 @@ pub fn Topic() -> Element {
         div {
             style: "max-width: 800px; white-space: wrap;",
             onmounted: move |_cx| {
-                get_events();
+                get_events(id.clone());
             },
-            h1 { "Topic" }
             for i in data() {
                 Item {
                     event: i.clone(),

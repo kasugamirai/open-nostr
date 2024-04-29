@@ -50,7 +50,18 @@ pub fn CustomSub() -> Element {
             class: "custom-sub",
             div {
                 class: "custom-sub-header",
-                h2 { "Custom Sub" }
+                div {
+                    style: "display: flex; align-items: center; gap: 10px;",
+                    h2 { "Custom Sub" }
+                    button {
+                        class: "btn-icon purple small",
+                        onclick: move |_| {
+                            custom_sub_global.set(custom_sub.read().clone());
+                            edit.set(false);
+                        },
+                        dangerous_inner_html: "{RELOAD}",
+                    }
+                }
                 div {
                     class: "custom-sub-header-more",
                     Dropdown {

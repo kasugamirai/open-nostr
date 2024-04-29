@@ -19,7 +19,18 @@ fn App() -> Element {
     let state = use_context_provider(|| Signal::new(String::from("light")));
     let _custom_sub_global = use_context_provider(|| Signal::new(CustomSub::default()));
 
+    let style = format!(
+        "\n{}\n{}\n{}\n{}\n{}\n{}\n",
+        include_str!("../assets/style/tailwind.css"),
+        include_str!("../assets/style/main.css"),
+        include_str!("../assets/style/components.css"),
+        include_str!("../assets/style/layout-left.css"),
+        include_str!("../assets/style/layout-main.css"),
+        include_str!("../assets/style/layout-right.css"),
+    );
+
     rsx! {
+        style { "{style}" }
         div {
             id: "app",
             class: "{state}",

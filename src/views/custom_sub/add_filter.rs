@@ -28,7 +28,7 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
             style: "position: relative;",
             button {
                 class: "btn-circle btn-circle-true",
-                style: format!("display: {}", if *allow_edit.read() { "block" } else { "none" }),
+                style: format!("display: {}", if *allow_edit.read() { "flex" } else { "none" }),
                 onclick: move |_| {
                     edit.set(!edit());
                 },

@@ -173,8 +173,8 @@ pub enum Route {
     #[route("/")]
     Home {},
 
-    #[route("/topic")]
-    Topic {},
+    #[route("/topic/:id")]
+    Topic { id: String },
 
     #[route("/profile")]
     Profile {},

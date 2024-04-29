@@ -30,7 +30,7 @@ pub fn InputCard(props: InputCardProps) -> Element {
             div {
                 class: "com-input_card-input {edit() == true}",
                 input {
-                    style: "max-width: 60px",
+                    style: "max-width: 160px",
                     r#type: "text",
                     value: "{value}",
                     placeholder: props.placeholder.unwrap_or_default(),

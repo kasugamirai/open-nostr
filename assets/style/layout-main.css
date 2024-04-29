@@ -22,9 +22,14 @@
     text-decoration: underline;
 }
 
+.post-img-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
 .post-image {
     display: block;
     height: 160px;
     max-width: 100%;
-    margin: 5px;
 }

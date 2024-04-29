@@ -1,8 +1,10 @@
 use dioxus::prelude::*;
+use serde_json::Value;
 
 use crate::{
-    components::{icons::*, Dropdown},
+    components::icons::*,
     utils::format::{format_content, format_create_at, format_public_key},
+    Route,
 };
 
 #[derive(PartialEq, Clone, Props)]
@@ -25,8 +27,51 @@ pub struct PostProps {
 
 #[component]
 pub fn Post(props: PostProps) -> Element {
+    let mut content = use_signal(|| String::new());
+
+    let image_format = move |data: String| {
+        spawn(async move {
+            let mut eval = eval(
+                r#"
+                    const parseStringToDOM = (str) => {
+                        const parser = new DOMParser()
+                        const doc = parser.parseFromString(str, 'text/html')
+                        return doc.body
+                    }
+                    
+                    const wrapImagesWithDiv = (dom) => {
+                        let images = dom.querySelectorAll('img')
+                        let lastDiv = null
+                    
+                        images.forEach(img => {
+                            if (!lastDiv || lastDiv.parentElement !== img.parentElement) {
+                                lastDiv = document.createElement('div')
+                                img.parentNode.insertBefore(lastDiv, img)
+                            }
+                            lastDiv.appendChild(img)
+                        })
+
+                        lastDiv.classList.add('post-img-wrap')
+                    }
+                    
+                    let data = await dioxus.recv()
+                    const dom = parseStringToDOM(data)
+                    wrapImagesWithDiv(dom)
+                    dioxus.send(dom.innerHTML)
+                "#
+            );
+            eval.send(data.into()).unwrap();
+            if let Value::String(res) = eval.recv().await.unwrap() {
+                content.set(res);
+            }
+        });
+    };
+
     rsx! {
         div {
+            onmounted: move |_| {
+                image_format(format_content(&props.data.content));
+            },
             class: "com-post",
             div {
                 class: "com-post-author",
@@ -59,7 +104,7 @@ pub fn Post(props: PostProps) -> Element {
             }
             div {
                 class: "com-post-content",
-                dangerous_inner_html: "{format_content(&props.data.content)}",
+                dangerous_inner_html: "{content}",
             }
             div {
                 class: "com-post-info",
@@ -103,8 +148,9 @@ pub fn Post(props: PostProps) -> Element {
                         "40k"
                     }
                 }
-                div {
+                Link {
                     class: "com-post-info-item com-post-info-reply",
+                    to: Route::Topic { id: props.data.id.clone() },
                     span {
                         dangerous_inner_html: "{ADD}",
                     }

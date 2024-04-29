@@ -61,7 +61,7 @@ pub fn Home() -> Element {
             btn_text.set("Get Events".to_string());
         });
     };
-    
+
     use_effect(move || {
         tracing::info!("{}", custom_sub_global().name);
         get_events();
@@ -72,6 +72,22 @@ pub fn Home() -> Element {
     };
 
     let mut show_detail = use_signal(|| String::new());
+
+    let json_format = move |data: String| {
+        spawn(async move {
+            let mut eval = eval(
+                r#"
+                    let data = await dioxus.recv()
+                    let res = JSON.stringify(JSON.parse(data), null, 18)
+                    dioxus.send(res)
+                "#,
+            );
+            eval.send(data.into()).unwrap();
+            if let Value::String(res) = eval.recv().await.unwrap() {
+                show_detail.set(res);
+            }
+        });
+    };
 
     rsx! {
         ul {
@@ -85,7 +101,7 @@ pub fn Home() -> Element {
                     on_detail: move |_| {
                         let data: Value = serde_json::from_str(&post_datas()[i].event.as_json()).expect("Failed to parse JSON");
                         let pretty_json = to_string_pretty(&data).expect("Failed to format JSON");
-                        show_detail.set(pretty_json);
+                        json_format(pretty_json);
                     },
                 }
             }
@@ -94,14 +110,16 @@ pub fn Home() -> Element {
                 div {
                     style: "background-color: var(--bgc-0); border-radius: var(--radius-1); padding: 20px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);",
                     button {
-                        style: "position: absolute; top: -10px; left: -10px; border: none; background-color: var(--col-error); border-radius: 50%; width: 32px; height: 32px; cursor: pointer;",
+                        style: "position: absolute; top: -10px; left: -10px; border: none; background-color: var(--col-error); border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;",
                         onclick: move |_| {
                             show_detail.set(String::new());
                         },
                         dangerous_inner_html: "{FALSE}"
                     }
                     textarea {
-                        style: "width: 700px; height: 500px;",
+                        style: "width: 700px; height: 500px; resize: none;",
+                        readonly: true,
+                        wrap: "off",
                         value: "{show_detail}",
                     }
                 }
