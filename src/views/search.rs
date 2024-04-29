@@ -20,7 +20,7 @@ pub fn Search() -> Element {
     rsx! {
 
         button { onclick: move |_| {
-            delete_store();
+            // delete_store();
         }, "delete store" }
 
         button { onclick: move |_| {

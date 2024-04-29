@@ -99,8 +99,8 @@ pub fn CustomSubscription() -> Element {
                                         onclick: move |_| {
                                             custom_sub_global.set(custom_sub.read().clone());
                                             spawn(async move {
-                                                delete_data("custom_sub").await.unwrap();
-                                                add_data("custom_sub", &custom_sub_global()).await.unwrap();
+                                                delete_data("subscriptions", "custom_sub").await.unwrap();
+                                                add_data("subscriptions", "custom_sub", &custom_sub_global()).await.unwrap();
                                             });
                                             edit.set(false);
                                         },
