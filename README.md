@@ -8,7 +8,17 @@
 npx tailwindcss -i ./input.css -o ./public/tailwind.css --watch
 ```
 
-Install dioxus cli
+Install LLVM via Homebrew:
+```bash
+brew install llvm
+```
+
+Add the Homebrew-installed LLVM to your PATH environment variable:
+```bash
+echo 'export PATH="/usr/local/opt/llvm/bin:$PATH"' >> ~/.zshrc
+```
+
+Install dioxus cli:
 ```bash
 cargo install dioxus-cli@0.5
 ```
@@ -16,6 +26,6 @@ cargo install dioxus-cli@0.5
 
 Launch the Dioxus Fullstack app:
 
-```bash
+```bashd
 dx serve --platform fullstack
 ```
