@@ -1,3 +1,4 @@
+use std::fmt;
 use std::rc::Rc;
 
 use indexed_db_futures::{prelude::*, web_sys::DomException};
@@ -14,6 +15,17 @@ pub enum CapybastrError {
     DomError(String),
     SerializationError(serde_json::Error),
     DeserializationError(serde_wasm_bindgen::Error),
+}
+
+impl fmt::Display for CapybastrError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            CapybastrError::Dom(e) => write!(f, "DOM Exception: {}", e.message().as_str()),
+            CapybastrError::DomError(msg) => write!(f, "DOM Error: {}", msg),
+            CapybastrError::SerializationError(e) => write!(f, "Serialization Error: {}", e),
+            CapybastrError::DeserializationError(e) => write!(f, "Deserialization Error: {}", e),
+        }
+    }
 }
 
 impl From<DomException> for CapybastrError {
@@ -93,6 +105,7 @@ impl CapybastrDb {
         let value_js = value_js_opt
             .ok_or_else(|| CapybastrError::DomError(format!("No entry found for key: {}", key)))?;
 
-        serde_wasm_bindgen::from_value(value_js).map_err(CapybastrError::DeserializationError)
+        serde_wasm_bindgen::from_value(value_js)
+            .map_err(|e| CapybastrError::DeserializationError(e))
     }
 }
