@@ -13,7 +13,7 @@ mod topic;
 
 pub use bookmark::Bookmark;
 pub use channel::Channel;
-pub use custom_sub::CustomSub;
+pub use custom_sub::CustomSubscription;
 pub use group::Group;
 pub use home::Home;
 pub use message::Message;

@@ -4,6 +4,7 @@ mod event;
 mod hashtag;
 mod kind;
 mod limit;
+mod more_action;
 mod relays;
 mod tag;
 
@@ -12,6 +13,7 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+    storage::*,
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -19,11 +21,12 @@ use event::EventInput;
 use hashtag::HashTagInput;
 use kind::KindInput;
 use limit::LimitInput;
+use more_action::MoreAction;
 use relays::RelaysInput;
 use tag::TagInput;
 
 #[component]
-pub fn CustomSub() -> Element {
+pub fn CustomSubscription() -> Element {
     let mut custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut custom_sub = use_signal(CustomSub::default);
     let mut edit = use_context_provider(|| Signal::new(false));
@@ -64,54 +67,63 @@ pub fn CustomSub() -> Element {
                 }
                 div {
                     class: "custom-sub-header-more",
-                    Dropdown {
-                        pos: "right".to_string(),
-                        show: "active".to_string(),
-                        trigger: rsx! {
-                            div {
-                                class: "trigger",
-                                dangerous_inner_html: "{MORE}"
-                            }
-                        },
-                        children: rsx! {
-                            div {
-                                class: "content",
-                                button {
-                                    class: "content-btn",
-                                    "Import"
-                                }
-                                button {
-                                    class: "content-btn",
-                                    onclick: move |_| handle_export(),
-                                    "Export"
-                                }
-                                if edit() {
-                                    button {
-                                        class: "content-btn",
-                                        onclick: move |_| {
-                                            custom_sub_global.set(custom_sub.read().clone());
-                                            edit.set(false);
-                                        },
-                                        "Save"
-                                    }
-                                    button {
-                                        class: "content-btn",
-                                        onclick: move |_| {
-                                            custom_sub.set(custom_sub_global.read().clone());
-                                            edit.set(false);
-                                        },
-                                        "Reset"
-                                    }
-                                } else {
-                                    button {
-                                        class: "content-btn",
-                                        onclick: move |_| edit.set(true),
-                                        "Edit"
-                                    }
-                                }
-                            }
+                    MoreAction {
+                        on_click: move |filter| {
+
                         }
                     }
+                    // Dropdown {
+                    //     pos: "right".to_string(),
+                    //     show: "active".to_string(),
+                    //     trigger: rsx! {
+                    //         div {
+                    //             class: "trigger",
+                    //             dangerous_inner_html: "{MORE}"
+                    //         }
+                    //     },
+                    //     children: rsx! {
+                    //         div {
+                    //             class: "content",
+                    //             button {
+                    //                 class: "content-btn",
+                    //                 "Import"
+                    //             }
+                    //             button {
+                    //                 class: "content-btn",
+                    //                 onclick: move |_| handle_export(),
+                    //                 "Export"
+                    //             }
+                    //             if edit() {
+                    //                 button {
+                    //                     class: "content-btn",
+                    //                     onclick: move |_| {
+                    //                         custom_sub_global.set(custom_sub.read().clone());
+                    //                         spawn(async move {
+                    //                             delete_data("custom_sub").await.unwrap();
+                    //                             add_data("custom_sub", &custom_sub_global()).await.unwrap();
+                    //                         });
+                    //                         edit.set(false);
+                    //                     },
+                    //                     "Save"
+                    //                 }
+                    //                 button {
+                    //                     class: "content-btn",
+                    //                     onclick: move |_| {
+                    //                         custom_sub.set(custom_sub_global.read().clone());
+                    //                         edit.set(false);
+                    //                     },
+                    //                     "Reset"
+                    //                 }
+                    //             } else {
+                    //                 button {
+                    //                     class: "content-btn",
+                    //                     onclick: move |_| edit.set(true),
+                    //                     "Edit"
+                    //                 }
+                    //             }
+                    //         }
+                    //     }
+                    // }
                 }
             }
             div {

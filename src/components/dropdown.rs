@@ -24,43 +24,6 @@ pub fn Dropdown(props: DropdownProps) -> Element {
     let hash = "com-dropdown".to_string();
     let id = hash.clone();
 
-    let get_events = move |id: String| {
-        spawn(async move {
-            let mut eval = eval(
-                r#"
-                    // Listens for clicks on the 'document' element
-                    let eid = await dioxus.recv()
-                    const handle = (e) => {
-                        let target = e.target
-                        while (target != null) {
-                            if (target.classList.contains(eid)) {
-                                // The element is a child of the dropdown
-                                dioxus.send("")
-                                return
-                            } else {
-                                if (target === document.documentElement) {
-                                    break
-                                }
-                            }
-                            target = target.parentNode
-                        }
-
-                        // The element is outside the dropdown
-                        dioxus.send(false)
-
-                        // Remove the event listener
-                        // document.removeEventListener('click', handle)
-                    }
-                    document.addEventListener('click', handle)
-                "#,
-            );
-            eval.send(id.into()).unwrap();
-            if let Value::Bool(res) = eval.recv().await.unwrap() {
-                show.set(res);
-            }
-        });
-    };
-    get_events(hash);
     rsx! {
         div {
             class: "com-dropdown {props.show}",

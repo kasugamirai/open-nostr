@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use serde_json::Value;
 
 use crate::{
-    components::icons::ADD,
+    components::icons::MORE,
     state::subscription::{CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, FilterTemp},
 };
 
@@ -14,15 +14,8 @@ pub struct AddFilterProps {
 }
 
 #[component]
-pub fn AddFilter(props: AddFilterProps) -> Element {
-    let allow_edit = use_context::<Signal<bool>>();
+pub fn MoreAction(props: AddFilterProps) -> Element {
     let mut edit = use_signal(|| false);
-
-    use_effect(move || {
-        if !allow_edit() {
-            edit.set(false);
-        }
-    });
 
     let click_outside = move |cn: String| {
         spawn(async move {
@@ -66,21 +59,20 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
         });
     };
 
-    let cn = format!("custom-sub-add-filter-wapper-{}", props.index);
+    let cn = format!("custom-sub-more-action-wapper-{}", props.index);
 
     click_outside(cn.clone());
 
     rsx! {
         div {
             class: "{cn}",
-            style: "position: relative;",
+            style: "position: relative; width: 32px; height: 32px;",
             button {
-                class: "btn-circle btn-circle-true",
-                style: format!("display: {}", if *allow_edit.read() { "flex" } else { "none" }),
+                class: "btn-circle",
                 onclick: move |_| {
                     edit.set(!edit());
                 },
-                dangerous_inner_html: "{ADD}"
+                dangerous_inner_html: "{MORE}"
             }
             div {
                 class: "show-{edit}",

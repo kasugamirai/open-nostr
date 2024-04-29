@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, Button, Dropdown},
     views::{
-        Bookmark, Channel, CustomSub, Group, Home, Message, Profile, Relay, Search, Settings, Test,
-        Topic,
+        Bookmark, Channel, CustomSubscription, Group, Home, Message, Profile, Relay, Search,
+        Settings, Test, Topic,
     },
 };
 
@@ -162,7 +162,7 @@ fn Layout() -> Element {
         }
         div {
             class: "layout-right",
-            CustomSub {}
+            CustomSubscription {}
         }
     }
 }
@@ -202,7 +202,7 @@ pub enum Route {
 
     #[route("/test/:id")]
     Test { id: i32 },
-    
+
     #[end_layout]
     #[route("/:..route")]
     PageNotFound { route: Vec<String> },
