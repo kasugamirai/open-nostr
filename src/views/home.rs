@@ -88,16 +88,15 @@ pub fn Home() -> Element {
     };
 
     use_effect(use_reactive(
-        (&post_datas, &subs, &all_events),
+        (&post_datas, &subs(), &all_events()),
         move |(mut post_datas, subs, all_events)| {
             tracing::info!("======== update post_datas {}", cur());
             let index = cur();
-            let subs = subs();
             if index < subs.len() {
                 let sub = subs[index].clone();
                 post_datas.clear();
 
-                if let Some(events) = all_events().get(&sub.name) {
+                if let Some(events) = all_events.get(&sub.name) {
                     for (i, event) in events.iter().enumerate() {
                         let post_data = PostData {
                             id: event.id().to_hex(),
