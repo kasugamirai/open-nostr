@@ -110,7 +110,10 @@ pub fn format_content(content: &str) -> String {
                 || url_upper.ends_with(".AVIF")
                 || url_upper.ends_with(".APNG")
             {
-                format!(r#"<img class="post-image media" src="{}" alt="Image">"#, url)
+                format!(
+                    r#"<img class="post-image media" src="{}" alt="Image">"#,
+                    url
+                )
             } else if url_upper.ends_with(".MOV")
                 || url_upper.ends_with(".MP4")
                 || url_upper.ends_with(".MKV")
