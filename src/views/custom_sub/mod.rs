@@ -127,19 +127,7 @@ pub fn CustomSubscription() -> Element {
                                 if edit() {
                                     button {
                                         class: "content-btn",
-<<<<<<< HEAD
                                         onclick: handle_save,
-=======
-                                        onclick: move |_| {
-                                            custom_sub_global.set(custom_sub.read().clone());
-                                            spawn(async move {
-                                                let db = CapybastrDb::new("subscriptions".to_string()).await.unwrap();
-                                                db.delete_data("custom_sub").await.unwrap();
-                                                db.add_data("custom_sub", &custom_sub_global()).await.unwrap();
-                                            });
-                                            edit.set(false);
-                                        },
->>>>>>> f0e21edd5f150d935cea76694a864f06885b1333
                                         "Save"
                                     }
                                     button {
