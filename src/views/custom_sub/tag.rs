@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use serde_json::Value;
 
 use crate::{
     components::icons::{FALSE, TRUE},
@@ -20,7 +19,7 @@ pub struct TagInputProps {
 pub fn TagInput(props: TagInputProps) -> Element {
     let allow_edit = use_context::<Signal<bool>>();
     let mut value = use_signal(|| props.tag.clone());
-    let mut bak = use_signal(|| props.tag);
+    let mut bak = use_signal(|| props.tag.clone());
     let mut edit = use_signal(|| *allow_edit.read() && props.edit);
 
     use_effect(move || {
@@ -29,51 +28,12 @@ pub fn TagInput(props: TagInputProps) -> Element {
         }
     });
 
-    let click_outside = move |cn: String| {
-        spawn(async move {
-            let mut eval = eval(
-                r#"
-                    // Listens for clicks on the 'document' element
-                    let eid = await dioxus.recv()
-                    let ceid = `close-${eid}`
-                    const handle = (e) => {
-                        let target = e.target
-                        while (true && target) {
-                            if (target.classList.contains(ceid)) {
-                                // Clicked on the close button
-                                dioxus.send(false)
-                                return
-                            } else if (target.classList.contains(eid)) {
-                                // The element is a child of the dropdown
-                                dioxus.send(true)
-                                return
-                            } else {
-                                if (target === document.documentElement) {
-                                    break
-                                }
-                            }
-                            target = target.parentNode
-                        }
-                        
-                        // The element is outside the dropdown
-                        dioxus.send(false)
-
-                        // Remove the event listener
-                        // document.removeEventListener('click', handle)
-                    }
-                    document.addEventListener('click', handle)
-                "#,
-            );
-            eval.send(cn.into()).unwrap();
-            if let Value::Bool(res) = eval.recv().await.unwrap() {
-                edit.set(res);
-            }
-        });
-    };
+    use_effect(use_reactive((&props.tag,), move |(tag,)| {
+        value.set(tag.clone());
+        bak.set(tag);
+    }));
 
     let cn = format!("custom-sub-tag-wapper-{}", props.index);
-
-    // click_outside(cn.clone());
 
     rsx! {
         div {

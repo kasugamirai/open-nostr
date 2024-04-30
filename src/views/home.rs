@@ -3,8 +3,6 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use nostr_sdk::{prelude::*, JsonUtil};
 use serde_json::to_string_pretty;
-use tracing::debug;
-use tracing_subscriber::field::debug;
 
 use crate::{
     components::{icons::FALSE, Button, Post, PostData},
@@ -13,54 +11,15 @@ use crate::{
 
 #[component]
 pub fn Home() -> Element {
-    let custom_sub_global = use_context::<Signal<CustomSub>>();
+    let mut cur = use_context::<Signal<usize>>();
+    let subs = use_context::<Signal<Vec<CustomSub>>>();
     let client = use_context::<Signal<Client>>();
-    let mut post_datas = use_signal(Vec::<PostData>::new);
-    let mut btn_text = use_signal(|| String::from("Get Events"));
 
-    let mut get_events = move |filters: Vec<Filter>| {
-        if btn_text() == "Get Events" {
-            btn_text.set("Loading ...".to_string());
-            spawn(async move {
-                let events_result = client
-                    .read()
-                    .get_events_of(filters, Some(Duration::from_secs(30)))
-                    .await;
-
-                match events_result {
-                    Ok(events) => {
-                        post_datas.clear();
-                        for (i, event) in events.iter().enumerate() {
-                            let post_data = PostData {
-                                id: event.id().to_hex(),
-                                author: event.author().to_hex(),
-                                created_at: event.created_at().as_u64(),
-                                kind: "".to_string(),
-                                tags: vec![],
-                                content: event.content.to_string(),
-                                index: i,
-                                event: event.clone(),
-                            };
-                            post_datas.push(post_data);
-                        }
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to get events: {}", e);
-                    }
-                }
-
-                btn_text.set("Get Events".to_string());
-            });
-        }
-    };
-
-    use_effect(move || {
-        let cus = custom_sub_global();
-        debug!("{}", cus.name);
-    });
+    let post_datas = use_signal(Vec::<PostData>::new);
+    let btn_text = use_signal(|| String::from("Get Events"));
 
     let handle_get_events = move |_| {
-        get_events(custom_sub_global.read().to_sub());
+        cur.set(cur());
     };
 
     let mut show_detail = use_signal(|| String::new());
@@ -81,12 +40,51 @@ pub fn Home() -> Element {
         });
     };
 
+    use_effect(use_reactive(
+        (&post_datas, &subs, &btn_text),
+        move |(mut post_datas, subs, mut btn_text)| {
+            let index = cur();
+            let subs = subs();
+            if index < subs.len() {
+                let filters = subs[index].to_sub();
+                post_datas.clear();
+                btn_text.set("Loading ...".to_string());
+
+                spawn(async move {
+                    let events_result = client
+                        .read()
+                        .get_events_of(filters, Some(Duration::from_secs(30)))
+                        .await;
+
+                    match events_result {
+                        Ok(events) => {
+                            for (i, event) in events.iter().enumerate() {
+                                let post_data = PostData {
+                                    id: event.id().to_hex(),
+                                    author: event.author().to_hex(),
+                                    created_at: event.created_at().as_u64(),
+                                    kind: "".to_string(),
+                                    tags: vec![],
+                                    content: event.content.to_string(),
+                                    index: i,
+                                    event: event.clone(),
+                                };
+                                post_datas.push(post_data);
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to get events: {}", e);
+                        }
+                    }
+
+                    btn_text.set("Get Events".to_string());
+                });
+            }
+        },
+    ));
+
     rsx! {
         ul {
-            onmounted: move |_| {
-                debug!("onmounted");
-                get_events(custom_sub_global.read().to_sub());
-            },
             style: "display: flex; flex-direction: column; gap: 10px;",
             for (i, p) in post_datas().iter().enumerate() {
                 Post {

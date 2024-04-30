@@ -6,6 +6,7 @@ use crate::{
         Bookmark, Channel, CustomSubscription, Group, Home, Message, Profile, Relay, Search,
         Settings, Test, Topic,
     },
+    CustomSub,
 };
 
 struct RouterItem {
@@ -16,12 +17,14 @@ struct RouterItem {
 
 #[component]
 fn Layout() -> Element {
-    let mut state = use_context::<Signal<String>>();
+    let subs = use_context::<Signal<Vec<CustomSub>>>();
+    let mut cur = use_context::<Signal<usize>>();
+    let mut theme = use_context::<Signal<String>>();
     let toggle_theme = move |_| {
-        if state() == "light" {
-            state.set("dark".to_string());
+        if theme() == "light" {
+            theme.set("dark".to_string());
         } else {
-            state.set("light".to_string());
+            theme.set("light".to_string());
         }
     };
 
@@ -136,24 +139,15 @@ fn Layout() -> Element {
                 }
                 div {
                     class: "subscriptions",
-                    button {
-                        class: "subscriptions-btn",
-                        "#steakstr"
-                    }
-                    button {
-                        class: "subscriptions-btn",
-                        "Movies # my collection"
-                    }
-                    button {
-                        class: "subscriptions-btn",
-                        "Movies # my collection 2"
-                    }
-                    button {
-                        class: "subscriptions-btn",
-                        "Movies # my collection 3"
+                    for (i, sub) in subs.read().iter().enumerate() {
+                        button {
+                            class: format!("subscriptions-btn{}", if i == cur() { " active" } else { "" }),
+                            onclick: move |_| cur.set(i),
+                            "#{sub.name}",
+                        }
                     }
                 }
-                Button { on_click: toggle_theme, "{state}" }
+                Button { on_click: toggle_theme, "{theme}" }
             }
         }
         div {

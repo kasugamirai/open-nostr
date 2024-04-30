@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use nostr_sdk::{Client, Keys};
 use tracing::{debug, Level};
 
-use capybastr::{CustomSub, Route};
+use capybastr::{CustomSub, NostrClient, Route};
 
 fn main() {
     // Init debug
@@ -14,6 +14,10 @@ fn main() {
 
 fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
+
+    let mut all_sub: Signal<Vec<CustomSub>> =
+        use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
+    let _current_sub: Signal<usize> = use_context_provider(|| Signal::new(0));
 
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
@@ -28,10 +32,24 @@ fn App() -> Element {
     // create nostr client
     let mut client = use_context_provider(|| Signal::new(Client::new(&my_keys)));
 
+    // create nostr client pool
+    let mut clients = use_context_provider(|| Signal::new(NostrClient::create()));
+
     // hook: on mounted
     let on_mounted = move |_| {
         spawn(async move {
             // TODO: Step 1, read cache from indexeddb else create new subscription
+
+            all_sub.push(CustomSub::default_with_hashtags(
+                "Dog".to_string(),
+                vec!["dog".to_string()],
+            ));
+            all_sub.push(CustomSub::default_with_hashtags(
+                "Car".to_string(),
+                vec!["car".to_string()],
+            ));
+
+            clients.write().add(&custom_sub_global.read()).await;
 
             // Step 2, connect to relays
             let c = client.write();
@@ -53,6 +71,8 @@ fn App() -> Element {
         });
     });
 
+    let mut root_click_pos = use_context_provider(|| Signal::new((0.0, 0.0)));
+
     let style = format!(
         "\n{}\n{}\n{}\n{}\n{}\n{}\n",
         include_str!("../assets/style/tailwind.css"),
@@ -67,6 +87,10 @@ fn App() -> Element {
         style { "{style}" }
         div {
             onmounted: on_mounted,
+            onclick: move |event| {
+                tracing::info!("===>1 {:?}", event.screen_coordinates().to_tuple());
+                root_click_pos.set(event.screen_coordinates().to_tuple());
+            },
             id: "app",
             class: "{theme}",
             Router::<Route> {}

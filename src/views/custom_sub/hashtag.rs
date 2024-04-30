@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use serde_json::Value;
 
 use crate::components::icons::{FALSE, TRUE};
 
@@ -15,81 +14,62 @@ pub struct HashTagInputProps {
 
 #[component]
 pub fn HashTagInput(props: HashTagInputProps) -> Element {
+    // is ro not allow editing
     let allow_edit = use_context::<Signal<bool>>();
-    let mut value = use_signal(|| props.tag.clone());
-    let mut bak = use_signal(|| props.tag);
     let mut edit = use_signal(|| *allow_edit.read() && props.edit);
 
-    use_effect(move || {
+    // current value
+    let mut value = use_signal(|| props.tag.clone());
+
+    // backup value to restore value when cancel editing
+    let mut bak = use_signal(|| props.tag.clone());
+
+    // cancel editing status when the parent does not allow editing
+    use_effect(use_reactive((&edit,), move |(mut edit,)| {
         if !allow_edit() {
             edit.set(false);
         }
-    });
+    }));
 
-    let click_outside = move |cn: String| {
-        spawn(async move {
-            let mut eval = eval(
-                r#"
-                    // Listens for clicks on the 'document' element
-                    let eid = await dioxus.recv()
-                    let ceid = `close-${eid}`
-                    const handle = (e) => {
-                        let target = e.target
-                        while (true && target) {
-                            if (target.classList.contains(ceid)) {
-                                // Clicked on the close button
-                                dioxus.send(false)
-                                return
-                            } else if (target.classList.contains(eid)) {
-                                // The element is a child of the dropdown
-                                dioxus.send(true)
-                                return
-                            } else {
-                                if (target === document.documentElement) {
-                                    break
-                                }
-                            }
-                            target = target.parentNode
-                        }
-                        
-                        // The element is outside the dropdown
-                        dioxus.send(false)
+    // update value and cancel editing when parent data has changed
+    use_effect(use_reactive((&props.tag,), move |(tag,)| {
+        value.set(tag.clone());
+        bak.set(tag);
+        edit.set(false);
+    }));
 
-                        // Remove the event listener
-                        document.removeEventListener('click', handle)
-                    }
-                    document.addEventListener('click', handle)
-                "#,
-            );
-            eval.send(cn.into()).unwrap();
-            if let Value::Bool(res) = eval.recv().await.unwrap() {
-                edit.set(res);
-            }
-        });
-    };
+    // close when click outside
+    let root_click_pos = use_context::<Signal<(f64, f64)>>();
+    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
+    use_effect(use_reactive((&pos,), move |(pos,)| {
+        // The coordinates of root element
+        let root_pos = root_click_pos();
 
-    let cn = format!("custom-sub-hashtag-wapper-{}", props.index);
+        // The coordinates of current element
+        let current_pos = pos();
 
-    // click_outside(cn.clone());
+        // Determine if two coordinates are the same
+        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
+            edit.set(false);
+            props.on_change.call(value.read().clone());
+        }
+    }));
 
     rsx! {
         div {
-            class: "{cn}",
             style: "position: relative;",
+            onclick: move |event| {
+                // Save the coordinates of the event relative to the screen
+                pos.set(event.screen_coordinates().to_tuple());
+            },
             div {
                 style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
                 onclick: move |_| {
-                    let v = edit();
-                    if v {
-                        edit.set(false);
-                    } else {
-                        if allow_edit() {
-                            edit.set(true);
-                        }
+                    if allow_edit() {
+                        edit.set(true);
                     }
-                    props.on_change.call(value.read().clone());
                 },
-                "{value}"
+                "{props.tag}"
             }
             div {
                 class: "show-{edit}",
@@ -106,7 +86,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                         }
                     }
                     button {
-                        class: "btn-circle btn-circle-true close-{cn}",
+                        class: "btn-circle btn-circle-true",
                         onclick: move |_| {
                             // TODO: Get 'alt name' if 'value.alt_name' is empty
                             bak.set(value());
@@ -116,7 +96,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                         dangerous_inner_html: "{TRUE}"
                     }
                     button {
-                        class: "btn-circle btn-circle-false close-{cn}",
+                        class: "btn-circle btn-circle-false",
                         onclick: move |_| {
                             let v = bak();
                             value.set(v);

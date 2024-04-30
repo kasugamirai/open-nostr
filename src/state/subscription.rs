@@ -18,6 +18,7 @@ pub struct CustomSub {
     pub name: String,
     pub relay_set: RelaySet,
     pub filters: Vec<FilterTemp>,
+    pub keep_alive: bool,
 }
 
 impl Default for CustomSub {
@@ -68,11 +69,27 @@ impl Default for CustomSub {
                 //     tags: vec![],
                 // }),
             ],
+            keep_alive: true,
         }
     }
 }
 
 impl CustomSub {
+    pub fn default_with_hashtags(name: String, tags: Vec<String>) -> Self {
+        Self {
+            name: name.clone(),
+            relay_set: RelaySet {
+                name: format!("{} - relays", name),
+                relays: vec![String::from("wss://btc.klendazu.com")],
+            },
+            filters: vec![FilterTemp::HashTag(CustomHashTag {
+                r#type: String::from("hashtag"),
+                tags,
+            })],
+            keep_alive: true,
+        }
+    }
+
     pub fn json(&self) -> String {
         serde_json::to_string(self).unwrap()
     }
@@ -114,7 +131,9 @@ impl FilterTemp {
         let mut filter = Filter::new();
         match self {
             FilterTemp::HashTag(hashtag) => {
-                filter = filter.kinds([Kind::TextNote, Kind::Repost]).hashtags(&hashtag.tags);
+                filter = filter
+                    .kinds([Kind::TextNote, Kind::Repost])
+                    .hashtags(&hashtag.tags);
             }
             FilterTemp::Accounts(accounts) => {
                 filter = filter.kinds(
@@ -381,6 +400,7 @@ mod test {
                     npub: String::from(public_key),
                 }],
             })],
+            keep_alive: true,
         };
         let custom_filter = custom_sub.filters[0].to_sub();
 
@@ -425,6 +445,7 @@ mod test {
                 limit: 0,
                 tags: vec![],
             })],
+            keep_alive: true,
         };
         let custom_filter = custom_sub.filters[0].to_sub();
 
@@ -455,6 +476,7 @@ mod test {
                     ),
                 }],
             })],
+            keep_alive: true,
         };
         let custom_filter = custom_sub.filters[0].to_sub();
 
@@ -488,6 +510,7 @@ mod test {
                     tags: vec![String::from("#rust"), String::from("#programming")],
                 }),
             ],
+            keep_alive: true,
         };
         let filters = custom_sub.to_sub();
 
@@ -511,6 +534,7 @@ mod test {
                 relays: vec![String::from("wss://relay.damus.io")],
             },
             filters: vec![],
+            keep_alive: true,
         };
 
         let filters = custom_sub.to_sub();

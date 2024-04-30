@@ -13,7 +13,6 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, InputCard},
     state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
-    storage::*,
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -21,14 +20,30 @@ use event::EventInput;
 use hashtag::HashTagInput;
 use kind::KindInput;
 use limit::LimitInput;
-use more_action::MoreAction;
 use relays::RelaysInput;
 use tag::TagInput;
 
 #[component]
 pub fn CustomSubscription() -> Element {
-    let mut custom_sub_global = use_context::<Signal<CustomSub>>();
-    let mut custom_sub = use_signal(CustomSub::default);
+    let cur = use_context::<Signal<usize>>();
+    let mut subs = use_context::<Signal<Vec<CustomSub>>>();
+    let mut current_sub = use_signal(|| CustomSub::default());
+
+    let render = use_signal(|| true);
+
+    use_effect(use_reactive(
+        (&subs, &current_sub, &render),
+        move |(subs, mut current_sub, mut render)| {
+            let index = cur();
+            let subs = subs();
+            if index < subs.len() {
+                render.set(false);
+                current_sub.set(subs[index].clone());
+                render.set(true);
+            }
+        },
+    ));
+
     let mut edit = use_context_provider(|| Signal::new(false));
     let handle_export = move || {
         let eval = eval(
@@ -45,7 +60,26 @@ pub fn CustomSubscription() -> Element {
                 return true;
             "#,
         );
-        eval.send(custom_sub.read().json().into()).unwrap();
+        eval.send(current_sub.read().json().into()).unwrap();
+    };
+    let handle_save = move |_| {
+        let index = cur();
+        let mut subs = subs.write();
+        subs[index] = current_sub.read().clone();
+        edit.set(false);
+
+        // TODO: save to storage
+        // spawn(async move {
+        //     delete_data("subscriptions", "current_sub").await.unwrap();
+        //     add_data("subscriptions", "current_sub", &subs())
+        //         .await
+        //         .unwrap();
+        // });
+    };
+    let handle_reset = move |_| {
+        let index = cur();
+        let subs = subs();
+        current_sub.set(subs[index].clone());
     };
 
     rsx! {
@@ -58,10 +92,7 @@ pub fn CustomSubscription() -> Element {
                     h2 { "Custom Sub" }
                     button {
                         class: "btn-icon purple small",
-                        onclick: move |_| {
-                            custom_sub_global.set(custom_sub.read().clone());
-                            edit.set(false);
-                        },
+                        onclick: handle_save,
                         dangerous_inner_html: "{RELOAD}",
                     }
                 }
@@ -96,22 +127,12 @@ pub fn CustomSubscription() -> Element {
                                 if edit() {
                                     button {
                                         class: "content-btn",
-                                        onclick: move |_| {
-                                            custom_sub_global.set(custom_sub.read().clone());
-                                            spawn(async move {
-                                                delete_data("subscriptions", "custom_sub").await.unwrap();
-                                                add_data("subscriptions", "custom_sub", &custom_sub_global()).await.unwrap();
-                                            });
-                                            edit.set(false);
-                                        },
+                                        onclick: handle_save,
                                         "Save"
                                     }
                                     button {
                                         class: "content-btn",
-                                        onclick: move |_| {
-                                            custom_sub.set(custom_sub_global.read().clone());
-                                            edit.set(false);
-                                        },
+                                        onclick: handle_reset,
                                         "Reset"
                                     }
                                 } else {
@@ -134,11 +155,11 @@ pub fn CustomSubscription() -> Element {
                     InputCard {
                         edit: false,
                         on_change: move |v| {
-                            let mut sub = custom_sub.write();
+                            let mut sub = current_sub.write();
                             sub.name = v;
                         },
                         placeholder: None,
-                        value: "{custom_sub.read().name}",
+                        value: "{current_sub.read().name}",
                     }
                 }
                 div {
@@ -148,10 +169,10 @@ pub fn CustomSubscription() -> Element {
                         style: "display: inline-block;",
                         RelaysInput {
                             on_change: move |v: RelaySet| {
-                                let mut sub = custom_sub.write();
+                                let mut sub = current_sub.write();
                                 sub.relay_set = v;
                             },
-                            relay_set: custom_sub.read().relay_set.clone(),
+                            relay_set: current_sub.read().relay_set.clone(),
                         }
                     }
                 }
@@ -160,14 +181,14 @@ pub fn CustomSubscription() -> Element {
                 class: "custom-sub-filters",
                 "Filters:"
             }
-            for (i, filter) in custom_sub.read().filters.iter().enumerate() {
+            for (i, filter) in current_sub.read().filters.iter().enumerate() {
                 div {
                     class: "custom-sub-item",
                     button {
                         class: "custom-sub-item-remove {edit}",
                         dangerous_inner_html: "{FALSE}",
                         onclick: move |_| {
-                            let mut sub = custom_sub.write();
+                            let mut sub = current_sub.write();
                             sub.filters.remove(i);
                         }
                     }
@@ -186,7 +207,7 @@ pub fn CustomSubscription() -> Element {
                                             HashTagInput {
                                                 edit: tag.is_empty(),
                                                 on_change: move |v: String| {
-                                                    let mut sub = custom_sub.write();
+                                                    let mut sub = current_sub.write();
                                                     if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
                                                         if v.is_empty() {
                                                             hashtag_ref.tags.remove(j);
@@ -204,7 +225,7 @@ pub fn CustomSubscription() -> Element {
                                         class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
                                                 if hashtag_ref.tags.len() == 0 || !hashtag_ref.tags.last().unwrap().is_empty() {
                                                     hashtag_ref.tags.push("".to_string());
@@ -226,7 +247,7 @@ pub fn CustomSubscription() -> Element {
                                     KindInput {
                                         value: accounts.kinds.clone(),
                                         on_change: move |kinds| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                 accounts_ref.kinds = kinds;
                                             }
@@ -246,7 +267,7 @@ pub fn CustomSubscription() -> Element {
                                             AccountInput {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
-                                                    let mut sub = custom_sub.write();
+                                                    let mut sub = current_sub.write();
                                                     if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                         if a.npub.is_empty() {
                                                             accounts_ref.accounts.remove(j);
@@ -264,7 +285,7 @@ pub fn CustomSubscription() -> Element {
                                         class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Accounts(ref mut accounts_ref) = sub.filters[i] {
                                                 accounts_ref.accounts.push(Account::empty());
                                             }
@@ -287,7 +308,7 @@ pub fn CustomSubscription() -> Element {
                                             EventInput {
                                                 edit: event.nevent.is_empty(),
                                                 on_change: move |a: Event| {
-                                                    let mut sub = custom_sub.write();
+                                                    let mut sub = current_sub.write();
                                                     if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
                                                         if a.nevent.is_empty() {
                                                             events_ref.events.remove(j);
@@ -305,7 +326,7 @@ pub fn CustomSubscription() -> Element {
                                         class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Events(ref mut events_ref) = sub.filters[i] {
                                                 events_ref.events.push(Event::empty());
                                             }
@@ -325,7 +346,7 @@ pub fn CustomSubscription() -> Element {
                                     KindInput {
                                         value: filter.kinds.clone(),
                                         on_change: move |kinds| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.kinds = kinds;
                                             }
@@ -345,7 +366,7 @@ pub fn CustomSubscription() -> Element {
                                             AccountInput {
                                                 edit: account.npub.is_empty(),
                                                 on_change: move |a: Account| {
-                                                    let mut sub = custom_sub.write();
+                                                    let mut sub = current_sub.write();
                                                     if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                         if a.npub.is_empty() {
                                                             filter_ref.accounts.remove(j);
@@ -363,7 +384,7 @@ pub fn CustomSubscription() -> Element {
                                         class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.accounts.push(Account::empty());
                                             }
@@ -380,7 +401,7 @@ pub fn CustomSubscription() -> Element {
                                         value: filter.since,
                                         end: filter.until,
                                         on_change: move |(start, end): (u64, u64)| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.since = start;
                                                 filter_ref.until = end;
@@ -397,7 +418,7 @@ pub fn CustomSubscription() -> Element {
                                     LimitInput {
                                         edit: false,
                                         on_change: move |v: usize| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.limit = v;
                                             }
@@ -418,7 +439,7 @@ pub fn CustomSubscription() -> Element {
                                             TagInput {
                                                 edit: tag.value.is_empty(),
                                                 on_change: move |c: Tag| {
-                                                    let mut sub = custom_sub.write();
+                                                    let mut sub = current_sub.write();
                                                     if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                         if c.value.is_empty() {
                                                             filter_ref.tags.remove(j);
@@ -436,7 +457,7 @@ pub fn CustomSubscription() -> Element {
                                         class: "btn-add {edit}",
                                         dangerous_inner_html: "{ADD}",
                                         onclick: move |_| {
-                                            let mut sub = custom_sub.write();
+                                            let mut sub = current_sub.write();
                                             if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
                                                 filter_ref.tags.push(Tag::empty());
                                             }
@@ -453,14 +474,14 @@ pub fn CustomSubscription() -> Element {
                 span {
                     AddFilter {
                         on_click: move |filter| {
-                            let mut sub = custom_sub.write();
+                            let mut sub = current_sub.write();
                             sub.filters.push(filter);
                         }
                     }
                 }
             }
             // div {
-            //     "{custom_sub.read().json()}"
+            //     "{current_sub.read().json()}"
             // }
         }
     }
