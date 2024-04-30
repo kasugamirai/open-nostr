@@ -45,10 +45,8 @@ pub fn TagInput(props: TagInputProps) -> Element {
                     let v = edit();
                     if v {
                         edit.set(false);
-                    } else {
-                        if allow_edit() {
-                            edit.set(true);
-                        }
+                    } else if allow_edit() {
+                        edit.set(true);
                     }
                     props.on_change.call(value.read().clone());
                 },

@@ -27,7 +27,7 @@ use tag::TagInput;
 pub fn CustomSubscription() -> Element {
     let cur = use_context::<Signal<usize>>();
     let mut subs = use_context::<Signal<Vec<CustomSub>>>();
-    let mut current_sub = use_signal(|| CustomSub::default());
+    let mut current_sub = use_signal(CustomSub::default);
 
     let render = use_signal(|| true);
 
@@ -227,7 +227,7 @@ pub fn CustomSubscription() -> Element {
                                         onclick: move |_| {
                                             let mut sub = current_sub.write();
                                             if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
-                                                if hashtag_ref.tags.len() == 0 || !hashtag_ref.tags.last().unwrap().is_empty() {
+                                                if hashtag_ref.tags.is_empty() || !hashtag_ref.tags.last().unwrap().is_empty() {
                                                     hashtag_ref.tags.push("".to_string());
                                                 }
                                             }

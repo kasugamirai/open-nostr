@@ -69,7 +69,7 @@ pub fn Home() -> Element {
         get_events();
     };
 
-    let mut show_detail = use_signal(|| String::new());
+    let mut show_detail = use_signal(String::new);
 
     let json_format = move |data: String| {
         spawn(async move {

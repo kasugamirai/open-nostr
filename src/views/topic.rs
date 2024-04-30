@@ -12,7 +12,7 @@ use crate::{
 #[component]
 pub fn Topic(id: String) -> Element {
     let custom_sub_global = use_context::<Signal<CustomSub>>();
-    let mut data = use_signal(|| Vec::<Event>::new());
+    let mut data = use_signal(Vec::<Event>::new);
     let get_events = move |id: String| {
         spawn(async move {
             let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
