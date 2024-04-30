@@ -133,7 +133,8 @@ impl FilterTemp {
             FilterTemp::HashTag(hashtag) => {
                 filter = filter
                     .kinds([Kind::TextNote, Kind::Repost])
-                    .hashtags(&hashtag.tags);
+                    .hashtags(&hashtag.tags)
+                    .limit(5);
             }
             FilterTemp::Accounts(accounts) => {
                 filter = filter.kinds(

@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
 
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
 use nostr_sdk::{Client, Keys};
 use tracing::{debug, Level};
@@ -8,7 +10,7 @@ use capybastr::{CustomSub, NostrClient, Route};
 
 fn main() {
     // Init debug
-    dioxus_logger::init(Level::DEBUG).expect("failed to init logger");
+    dioxus_logger::init(Level::INFO).expect("failed to init logger");
     launch(App);
 }
 
@@ -18,6 +20,10 @@ fn App() -> Element {
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
     let _current_sub: Signal<usize> = use_context_provider(|| Signal::new(0));
+
+    // TODO: all events, read from indexeddb
+    let _all_events =
+        use_context_provider(|| Signal::new(HashMap::<String, Vec<nostr_sdk::Event>>::new()));
 
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
@@ -88,7 +94,6 @@ fn App() -> Element {
         div {
             onmounted: on_mounted,
             onclick: move |event| {
-                tracing::info!("===>1 {:?}", event.screen_coordinates().to_tuple());
                 root_click_pos.set(event.screen_coordinates().to_tuple());
             },
             id: "app",
