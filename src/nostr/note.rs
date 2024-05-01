@@ -219,13 +219,13 @@ mod tests {
     #[test]
     fn test_reply_with_marker() {
         let event = event_from(REPLY_WITH_MARKER);
-        let textNote = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(&event).unwrap();
         assert!(
-            textNote.root.unwrap().to_hex()
+            text_note.root.unwrap().to_hex()
                 == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"
         );
         assert!(
-            textNote.reply_to.unwrap().to_hex()
+            text_note.reply_to.unwrap().to_hex()
                 == *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345"
         );
     }
