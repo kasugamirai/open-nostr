@@ -91,70 +91,65 @@ pub fn format_create_at(timestamp: u64) -> String {
 /// let formatted_content = format_content(content);
 /// assert_eq!(formatted_content, "<a class=\"post-link\" href=\"https://www.google.com\" target=\"_blank\">https://www.google.com</a>");
 /// ```
+
 pub fn format_content(content: &str) -> String {
-    // replace url to link or image
-    let replaced_text = Regex::new(r"(?P<url>https?://\S+)").unwrap().replace_all(
-        content,
-        |caps: &regex::Captures| {
-            let url = &caps[1];
-            // 如果是图片
-            let url_upper = url.to_uppercase();
-            if url_upper.ends_with(".JPG")
-                || url_upper.ends_with(".PNG")
-                || url_upper.ends_with(".JPEG")
-                || url_upper.ends_with(".GIF")
-                || url_upper.ends_with(".BMP")
-                || url_upper.ends_with(".WEBP")
-                || url_upper.ends_with(".SVG")
-                || url_upper.ends_with(".ICO")
-                || url_upper.ends_with(".AVIF")
-                || url_upper.ends_with(".APNG")
-            {
-                format!(
-                    r#"<img class="post-image media" src="{}" alt="Image">"#,
-                    url
-                )
-            } else if url_upper.ends_with(".MOV")
-                || url_upper.ends_with(".MP4")
-                || url_upper.ends_with(".MKV")
-                || url_upper.ends_with(".AVI")
-                || url_upper.ends_with(".WEBM")
-                || url_upper.ends_with(".WMV")
-                || url_upper.ends_with(".MPG")
-                || url_upper.ends_with(".MPEG")
-                || url_upper.ends_with(".FLV")
-                || url_upper.ends_with(".F4V")
-                || url_upper.ends_with(".M4V")
-            {
-                format!(
-                    r#"<video class="post-video media" src="{}" controls></video>"#,
-                    url
-                )
-            } else {
-                format!(
-                    r#"<a class="post-link" href="{}" target="_blank">{}</a>"#,
-                    url, url
-                )
-            }
-        },
-    );
+    let replaced_text = replace_urls(content);
+    let replaced_text = replace_tags(&replaced_text);
+    replace_newlines(&replaced_text)
+}
 
-    // replace '#xxx' to '<a class="post-tag-link" href="javascript:void(0)" target="_blank">#xxx</a>'
-    let replaced_text = Regex::new(r"#\S+(?: |$)").unwrap().replace_all(
-        &replaced_text,
-        |caps: &regex::Captures| {
-            let tag = caps.get(0).unwrap().as_str();
+fn replace_urls(content: &str) -> String {
+    let re = Regex::new(r"(?P<url>https?://\S+)").unwrap();
+    re.replace_all(content, |caps: &regex::Captures| {
+        let url = &caps[1];
+        let url_upper = url.to_uppercase();
+        if is_image(&url_upper) {
             format!(
-                r#"<a class="post-tag-link" href="javascript:void(0)" target="_blank">{}</a>"#,
-                tag
+                r#"<img class="post-image media" src="{}" alt="Image">"#,
+                url
             )
-        },
-    );
+        } else if is_video(&url_upper) {
+            format!(
+                r#"<video class="post-video media" src="{}" controls></video>"#,
+                url
+            )
+        } else {
+            format!(
+                r#"<a class="post-link" href="{}" target="_blank">{}</a>"#,
+                url, url
+            )
+        }
+    })
+    .to_string()
+}
 
-    // replace '\n' to '<br>'
-    let replaced_text = Regex::new(r"\\n")
-        .unwrap()
-        .replace_all(&replaced_text, "<br>");
+fn is_image(url: &str) -> bool {
+    let extensions = [
+        ".JPG", ".PNG", ".JPEG", ".GIF", ".BMP", ".WEBP", ".SVG", ".ICO", ".AVIF", ".APNG",
+    ];
+    extensions.iter().any(|ext| url.ends_with(ext))
+}
 
-    replaced_text.to_string()
+fn is_video(url: &str) -> bool {
+    let extensions = [
+        ".MOV", ".MP4", ".MKV", ".AVI", ".WEBM", ".WMV", ".MPG", ".MPEG", ".FLV", ".F4V", ".M4V",
+    ];
+    extensions.iter().any(|ext| url.ends_with(ext))
+}
+
+fn replace_tags(content: &str) -> String {
+    let re = Regex::new(r"#\S+(?: |$)").unwrap();
+    re.replace_all(content, |caps: &regex::Captures| {
+        let tag = caps.get(0).unwrap().as_str();
+        format!(
+            r#"<a class="post-tag-link" href="javascript:void(0)" target="_blank">{}</a>"#,
+            tag
+        )
+    })
+    .to_string()
+}
+
+fn replace_newlines(content: &str) -> String {
+    let re = Regex::new(r"\\n").unwrap();
+    re.replace_all(content, "<br>").to_string()
 }
