@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(PartialEq, Clone, Props)]
-pub struct PostData {
+pub struct NoteData {
     pub id: String,
     pub author: String,
     pub created_at: u64,
@@ -20,13 +20,13 @@ pub struct PostData {
 }
 
 #[derive(PartialEq, Clone, Props)]
-pub struct PostProps {
+pub struct NoteProps {
     pub on_detail: EventHandler<()>,
-    pub data: PostData,
+    pub data: NoteData,
 }
 
 #[component]
-pub fn Post(props: PostProps) -> Element {
+pub fn Note(props: NoteProps) -> Element {
     let mut content = use_signal(String::new);
 
     let media_format = move |data: String| {
@@ -77,7 +77,8 @@ pub fn Post(props: PostProps) -> Element {
                 class: "com-post-author",
                 div {
                     class: "com-post-author-avatar",
-                    img { src: "https://file.service.ahriknow.com/avatar.jpg" }
+                    img { src: "https://cdn.discordapp.com/attachments/920558788375883779/926672818479968256/IMG_5323.jpg?ex=66364f10&is=6634fd90&hm=15fdde824f26ad0974c26d8bf05ecf98d6ecb58f1dc9c498f6fadc70dd937d2a&" }
+                    //img { src: "props.data.avatar_url" }
                 }
                 div {
                     class: "com-post-author-profile",

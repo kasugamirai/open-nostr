@@ -5,7 +5,7 @@ use nostr_sdk::{prelude::*, JsonUtil};
 use serde_json::to_string_pretty;
 
 use crate::{
-    components::{icons::FALSE, Button, Post, PostData},
+    components::{icons::FALSE, Button, Note, NoteData},
     state::subscription::CustomSub,
 };
 
@@ -16,7 +16,7 @@ pub fn Home() -> Element {
     let subs = use_context::<Signal<Vec<CustomSub>>>();
     let client = use_context::<Signal<Client>>();
 
-    let mut post_datas = use_signal(Vec::<PostData>::new);
+    let mut note_datas = use_signal(Vec::<NoteData>::new);
     let mut btn_text = use_signal(|| String::from("Get Events"));
 
     let mut get_events = move || {
@@ -39,10 +39,10 @@ pub fn Home() -> Element {
                             all_events.extend(events.clone());
                         } else {
                             als.insert(sub.name.clone(), events.clone());
-                            post_datas.clear();
+                            note_datas.clear();
                         }
                         for (i, event) in events.iter().enumerate() {
-                            let post_data = PostData {
+                            let note_data = NoteData {
                                 id: event.id().to_hex(),
                                 author: event.author().to_hex(),
                                 created_at: event.created_at().as_u64(),
@@ -52,7 +52,7 @@ pub fn Home() -> Element {
                                 index: i,
                                 event: event.clone(),
                             };
-                            post_datas.push(post_data);
+                            note_datas.push(note_data);
                         }
                     }
                     Err(e) => {
@@ -88,17 +88,17 @@ pub fn Home() -> Element {
     };
 
     use_effect(use_reactive(
-        (&post_datas, &subs(), &all_events()),
-        move |(mut post_datas, subs, all_events)| {
-            tracing::info!("======== update post_datas {}", cur());
+        (&note_datas, &subs(), &all_events()),
+        move |(mut note_datas, subs, all_events)| {
+            tracing::info!("======== update note_datas {}", cur());
             let index = cur();
             if index < subs.len() {
                 let sub = subs[index].clone();
-                post_datas.clear();
+                note_datas.clear();
 
                 if let Some(events) = all_events.get(&sub.name) {
                     for (i, event) in events.iter().enumerate() {
-                        let post_data = PostData {
+                        let note_data = NoteData {
                             id: event.id().to_hex(),
                             author: event.author().to_hex(),
                             created_at: event.created_at().as_u64(),
@@ -108,7 +108,7 @@ pub fn Home() -> Element {
                             index: i,
                             event: event.clone(),
                         };
-                        post_datas.push(post_data);
+                        note_datas.push(note_data);
                     }
                 } else {
                     get_events();
@@ -120,11 +120,11 @@ pub fn Home() -> Element {
     rsx! {
         ul {
             style: "display: flex; flex-direction: column; gap: 10px;",
-            for (i, p) in post_datas().iter().enumerate() {
-                Post {
+            for (i, p) in note_datas().iter().enumerate() {
+                Note {
                     data: p.clone(),
                     on_detail: move |_| {
-                        let data: Value = serde_json::from_str(&post_datas()[i].event.as_json()).expect("Failed to parse JSON");
+                        let data: Value = serde_json::from_str(&note_datas()[i].event.as_json()).expect("Failed to parse JSON");
                         let pretty_json = to_string_pretty(&data).expect("Failed to format JSON");
                         json_format(pretty_json);
                     },
