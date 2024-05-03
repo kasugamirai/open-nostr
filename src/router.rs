@@ -11,8 +11,8 @@ use crate::{
 
 struct RouterItem {
     to: Route,
-    icon: String,
-    name: String,
+    icon: &'static str,
+    name: &'static str,
 }
 
 #[component]
@@ -31,48 +31,48 @@ fn Layout() -> Element {
     let routers = vec![
         RouterItem {
             to: Route::Home {},
-            icon: PROFILE.to_string(),
-            name: "Home".to_string(),
+            icon: PROFILE,
+            name: "Home",
         },
         RouterItem {
             to: Route::Profile {},
-            icon: PROFILE.to_string(),
-            name: "Profile".to_string(),
+            icon: PROFILE,
+            name: "Profile",
         },
         RouterItem {
             to: Route::Search {},
-            icon: SEARCH.to_string(),
-            name: "Search".to_string(),
+            icon: SEARCH,
+            name: "Search",
         },
         RouterItem {
             to: Route::Relay {},
-            icon: RELAY.to_string(),
-            name: "Relay".to_string(),
+            icon: RELAY,
+            name: "Relay",
         },
         RouterItem {
             to: Route::Message {},
-            icon: MESSAGE.to_string(),
-            name: "Message".to_string(),
+            icon: MESSAGE,
+            name: "Message",
         },
         RouterItem {
             to: Route::Channel {},
-            icon: SIGNAL.to_string(),
-            name: "Channel".to_string(),
+            icon: SIGNAL,
+            name: "Channel",
         },
         RouterItem {
             to: Route::Group {},
-            icon: CHAT.to_string(),
-            name: "Group".to_string(),
+            icon: CHAT,
+            name: "Group",
         },
         RouterItem {
             to: Route::Bookmark {},
-            icon: STAR.to_string(),
-            name: "Bookmark".to_string(),
+            icon: STAR,
+            name: "Bookmark",
         },
         RouterItem {
             to: Route::Settings {},
-            icon: SETTING.to_string(),
-            name: "Settings".to_string(),
+            icon: SETTING,
+            name: "Settings",
         },
         // RouterItem {
         //     to: Route::Test { id: 1 },

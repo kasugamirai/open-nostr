@@ -27,7 +27,7 @@ pub struct PostProps {
 
 #[component]
 pub fn Post(props: PostProps) -> Element {
-    let mut content = use_signal(|| String::new());
+    let mut content = use_signal(String::new);
 
     let media_format = move |data: String| {
         spawn(async move {
