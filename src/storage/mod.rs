@@ -105,7 +105,6 @@ impl CapybastrDb {
         let value_js = value_js_opt
             .ok_or_else(|| CapybastrError::DomError(format!("No entry found for key: {}", key)))?;
 
-        serde_wasm_bindgen::from_value(value_js)
-            .map_err(|e| CapybastrError::DeserializationError(e))
+        serde_wasm_bindgen::from_value(value_js).map_err(CapybastrError::DeserializationError)
     }
 }

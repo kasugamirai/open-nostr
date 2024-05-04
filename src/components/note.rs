@@ -7,7 +7,7 @@ use crate::{
     Route,
 };
 
-#[derive(PartialEq, Clone, Props)]
+#[derive(PartialEq, Clone)]
 pub struct NoteData {
     pub id: String,
     pub author: String,
@@ -23,6 +23,7 @@ pub struct NoteData {
 pub struct NoteProps {
     pub on_detail: EventHandler<()>,
     pub data: NoteData,
+    //pub metadata: nostr_sdk::Metadata,
 }
 
 #[component]
@@ -77,18 +78,18 @@ pub fn Note(props: NoteProps) -> Element {
                 class: "com-post-author",
                 div {
                     class: "com-post-author-avatar",
-                    img { src: "https://cdn.discordapp.com/attachments/920558788375883779/926672818479968256/IMG_5323.jpg?ex=66364f10&is=6634fd90&hm=15fdde824f26ad0974c26d8bf05ecf98d6ecb58f1dc9c498f6fadc70dd937d2a&" }
-                    //img { src: "props.data.avatar_url" }
+                    img { src: "https://is.gd/hidYxs" }
+                    //img { src: props.metadata.picture.unwrap_or_else(|| "https://is.gd/hidYxs".to_string())}
                 }
                 div {
                     class: "com-post-author-profile",
                     span {
                         class: "com-post-author-profile-name",
-                        "{format_public_key(&props.data.author, None)}"
+                        {format_public_key(&props.data.author, None)}
                     }
                     span {
                         class: "com-post-author-profile-created",
-                        "{format_create_at(props.data.created_at)}"
+                        {format_create_at(props.data.created_at)}
                     }
                 }
                 div {
