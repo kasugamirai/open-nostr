@@ -18,12 +18,13 @@ pub fn Home() -> Element {
 
     let mut note_datas = use_signal(Vec::<NoteData>::new);
     let mut btn_text = use_signal(|| String::from("Get Events"));
+    let mut show_detail = use_signal(String::new);
 
     let mut get_events = move || {
         let index = cur();
         let subs = subs();
-        if index < subs.len() {
-            let sub = subs[index].clone();
+        if let Some(sub) = subs.get(index) {
+            let sub = sub.clone();
             let filters = sub.to_sub();
             btn_text.set("Loading ...".to_string());
             spawn(async move {
@@ -56,8 +57,6 @@ pub fn Home() -> Element {
         get_events();
     };
 
-    let mut show_detail = use_signal(String::new);
-
     let json_format = move |data: String| {
         spawn(async move {
             let mut eval = eval(
@@ -79,8 +78,7 @@ pub fn Home() -> Element {
         move |(mut note_datas, subs, all_events)| {
             tracing::info!("======== update note_datas {}", cur());
             let index = cur();
-            if index < subs.len() {
-                let sub = subs[index].clone();
+            if let Some(sub) = subs.get(index) {
                 note_datas.clear();
 
                 if let Some(events) = all_events.get(&sub.name) {
