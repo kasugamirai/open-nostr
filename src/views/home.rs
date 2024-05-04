@@ -27,39 +27,26 @@ pub fn Home() -> Element {
             let filters = sub.to_sub();
             btn_text.set("Loading ...".to_string());
             spawn(async move {
-                let events_result = client
+                match client
                     .read()
                     .get_events_of(filters, Some(Duration::from_secs(30)))
-                    .await;
-
-                match events_result {
+                    .await
+                {
                     Ok(events) => {
                         let mut als = all_events.write();
-                        if let Some(all_events) = als.get_mut(&sub.name) {
-                            all_events.extend(events.clone());
-                        } else {
-                            als.insert(sub.name.clone(), events.clone());
+                        let entry = als.entry(sub.name.clone()).or_default();
+                        entry.extend(events.clone());
+                        if entry.len() == events.len() {
                             note_datas.clear();
                         }
                         for (i, event) in events.iter().enumerate() {
-                            let note_data = NoteData {
-                                id: event.id().to_hex(),
-                                author: event.author().to_hex(),
-                                created_at: event.created_at().as_u64(),
-                                kind: "".to_string(),
-                                tags: vec![],
-                                content: event.content.to_string(),
-                                index: i,
-                                event: event.clone(),
-                            };
-                            note_datas.push(note_data);
+                            note_datas.push(create_note_data(event, i));
                         }
                     }
                     Err(e) => {
                         eprintln!("Failed to get events: {}", e);
                     }
                 }
-
                 btn_text.set("Get Events".to_string());
             });
         }
@@ -98,17 +85,7 @@ pub fn Home() -> Element {
 
                 if let Some(events) = all_events.get(&sub.name) {
                     for (i, event) in events.iter().enumerate() {
-                        let note_data = NoteData {
-                            id: event.id().to_hex(),
-                            author: event.author().to_hex(),
-                            created_at: event.created_at().as_u64(),
-                            kind: "".to_string(),
-                            tags: vec![],
-                            content: event.content.to_string(),
-                            index: i,
-                            event: event.clone(),
-                        };
-                        note_datas.push(note_data);
+                        note_datas.push(create_note_data(event, i));
                     }
                 } else {
                     get_events();
@@ -152,5 +129,18 @@ pub fn Home() -> Element {
         }
         br {}
         Button { on_click: handle_get_events, "{btn_text}" }
+    }
+}
+
+fn create_note_data(event: &nostr_sdk::Event, index: usize) -> NoteData {
+    NoteData {
+        id: event.id().to_hex(),
+        author: event.author().to_hex(),
+        created_at: event.created_at().as_u64(),
+        kind: "".to_string(),
+        tags: vec![],
+        content: event.content.to_string(),
+        index,
+        event: event.clone(),
     }
 }
