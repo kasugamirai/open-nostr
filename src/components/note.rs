@@ -1,5 +1,7 @@
+use std::time::Duration;
+
 use dioxus::prelude::*;
-use serde_json::Value;
+use nostr_sdk::{Client, EventId, Filter};
 
 use crate::{
     components::icons::*,
@@ -28,58 +30,44 @@ pub struct NoteProps {
 
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    let mut content = use_signal(String::new);
+    let client = use_context::<Signal<Client>>();
 
-    let media_format = move |data: String| {
-        spawn(async move {
-            let mut eval = eval(
-                r#"
-                    const parseStringToDOM = (str) => {
-                        const parser = new DOMParser()
-                        const doc = parser.parseFromString(str, 'text/html')
-                        return doc.body
-                    }
-                    
-                    const wrapImagesWithDiv = (dom) => {
-                        let images = dom.querySelectorAll('.media')
-                        let lastDiv = null
-                    
-                        images.forEach(img => {
-                            if (!lastDiv || lastDiv.parentElement !== img.parentElement) {
-                                lastDiv = document.createElement('div')
-                                img.parentNode.insertBefore(lastDiv, img)
-                            }
-                            lastDiv.appendChild(img)
-                        })
+    let author = props.data.author.clone();
+    let e = EventId::from_hex(author).unwrap();
 
-                        lastDiv.classList.add('post-media-wrap')
-                    }
-                    
-                    let data = await dioxus.recv()
-                    const dom = parseStringToDOM(data)
-                    wrapImagesWithDiv(dom)
-                    dioxus.send(dom.innerHTML)
-                "#,
-            );
-            eval.send(data.into()).unwrap();
-            if let Value::String(res) = eval.recv().await.unwrap() {
-                content.set(res);
+    let future = use_resource(move || async move {
+        // TODO: get metadata
+        let filter = Filter::new().event(e);
+        match client
+            .read()
+            .get_events_of(vec![filter], Some(Duration::from_secs(30)))
+            .await
+        {
+            Ok(events) => {
+                if events.len() == 0 {
+                    Some("https://is.gd/hidYxs")
+                } else {
+                    None
+                }
             }
-        });
-    };
+            Err(_) => None,
+        }
+    });
 
     rsx! {
         div {
-            onmounted: move |_| {
-                media_format(format_content(&props.data.content));
-            },
             class: "com-post",
             div {
                 class: "com-post-author",
                 div {
                     class: "com-post-author-avatar",
-                    img { src: "https://is.gd/hidYxs" }
-                    //img { src: props.metadata.picture.unwrap_or_else(|| "https://is.gd/hidYxs".to_string())}
+                    img {
+                        src: match &*future.read_unchecked() {
+                            Some(Some(s)) => s,
+                            Some(None) => "https://is.gd/hidYxs",
+                            None => "https://is.gd/hidYxs",
+                        }
+                    }
                 }
                 div {
                     class: "com-post-author-profile",
@@ -106,7 +94,7 @@ pub fn Note(props: NoteProps) -> Element {
             }
             div {
                 class: "com-post-content",
-                dangerous_inner_html: "{content}",
+                dangerous_inner_html: "{format_content(&props.data.content)}",
             }
             div {
                 class: "com-post-info",

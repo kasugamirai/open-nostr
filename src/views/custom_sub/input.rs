@@ -3,24 +3,24 @@ use dioxus::prelude::*;
 use crate::components::icons::{FALSE, TRUE};
 
 #[derive(PartialEq, Clone, Props)]
-pub struct HashTagInputProps {
+pub struct InputProps {
     on_change: EventHandler<String>,
-    tag: String,
+    value: String,
     #[props(default = false)]
     edit: bool,
 }
 
 #[component]
-pub fn HashTagInput(props: HashTagInputProps) -> Element {
+pub fn Input(props: InputProps) -> Element {
     // is ro not allow editing
     let allow_edit = use_context::<Signal<bool>>();
     let mut edit = use_signal(|| *allow_edit.read() && props.edit);
 
     // current value
-    let mut value = use_signal(|| props.tag.clone());
+    let mut value = use_signal(|| props.value.clone());
 
     // backup value to restore value when cancel editing
-    let mut bak = use_signal(|| props.tag.clone());
+    let mut bak = use_signal(|| props.value.clone());
 
     // cancel editing status when the parent does not allow editing
     use_effect(use_reactive((&edit,), move |(mut edit,)| {
@@ -31,10 +31,10 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
 
     // update value and cancel editing when parent data has changed
     use_effect(use_reactive(
-        (&value, &props.tag, &edit),
-        move |(mut value, tag, mut edit)| {
-            value.set(tag.clone());
-            bak.set(tag.clone());
+        (&value, &props.value, &edit),
+        move |(mut value, v, mut edit)| {
+            value.set(v.clone());
+            bak.set(v.clone());
             edit.set(false);
         },
     ));
@@ -70,7 +70,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                         edit.set(true);
                     }
                 },
-                "{props.tag}"
+                "{props.value}"
             }
             div {
                 class: "show-{edit}",
@@ -80,7 +80,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                     input {
                         r#type: "text",
                         style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px;",
-                        placeholder: "hashtag",
+                        placeholder: "Please input",
                         value: "{value}",
                         oninput: move |event| {
                             value.set(event.value());

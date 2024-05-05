@@ -156,7 +156,7 @@ fn Layout() -> Element {
         }
         div {
             class: "layout-right",
-            // CustomSubscription {}
+            CustomSubscription {}
         }
     }
 }

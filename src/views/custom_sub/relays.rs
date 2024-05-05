@@ -19,55 +19,19 @@ pub struct RelaysInputProps {
 #[component]
 pub fn RelaysInput(props: RelaysInputProps) -> Element {
     let mut value = use_signal(|| props.relay_set.clone());
+    let mut bak = use_signal(|| props.relay_set.clone());
     let mut new_relay = use_signal(String::new);
-    let mut bak = use_signal(|| props.relay_set);
     let mut edit = use_signal(|| props.edit);
 
-    let click_outside = move |cn: String| {
-        spawn(async move {
-            let mut eval = eval(
-                r#"
-                    // Listens for clicks on the 'document' element
-                    let eid = await dioxus.recv()
-                    let ceid = `close-${eid}`
-                    const handle = (e) => {
-                        let target = e.target
-                        while (true && target) {
-                            if (target.classList.contains(ceid)) {
-                                // Clicked on the close button
-                                dioxus.send(false)
-                                return
-                            } else if (target.classList.contains(eid)) {
-                                // The element is a child of the dropdown
-                                dioxus.send(true)
-                                return
-                            } else {
-                                if (target === document.documentElement) {
-                                    break
-                                }
-                            }
-                            target = target.parentNode
-                        }
-                        
-                        // The element is outside the dropdown
-                        dioxus.send(false)
-
-                        // Remove the event listener
-                        // document.removeEventListener('click', handle)
-                    }
-                    document.addEventListener('click', handle)
-                "#,
-            );
-            eval.send(cn.into()).unwrap();
-            if let Value::Bool(res) = eval.recv().await.unwrap() {
-                edit.set(res);
-            }
-        });
-    };
-
-    let cn = format!("custom-sub-relay-wapper-{}", props.index);
-
-    click_outside(cn.clone());
+    // update value and cancel editing when parent data has changed
+    use_effect(use_reactive(
+        (&value, &props.relay_set, &edit),
+        move |(mut value, relay_set, mut edit)| {
+            value.set(relay_set.clone());
+            bak.set(relay_set.clone());
+            edit.set(false);
+        },
+    ));
 
     let handle_export = move |text: String| {
         let eval = eval(
@@ -111,9 +75,29 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
         });
     };
 
+    // close when click outside
+    let root_click_pos = use_context::<Signal<(f64, f64)>>();
+    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
+    use_effect(use_reactive((&pos,), move |(pos,)| {
+        // The coordinates of root element
+        let root_pos = root_click_pos();
+
+        // The coordinates of current element
+        let current_pos = pos();
+
+        // Determine if two coordinates are the same
+        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
+            edit.set(false);
+            props.on_change.call(value.read().clone());
+        }
+    }));
+
     rsx! {
         div {
-            class: "{cn}",
+            onclick: move |event| {
+                // Save the coordinates of the event relative to the screen
+                pos.set(event.screen_coordinates().to_tuple());
+            },
             style: "position: relative;",
             div {
                 style: "background-color: var(--bgc-3); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
@@ -121,7 +105,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     edit.set(!edit());
                     props.on_change.call(value.read().clone());
                 },
-                "{value().name}"
+                "{props.relay_set.name}"
             }
             div {
                 class: "show-{edit}",
@@ -139,7 +123,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                         }
                     }
                     button {
-                        class: "btn-circle btn-circle-true close-{cn}",
+                        class: "btn-circle btn-circle-true",
                         onclick: move |_| {
                             bak.set(value());
                             props.on_change.call(value.read().clone());

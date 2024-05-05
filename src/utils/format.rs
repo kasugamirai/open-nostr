@@ -91,10 +91,10 @@ pub fn format_create_at(timestamp: u64) -> String {
 /// let formatted_content = format_content(content);
 /// assert_eq!(formatted_content, "<a class=\"post-link\" href=\"https://www.google.com\" target=\"_blank\">https://www.google.com</a>");
 /// ```
-
 pub fn format_content(content: &str) -> String {
     let replaced_text = replace_urls(content);
     let replaced_text = replace_tags(&replaced_text);
+    let replaced_text = add_media_wrapper(&replaced_text);
     replace_newlines(&replaced_text)
 }
 
@@ -105,12 +105,12 @@ fn replace_urls(content: &str) -> String {
         let url_upper = url.to_uppercase();
         if is_image(&url_upper) {
             format!(
-                r#"<img class="post-image media" src="{}" alt="Image">"#,
+                r#"<img class="post-image media" src="{}" alt="Image" data-type="media" />"#,
                 url
             )
         } else if is_video(&url_upper) {
             format!(
-                r#"<video class="post-video media" src="{}" controls></video>"#,
+                r#"<video class="post-video media" src="{}" controls data-type="media" />"#,
                 url
             )
         } else {
@@ -152,4 +152,18 @@ fn replace_tags(content: &str) -> String {
 fn replace_newlines(content: &str) -> String {
     let re = Regex::new(r"\\n").unwrap();
     re.replace_all(content, "<br>").to_string()
+}
+
+fn add_media_wrapper(content: &str) -> String {
+    let mut content = String::from(content);
+    if let Some(index) = content.find("<img") {
+        content.insert_str(index, "<div class=\"post-media-wrap\">");
+    } else if let Some(index) = content.find("<video") {
+        content.insert_str(index, "<div class=\"post-media-wrap\">");
+    }
+    if let Some(index) = content.rfind("data-type=\"media\" />") {
+        let index = index + "data-type=\"media\" />".len();
+        content.insert_str(index, "</div>");
+    }
+    content
 }

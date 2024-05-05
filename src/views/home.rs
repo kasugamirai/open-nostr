@@ -11,6 +11,20 @@ use crate::{
 
 #[component]
 pub fn Home() -> Element {
+    let sub_index = use_context::<Signal<usize>>();
+    let sub_all = use_context::<Signal<Vec<CustomSub>>>();
+    let mut sub_current = use_signal(CustomSub::default);
+
+    use_effect(use_reactive(
+        (&sub_index(), &sub_all()),
+        move |(index, all)| {
+            if index != usize::MAX && index < all.len() {
+                tracing::info!("Current sub index: {}", index);
+                sub_current.set(all[index].clone());
+            }
+        },
+    ));
+
     let mut all_events = use_context::<Signal<HashMap<String, Vec<nostr_sdk::Event>>>>();
     let cur = use_context::<Signal<usize>>();
     let subs = use_context::<Signal<Vec<CustomSub>>>();
