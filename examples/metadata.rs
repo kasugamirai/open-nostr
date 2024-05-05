@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use nostr_sdk::prelude::*;
 
+use async_utility::tokio;
+
 pub async fn get_metadata(public_key: PublicKey) -> Result<Metadata> {
     let client = Client::default();
 
