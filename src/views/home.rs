@@ -90,7 +90,6 @@ pub fn Home() -> Element {
     use_effect(use_reactive(
         (&note_datas, &subs(), &all_events()),
         move |(mut note_datas, subs, all_events)| {
-            tracing::info!("======== update note_datas {}", cur());
             let index = cur();
             if let Some(sub) = subs.get(index) {
                 note_datas.clear();
