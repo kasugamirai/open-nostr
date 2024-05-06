@@ -89,8 +89,8 @@ fn App() -> Element {
 
                 if let Some(client) = shared_subscription_clients.lock().unwrap().get_mut(&index) {
                     let _ = client.disconnect().await;
-                    let _ = client.remove_all_relays().await;
-                    let _ = client.add_relays(relays).await;
+                    //let _ = client.remove_all_relays().await;
+                    //let _ = client.add_relays(relays).await;
                     client.connect().await;
                 } else {
                     let new_client = Client::default();
