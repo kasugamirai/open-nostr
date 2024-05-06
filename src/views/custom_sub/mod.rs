@@ -5,7 +5,6 @@ mod hashtag;
 mod input;
 mod kind;
 mod limit;
-mod more_action;
 mod relays;
 mod tag;
 
@@ -18,7 +17,7 @@ use crate::{
 use account::AccountInput;
 use add_filter::AddFilter;
 use event::EventInput;
-use hashtag::HashTagInput;
+use hashtag::{HashTagAdd, HashTagInput};
 use input::Input;
 use kind::KindInput;
 use limit::LimitInput;
@@ -99,11 +98,6 @@ pub fn CustomSubscription() -> Element {
                 }
                 div {
                     class: "custom-sub-header-more",
-                    // MoreAction {
-                    //     on_click: move |filter| {
-
-                    //     }
-                    // }
                     Dropdown {
                         pos: "right".to_string(),
                         show: "active".to_string(),
@@ -220,14 +214,13 @@ pub fn CustomSubscription() -> Element {
                                             }
                                         }
                                     }
-                                    button {
+                                    div {
                                         class: "btn-add {edit}",
-                                        dangerous_inner_html: "{ADD}",
-                                        onclick: move |_| {
-                                            let mut sub = sub_current.write();
-                                            if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
-                                                if hashtag_ref.tags.is_empty() || !hashtag_ref.tags.last().unwrap().is_empty() {
-                                                    hashtag_ref.tags.push("".to_string());
+                                        HashTagAdd {
+                                            on_change: move |v| {
+                                                let mut sub = sub_current.write();
+                                                if let FilterTemp::HashTag(ref mut hashtag_ref) = sub.filters[i] {
+                                                    hashtag_ref.tags.push(v);
                                                 }
                                             }
                                         }
