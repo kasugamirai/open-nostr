@@ -25,7 +25,7 @@ impl fmt::Display for Error {
 
 #[derive(Debug, Clone)]
 pub struct TextNote<'a> {
-    inner_ref: &'a Event,
+    pub inner_ref: &'a Event,
     root: Option<&'a EventId>,
     reply_to: Option<&'a EventId>,
 }
@@ -120,6 +120,12 @@ pub struct ReplyTrees<'a> {
 pub enum DisplayOrder {
     NewestFirst,
     DeepestFirst,
+}
+
+impl PartialEq for ReplyTrees<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        false
+    }
 }
 
 impl<'a> ReplyTrees<'a> {
