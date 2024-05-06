@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use serde_json::Value;
+//use serde_json::Value;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct DropdownProps {
@@ -22,7 +22,7 @@ pub fn Dropdown(props: DropdownProps) -> Element {
     let mut show = use_signal(|| false);
 
     let hash = "com-dropdown".to_string();
-    let id = hash.clone();
+    let id = hash;
 
     rsx! {
         div {

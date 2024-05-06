@@ -11,7 +11,7 @@ use serde_json::Value;
 /// # Example:
 ///
 /// ```
-/// let custom_sub = CustomSub::deault();
+/// let custom_sub = CustomSub::default();
 /// ```
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
