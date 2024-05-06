@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .children {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background-color: #fff;
+        }
+
+        .note {
+            position: relative;
+            padding: 10px;
+            border-radius: 18px;
+            background-color: #fff;
+        }
+
+        .note::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: -12px;
+            border: 1px solid #333;
+            border-radius: 18px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="children">
+        <div class="item">
+            <div class="note" style="z-index: 999;">ROOT</div>
+            <div class="children" style="z-index: 998;">
+                <div class="item">
+                    <div class="note" style="z-index: 998;">R -> Z</div>
+                    <div class="children" style="z-index: 997;">
+                        <div class="item">
+                            <div class="note" style="z-index: 997;">R -> Z -> O</div>
+                            <div class="children" style="z-index: 996;">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="item">
+                    <div class="note" style="z-index: 998;">R -> X</div>
+                    <div class="children" style="z-index: 997;">
+
+                    </div>
+                </div>
+
+                <div class="item">
+                    <div class="note" style="z-index: 998;">R -> A</div>
+                    <div class="children" style="z-index: 997;">
+                        <div class="item">
+                            <div class="note" style="z-index: 997;">R -> A -> B</div>
+                            <div class="children" style="z-index: 996;">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

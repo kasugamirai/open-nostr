@@ -40,18 +40,29 @@ fn App() -> Element {
     // create nostr client
     let mut client = use_context_provider(|| Signal::new(Client::default()));
 
+    let _last_reload: Signal<i32> = use_context_provider(|| Signal::new(0));
+
     // current user has changed
     use_effect(use_reactive(
         (&all_user(), &all_sub(), &current_sub()),
         move |(users, subs, current_sub)| {
-            let index = *current_user.read();
-            if index != usize::MAX && index < users.len() {
-                let user = users.get(index).unwrap();
-                if let Some(pk) = user.public_key.clone() {
-                    let keys = Keys::parse(pk).unwrap();
-                    client.set(Client::new(keys));
+            spawn(async move {
+                let index = *current_user.read();
+                if index != usize::MAX && index < users.len() {
+                    let user = users.get(index).unwrap();
+                    if let Some(pk) = user.public_key.clone() {
+                        let keys = Keys::parse(pk).unwrap();
+
+                        let new_client = Client::new(keys);
+                        let subscription = subs.get(current_sub).unwrap();
+                        let relays = subscription.relay_set.relays.clone();
+                        let _ = new_client.add_relays(relays).await;
+                        new_client.connect().await;
+
+                        client.set(new_client);
+                    }
                 }
-            }
+            });
         },
     ));
 

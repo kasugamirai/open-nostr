@@ -11,6 +11,7 @@ use crate::{
 
 #[component]
 pub fn Home() -> Element {
+    let last_reload = use_context::<Signal<i32>>();
     let sub_index = use_context::<Signal<usize>>();
     let sub_all = use_context::<Signal<Vec<CustomSub>>>();
     let mut sub_current = use_signal(CustomSub::default);
@@ -70,6 +71,12 @@ pub fn Home() -> Element {
     let handle_get_events = move |_| {
         get_events();
     };
+
+    use_effect(move || {
+        if last_reload() > 0 {
+            tracing::info!("Reloading events");
+        }
+    });
 
     let json_format = move |data: String| {
         spawn(async move {

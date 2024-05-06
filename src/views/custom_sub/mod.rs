@@ -27,6 +27,7 @@ use tag::TagInput;
 
 #[component]
 pub fn CustomSubscription() -> Element {
+    let mut last_reload = use_context::<Signal<i32>>();
     let sub_index = use_context::<Signal<usize>>();
     let mut sub_all = use_context::<Signal<Vec<CustomSub>>>();
     let mut sub_current = use_signal(CustomSub::default);
@@ -70,6 +71,8 @@ pub fn CustomSubscription() -> Element {
         let mut subs = sub_all.write();
         subs[index] = sub_current.read().clone();
         edit.set(false);
+
+        last_reload += 1;
 
         // TODO: save to storage
         // spawn(async move {
