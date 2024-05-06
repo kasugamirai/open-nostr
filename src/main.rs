@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
-use dioxus::prelude::*;
+use dioxus::{html::sub, prelude::*};
 use nostr_sdk::{Client, Keys};
 use tracing::Level;
 
-use capybastr::{CustomSub, Route};
+use capybastr::{CustomSub, Route, User};
 
 fn main() {
     // Init debug
@@ -17,9 +17,18 @@ fn main() {
 fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
 
+    // all users
+    let all_user: Signal<Vec<User>> = use_context_provider(|| Signal::new(Vec::<User>::new()));
+
+    // current user, default is MAX to cancel the change event when init
+    let current_user: Signal<usize> = use_context_provider(|| Signal::new(usize::MAX));
+
+    // all custom subscriptions
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
-    let _current_sub: Signal<usize> = use_context_provider(|| Signal::new(0));
+
+    // current subscription index, default is MAX to cancel the change event when init
+    let mut current_sub: Signal<usize> = use_context_provider(|| Signal::new(usize::MAX));
 
     // TODO: all events, read from indexeddb
     let _all_events =
@@ -28,12 +37,40 @@ fn App() -> Element {
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
 
-    // TODO: user private key, set by user in settings page
-    let pk: &str = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
-    let my_keys = Keys::parse(pk).unwrap();
-
     // create nostr client
-    let mut client = use_context_provider(|| Signal::new(Client::new(&my_keys)));
+    let mut client = use_context_provider(|| Signal::new(Client::default()));
+
+    // current user has changed
+    use_effect(use_reactive(
+        (&all_user(), &all_sub(), &current_sub()),
+        move |(users, subs, current_sub)| {
+            let index = *current_user.read();
+            if index != usize::MAX && index < users.len() {
+                let user = users.get(index).unwrap();
+                if let Some(pk) = user.public_key.clone() {
+                    let keys = Keys::parse(pk).unwrap();
+                    client.set(Client::new(keys));
+                }
+            }
+        },
+    ));
+
+    // current subscription has changed
+    use_effect(use_reactive(&all_sub(), move |subs| {
+        spawn(async move {
+            tracing::info!("Current sub index ====== {}", *current_sub.read());
+            let index = *current_sub.read();
+            if index != usize::MAX && index < subs.len() {
+                let subscription = subs.get(index).unwrap();
+                let relays = subscription.relay_set.relays.clone();
+                let client = client.read();
+                let _ = client.disconnect().await;
+                let _ = client.remove_all_relays().await;
+                let _ = client.add_relays(relays).await;
+                client.connect().await;
+            }
+        });
+    }));
 
     // hook: on mounted
     let on_mounted = move |_| {
@@ -49,10 +86,8 @@ fn App() -> Element {
                 vec!["car".to_string()],
             ));
 
-            // Step 2, connect to relays
-            let c = client.write();
-            c.add_relay("wss://btc.klendazu.com").await.unwrap();
-            c.connect().await;
+            // default use the first subscription
+            current_sub.set(0);
         });
     };
 

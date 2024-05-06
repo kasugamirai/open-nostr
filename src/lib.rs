@@ -8,4 +8,4 @@ mod views;
 
 //pub use nostr::get_metadata;
 pub use router::Route;
-pub use state::{CustomSub, NostrClient};
+pub use state::{CustomSub, User};
