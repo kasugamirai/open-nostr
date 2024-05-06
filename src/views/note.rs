@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[component]
-pub fn Topic(id: String) -> Element {
+pub fn Note(id: String) -> Element {
     let custom_sub_global = use_context::<Signal<CustomSub>>();
     let mut data = use_signal(Vec::<Event>::new);
     let get_events = move |id: String| {
@@ -44,7 +44,7 @@ pub fn Topic(id: String) -> Element {
     rsx! {
         style {
             r#"
-                .topic-item {{
+                .note-item {{
                     background-color: var(--bgc-0);
                     width: 100%;
                     border: 1px solid var(--boc-1);
@@ -55,43 +55,43 @@ pub fn Topic(id: String) -> Element {
                     gap: 10px;
                     position: relative;
                 }}
-                .topic-item .header {{
+                .note-item .header {{
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     gap: 10px;
                 }}
-                .topic-item .header .avatar {{
+                .note-item .header .avatar {{
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     gap: 10px;
                 }}
-                .topic-item .header .info {{
+                .note-item .header .info {{
                     display: flex;
                     flex-direction: column;
                     justify-content: space-around;
                 }}
-                .topic-item .main {{
+                .note-item .main {{
                 }}
-                .topic-item .footer {{
+                .note-item .footer {{
                     display: flex;
                     gap: 10px;
                 }}
-                .topic-item .footer .left {{
+                .note-item .footer .left {{
                     display: flex;
                     gap: 20px;
                 }}
-                .topic-item .footer .left .btn {{
+                .note-item .footer .left .btn {{
                     display: flex;
                     align-items: center;
                     gap: 6px;
                 }}
-                .topic-item .footer .left .btn svg {{
+                .note-item .footer .left .btn svg {{
                     width: 20px;
                     height: 20px;
                 }}
-                .topic-item .footer .left .btn .data {{
+                .note-item .footer .left .btn .data {{
                     transform: translateY(-4px);
                 }}
             "#
@@ -146,7 +146,7 @@ fn Item(props: ItemProps) -> Element {
 
     rsx! {
         div {
-            class: "topic-item",
+            class: "note-item",
             style: reply_style,
             div {
                 class: "header",

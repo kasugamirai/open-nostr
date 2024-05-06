@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, Button, Dropdown},
     views::{
-        Bookmark, Channel, CustomSubscription, Group, Home, Message, Profile, Relay, Search,
-        Settings, Test, Topic,
+        Bookmark, Channel, CustomSubscription, Group, Home, Message, Note, Profile, Relay, Search,
+        Settings, Test,
     },
     CustomSub,
 };
@@ -167,8 +167,8 @@ pub enum Route {
     #[route("/")]
     Home {},
 
-    #[route("/topic/:id")]
-    Topic { id: String },
+    #[route("/note/:id")]
+    Note { id: String },
 
     #[route("/profile")]
     Profile {},
