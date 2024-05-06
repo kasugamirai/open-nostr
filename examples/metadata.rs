@@ -9,8 +9,6 @@ pub async fn get_metadata(public_key: PublicKey) -> Result<Metadata> {
 
     client.add_relay("wss://nostr.oxtr.dev").await?;
     client.add_relay("wss://relay.damus.io").await?;
-    client.add_relay("wss://nostr.mom").await?;
-    client.add_relay("wss://nostr.wine").await?;
 
     client.connect().await;
 

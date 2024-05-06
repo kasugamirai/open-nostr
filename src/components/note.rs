@@ -44,7 +44,7 @@ pub fn Note(props: NoteProps) -> Element {
             .await
         {
             Ok(events) => {
-                if events.len() == 0 {
+                if events.is_empty() {
                     Some("https://is.gd/hidYxs")
                 } else {
                     None
