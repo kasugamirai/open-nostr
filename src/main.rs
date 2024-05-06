@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use dioxus::{html::sub, prelude::*};
+use dioxus::prelude::*;
 use nostr_sdk::{Client, Keys};
 use tracing::Level;
 
@@ -50,7 +50,7 @@ fn App() -> Element {
                 let index = *current_user.read();
                 if index != usize::MAX && index < users.len() {
                     let user = users.get(index).unwrap();
-                    if let Some(pk) = user.public_key.clone() {
+                    if let Some(pk) = &user.private_key {
                         let keys = Keys::parse(pk).unwrap();
 
                         let new_client = Client::new(keys);
