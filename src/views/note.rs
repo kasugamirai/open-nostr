@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use nostr_sdk::{Client, Event, EventId, Filter, JsonUtil, Keys};
-use tracing_subscriber::fmt::format;
 
 use crate::{
     components::icons::*,
@@ -93,21 +92,19 @@ pub fn Note(id: String) -> Element {
                     position: relative;
                     display: flex;
                     flex-direction: column;
-                    gap: 20px;
+                    gap: 30px;
                     background-color: var(--bgc-0);
                 }}
                 .note-content {{                    
                     position: relative;
-                    padding: 10px;
-                    border-radius: 18px;
-                    background-color: var(--bgc-0);
-                    border: 1px solid var(--boc-1);
+                    padding: 10px 10px 0 10px;
                 }}
                 .note-content .header {{
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     gap: 10px;
+                    position: relative;
                 }}
                 .note-content .header .avatar {{
                     display: flex;
@@ -121,6 +118,7 @@ pub fn Note(id: String) -> Element {
                     justify-content: space-around;
                 }}
                 .note-content .main {{
+                    position: relative;
                 }}
                 .note-content .footer {{
                     display: flex;
@@ -155,6 +153,9 @@ pub fn Note(id: String) -> Element {
                 index: 999999,
                 root: true,
             }
+            br{}
+            br{}
+            br{}
             for i in data() {
                 Item {
                     event: i.clone(),

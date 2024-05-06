@@ -4,9 +4,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>11</title>
+
     <style>
-        .children {
+        .note-content:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: -16px;
+            border-radius: 18px;
+            background-color: #fff;
+            border: 1px solid #000;
+            z-index: -1;
+        }
+
+        /* .children {
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -30,12 +44,13 @@
             border: 1px solid #333;
             border-radius: 18px;
             background-color: #fff;
-        }
+        } */
     </style>
 </head>
 
 <body>
-    <div class="children">
+    <div id="main"></div>
+    <!-- <div class="children">
         <div class="item">
             <div class="note" style="z-index: 999;">ROOT</div>
             <div class="children" style="z-index: 998;">
@@ -71,7 +86,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
 </body>
 
 </html>
