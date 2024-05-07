@@ -22,7 +22,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
     // get events from relay && set data to database and notes
     let handle_fetch = move || {
         spawn(async move {
-            tracing::info!("handle_fetch");
             // TODO: use global client by this subscription
             let sub = sub_current.read().clone();
             let client = Client::default();
@@ -64,9 +63,8 @@ pub fn NoteList(props: NoteListProps) -> Element {
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
-            let current_name = sub_current().name;
-            if subscription.name != current_name {
-                tracing::info!("use_effect: {subscription:?}");
+            let sub = sub_current();
+            if subscription.tampstamp != sub.tampstamp || subscription.name != sub.name {
                 sub_current.set(subscription.clone());
                 notes.clear();
                 handle_load();

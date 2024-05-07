@@ -39,7 +39,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
-            tracing::info!("use_effect subscription: {subscription:?}");
             sub_current.set(subscription.clone());
         },
     ));

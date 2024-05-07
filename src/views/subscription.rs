@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use nostr_sdk::Timestamp;
 
 use crate::{
     storage::CapybastrDb,
@@ -39,8 +40,9 @@ pub fn Subscription(subscription: String) -> Element {
     };
 
     let handle_reload = move |value: CustomSub| {
-        tracing::info!("handle_reload: {value:?}");
-        sub_current.set(value);
+        let mut v = value.clone();
+        v.tampstamp = Timestamp::now().as_i64();
+        sub_current.set(v);
     };
 
     rsx! {

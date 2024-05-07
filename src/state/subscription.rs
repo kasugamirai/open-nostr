@@ -15,6 +15,7 @@ use serde_json::Value;
 /// ```
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
+    pub tampstamp: i64,
     pub name: String,
     pub relay_set: RelaySet,
     pub filters: Vec<FilterTemp>,
@@ -23,7 +24,9 @@ pub struct CustomSub {
 
 impl Default for CustomSub {
     fn default() -> Self {
+        let now = Timestamp::now().as_i64();
         Self {
+            tampstamp: now,
             name: String::from("#steakstr"),
             relay_set: RelaySet {
                 name: String::from("Default"),
@@ -44,7 +47,9 @@ impl Default for CustomSub {
 
 impl CustomSub {
     pub fn default_with_hashtags(name: String, tags: Vec<String>) -> Self {
+        let now = Timestamp::now().as_i64();
         Self {
+            tampstamp: now,
             name: name.clone(),
             relay_set: RelaySet {
                 name: format!("{} - relays", name),
@@ -74,7 +79,9 @@ impl CustomSub {
     }
 
     pub fn empty() -> Self {
+        let now = Timestamp::now().as_i64();
         Self {
+            tampstamp: now,
             name: String::new(),
             relay_set: RelaySet {
                 name: String::new(),
@@ -372,6 +379,7 @@ mod test {
     fn test_account_sub() {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
+            tampstamp: 0,
             name: String::from("Test"),
             relay_set: RelaySet {
                 name: String::from("TestRelaySet"),
@@ -413,6 +421,7 @@ mod test {
     fn test_custom_sub() {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
+            tampstamp: 0,
             name: String::from("Test"),
             relay_set: RelaySet {
                 name: String::from("TestRelaySet"),
@@ -447,6 +456,7 @@ mod test {
             EventId::from_hex("70b10f70c1318967eddf12527799411b1a9780ad9c43858f5e5fcd45486a13a5")
                 .unwrap();
         let custom_sub = CustomSub {
+            tampstamp: 0,
             name: String::from("Test"),
             relay_set: RelaySet {
                 name: String::from("TestRelaySet"),
@@ -476,6 +486,7 @@ mod test {
     fn test_multiple_filters_sub() {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
+            tampstamp: 0,
             name: String::from("Test"),
             relay_set: RelaySet {
                 name: String::from("TestRelaySet"),
@@ -513,6 +524,7 @@ mod test {
     #[test]
     fn test_empty_filters() {
         let custom_sub = CustomSub {
+            tampstamp: 0,
             name: String::from("EmptyTest"),
             relay_set: RelaySet {
                 name: String::from("EmptyRelaySet"),
