@@ -154,10 +154,6 @@ fn Layout() -> Element {
             class: "layout-main",
             Outlet::<Route> {}
         }
-        // div {
-        //     class: "layout-right",
-        //     CustomSubscription {}
-        // }
     }
 }
 
@@ -197,7 +193,7 @@ pub enum Route {
     #[route("/test/:id")]
     Test { id: i32 },
 
-    #[route("/:subscription")]
+    #[route("/subscription/:subscription")]
     Subscription { subscription: String },
 
     #[end_layout]

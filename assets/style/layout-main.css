@@ -1,8 +1,11 @@
 .layout-main {
+    position: absolute;
+    top: 0;
+    left: 300px;
+    right: 0;
+    bottom: 0;
     display: flex;
     gap: 20px;
-    flex: 1;
-    height: 100%;
     padding: 20px;
 }
 
