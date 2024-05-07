@@ -4,12 +4,9 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use nostr_sdk::{Client, Event};
-use serde_json::Value;
 
 use crate::state::subscription::CustomSub;
 use note::{Note, NoteData};
-
-use super::subscription;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteListProps {

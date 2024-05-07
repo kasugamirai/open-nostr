@@ -25,17 +25,6 @@
     --col-success: #93f4ab;
 }
 
-#app::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    z-index: 999999999;
-}
-
 #app.light {
     --bgc-0: #ffffff;
     --bgc-1: #9f74eb;
@@ -67,6 +56,8 @@
     background-color: var(--bgc-0);
     overflow-y: auto;
     display: flex;
+    width: 100vw;
+    height: 100vh;
 }
 
 .show-false {

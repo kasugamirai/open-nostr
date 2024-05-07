@@ -18,7 +18,6 @@ struct RouterItem {
 #[component]
 fn Layout() -> Element {
     let subs = use_context::<Signal<Vec<CustomSub>>>();
-    let mut cur = use_context::<Signal<usize>>();
     let mut theme = use_context::<Signal<String>>();
     let toggle_theme = move |_| {
         if theme() == "light" {
@@ -139,12 +138,7 @@ fn Layout() -> Element {
                 }
                 div {
                     class: "subscriptions",
-                    for (i, sub) in subs.read().iter().enumerate() {
-                        // button {
-                        //     class: format!("subscriptions-btn{}", if i == cur() { " active" } else { "" }),
-                        //     onclick: move |_| cur.set(i),
-                        //     "#{sub.name}",
-                        // }
+                    for (_i, sub) in subs.read().iter().enumerate() {
                         Link {
                             active_class: "active",
                             class: "nav-item",

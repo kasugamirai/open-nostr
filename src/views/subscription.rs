@@ -47,7 +47,7 @@ pub fn Subscription(subscription: String) -> Element {
         div {
             style: "display: flex; width: 100%; height: 100%; gap: 20px;",
             div {
-                style: "flex: 1; overflow-y: scroll;",
+                style: "flex: 1; overflow-y: scroll; width: 100%;",
                 NoteList {
                     subscription: sub_current.read().clone(),
                 }
