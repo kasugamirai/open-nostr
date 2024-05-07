@@ -13,6 +13,7 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown},
     state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+    utils::js::export_to_clipboard,
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -24,62 +25,38 @@ use limit::LimitInput;
 use relays::RelaysInput;
 use tag::TagInput;
 
-#[component]
-pub fn CustomSubscription() -> Element {
-    let mut last_reload = use_context::<Signal<i32>>();
-    let sub_index = use_context::<Signal<usize>>();
-    let mut sub_all = use_context::<Signal<Vec<CustomSub>>>();
-    let mut sub_current = use_signal(CustomSub::default);
+#[derive(PartialEq, Clone, Props)]
+pub struct CustomSubscriptionProps {
+    on_save: EventHandler<CustomSub>,
+    subscription: CustomSub,
+}
 
-    let handle_reset = move |_| {};
+#[component]
+pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
+    let mut sub_current = use_signal(|| props.subscription.clone());
 
     use_effect(use_reactive(
-        (&sub_index(), &sub_all()),
-        move |(index, all)| {
-            if index != usize::MAX && index < all.len() {
-                // tracing::info!("Current sub index: {}", index);
-                // sub_current.set(all[index].clone());
-
-                let index = sub_index();
-                let all = sub_all();
-                sub_current.set(all[index].clone());
-            }
+        (&props.subscription,),
+        move |(subscription,)| {
+            tracing::info!("Current sub: {:?}", subscription);
+            sub_current.set(subscription.clone());
         },
     ));
 
     let mut edit = use_context_provider(|| Signal::new(false));
-    let handle_export = move || {
-        let eval = eval(
-            r#"
-                let c = navigator.clipboard;
-                if (!c) {
-                    console.error('Clipboard not supported');
-                    return false;
-                }
-                let msg = await dioxus.recv();
-                console.log(msg);
-                await c.writeText(msg);
-                alert("Copied to clipboard");
-                return true;
-            "#,
-        );
-        eval.send(sub_current.read().json().into()).unwrap();
-    };
-    let handle_save = move |_| {
-        let index = sub_index();
-        let mut subs = sub_all.write();
-        subs[index] = sub_current.read().clone();
+
+    let handle_reset = move |_| {
+        sub_current.set(props.subscription.clone());
         edit.set(false);
+    };
 
-        last_reload += 1;
+    let handle_save = move |_| {
+        props.on_save.call(sub_current.read().clone());
+        edit.set(false);
+    };
 
-        // TODO: save to storage
-        // spawn(async move {
-        //     delete_data("subscriptions", "current_sub").await.unwrap();
-        //     add_data("subscriptions", "current_sub", &subs())
-        //         .await
-        //         .unwrap();
-        // });
+    let handle_export = move || {
+        export_to_clipboard(sub_current.read().json());
     };
 
     rsx! {
@@ -153,7 +130,7 @@ pub fn CustomSubscription() -> Element {
                             let mut sub = sub_current.write();
                             sub.name = v;
                         },
-                        value: "{sub_current.read().name}",
+                        value: "{sub_current().name}",
                     }
                 }
                 div {

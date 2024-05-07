@@ -33,6 +33,7 @@ pub fn Input(props: InputProps) -> Element {
     use_effect(use_reactive(
         (&value, &props.value, &edit),
         move |(mut value, v, mut edit)| {
+            tracing::info!("Current value: {:?}", v);
             value.set(v.clone());
             bak.set(v.clone());
             edit.set(false);
