@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, EventId, Filter};
+use nostr_sdk::{Client, EventId, Filter, JsonUtil};
 
 use crate::{
     components::icons::*,
@@ -38,7 +38,6 @@ impl NoteData {
 
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
-    pub on_detail: EventHandler<()>,
     pub data: NoteData,
     //pub metadata: nostr_sdk::Metadata,
 }
@@ -67,9 +66,29 @@ pub fn Note(props: NoteProps) -> Element {
         }
     });
 
+    let mut show_detail = use_signal(|| false);
+    let mut detail = use_signal(|| String::new());
+
     rsx! {
         div {
             class: "com-post",
+            div {
+                style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
+                div {
+                    style: "width: 50%; height: 60%; max-width: 700px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
+                    button {
+                        class: "btn-icon remove",
+                        style: "position: absolute; top: -12px; left: -12px;",
+                        onclick: move |_| {
+                            show_detail.set(false);
+                        },
+                        dangerous_inner_html: "{FALSE}"
+                    }
+                    pre {
+                        "{detail}"
+                    }
+                }
+            }
             div {
                 class: "com-post-author",
                 div {
@@ -100,7 +119,8 @@ pub fn Note(props: NoteProps) -> Element {
                     class: "com-post-author-more",
                     MoreInfo {
                         on_detail: move |_| {
-                            props.on_detail.call(());
+                            detail.set(props.data.event.as_json());
+                            show_detail.set(!show_detail());
                         },
                     }
                 }
@@ -166,8 +186,29 @@ pub fn Note(props: NoteProps) -> Element {
 #[component]
 pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
     let mut edit = use_signal(|| false);
+
+    // close when click outside
+    let root_click_pos = use_context::<Signal<(f64, f64)>>();
+    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
+    use_effect(use_reactive((&pos,), move |(pos,)| {
+        // The coordinates of root element
+        let root_pos = root_click_pos();
+
+        // The coordinates of current element
+        let current_pos = pos();
+
+        // Determine if two coordinates are the same
+        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
+            edit.set(false);
+        }
+    }));
+
     rsx! {
         div {
+            onclick: move |event| {
+                // Save the coordinates of the event relative to the screen
+                pos.set(event.screen_coordinates().to_tuple());
+            },
             style: "position: relative;",
             div {
                 class: "more-trigger",

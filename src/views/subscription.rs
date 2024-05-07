@@ -11,7 +11,7 @@ pub fn Subscription(subscription: String) -> Element {
     // all custom subscriptions
     let mut sub_all = use_context::<Signal<Vec<CustomSub>>>();
 
-    let mut sub_current = use_signal(CustomSub::default);
+    let mut sub_current = use_signal(|| CustomSub::empty());
     let mut sub_index = use_signal(|| 0);
 
     use_effect(use_reactive((&subscription,), move |(s,)| {

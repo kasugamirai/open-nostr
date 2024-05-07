@@ -13,7 +13,7 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown},
     state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
-    utils::js::export_to_clipboard,
+    utils::js::{export_to_clipboard, import_from_clipboard},
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -39,6 +39,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
+            tracing::info!("use_effect subscription: {subscription:?}");
             sub_current.set(subscription.clone());
         },
     ));
@@ -58,6 +59,13 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     let handle_reload = move |_| {
         tracing::info!("handle_reload11111111111");
         props.on_reload.call(sub_current.read().clone());
+    };
+
+    let handle_import = move || {
+        spawn(async move {
+            let value = import_from_clipboard().await;
+            sub_current.set(CustomSub::from(&value));
+        });
     };
 
     let handle_export = move || {
@@ -94,6 +102,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                 class: "content",
                                 button {
                                     class: "content-btn",
+                                    onclick: move |_| handle_import(),
                                     "Import"
                                 }
                                 button {

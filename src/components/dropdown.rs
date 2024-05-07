@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-//use serde_json::Value;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct DropdownProps {

@@ -23,7 +23,6 @@ pub struct CustomSub {
 
 impl Default for CustomSub {
     fn default() -> Self {
-        // let now: u64 = Timestamp::now().as_u64();
         Self {
             name: String::from("#steakstr"),
             relay_set: RelaySet {
@@ -34,41 +33,10 @@ impl Default for CustomSub {
                     // String::from("wss://nostr.pjv.me"),
                 ],
             },
-            filters: vec![
-                FilterTemp::HashTag(CustomHashTag {
-                    r#type: String::from("hashtag"),
-                    tags: vec![String::from("dog")],
-                }),
-                // FilterTemp::Accounts(CustomAccounts {
-                //     r#type: String::from("accounts"),
-                //     kinds: vec![1],
-                //     accounts: vec![Account {
-                //         alt_name: "AltName".to_string(),
-                //         npub: "npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42"
-                //             .to_string(),
-                //     }],
-                // }),
-                // FilterTemp::Events(CustomEvents {
-                //     r#type: String::from("events"),
-                //     events: vec![Event {
-                //         alt_name: "EventName".to_string(),
-                //         nevent: "nevent hash".to_string(),
-                //     }],
-                // }),
-                // FilterTemp::Customize(CustomFilter {
-                //     r#type: String::from("customized"),
-                //     kinds: vec![Kind::TextNote.as_u64()],
-                //     accounts: vec![Account {
-                //         alt_name: "AltName".to_string(),
-                //         npub: "npub1pjvcwasj9ydasx9nmkf09pftsg640vm5fs7tzprssew8544yj2ds6e0h42"
-                //             .to_string(),
-                //     }],
-                //     since: 0,
-                //     until: now,
-                //     limit: 10,
-                //     tags: vec![],
-                // }),
-            ],
+            filters: vec![FilterTemp::HashTag(CustomHashTag {
+                r#type: String::from("hashtag"),
+                tags: vec![String::from("dog")],
+            })],
             keep_alive: true,
         }
     }
@@ -94,11 +62,27 @@ impl CustomSub {
         serde_json::to_string(self).unwrap()
     }
 
-    pub fn to_sub(&self) -> Vec<Filter> {
+    pub fn from(value: &str) -> Self {
+        serde_json::from_str(value).unwrap()
+    }
+
+    pub fn get_filters(&self) -> Vec<Filter> {
         self.filters
             .iter()
-            .map(|x| x.to_sub())
+            .map(|x| x.to_filter())
             .collect::<Vec<Filter>>()
+    }
+
+    pub fn empty() -> Self {
+        Self {
+            name: String::new(),
+            relay_set: RelaySet {
+                name: String::new(),
+                relays: vec![],
+            },
+            filters: vec![],
+            keep_alive: true,
+        }
     }
 }
 
@@ -127,7 +111,7 @@ pub enum FilterTemp {
 }
 
 impl FilterTemp {
-    pub fn to_sub(&self) -> Filter {
+    pub fn to_filter(&self) -> Filter {
         let mut filter = Filter::new();
         match self {
             FilterTemp::HashTag(hashtag) => {
@@ -403,7 +387,7 @@ mod test {
             })],
             keep_alive: true,
         };
-        let custom_filter = custom_sub.filters[0].to_sub();
+        let custom_filter = custom_sub.filters[0].to_filter();
 
         let filter = Filter::new()
             .author(PublicKey::from_str(public_key).unwrap())
@@ -416,7 +400,7 @@ mod test {
     fn test_default_sub() {
         let custom_sub = CustomSub::default();
         println!("custom_sub: {:?}", custom_sub);
-        let filters = custom_sub.to_sub();
+        let filters = custom_sub.get_filters();
         println!("filters: {:?}", filters);
 
         let filter =
@@ -448,7 +432,7 @@ mod test {
             })],
             keep_alive: true,
         };
-        let custom_filter = custom_sub.filters[0].to_sub();
+        let custom_filter = custom_sub.filters[0].to_filter();
 
         let filter = Filter::new()
             .author(PublicKey::from_str(public_key).unwrap())
@@ -479,7 +463,7 @@ mod test {
             })],
             keep_alive: true,
         };
-        let custom_filter = custom_sub.filters[0].to_sub();
+        let custom_filter = custom_sub.filters[0].to_filter();
 
         let filter = Filter::new().event(event_id);
         println!("filter: {:?}", filter);
@@ -513,7 +497,7 @@ mod test {
             ],
             keep_alive: true,
         };
-        let filters = custom_sub.to_sub();
+        let filters = custom_sub.get_filters();
 
         let filter1 = Filter::new()
             .author(PublicKey::from_str(public_key).unwrap())
@@ -538,7 +522,7 @@ mod test {
             keep_alive: true,
         };
 
-        let filters = custom_sub.to_sub();
+        let filters = custom_sub.get_filters();
         assert!(
             filters.is_empty(),
             "Filters should be empty but found {:?}",

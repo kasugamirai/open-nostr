@@ -33,7 +33,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
 
             client.connect().await;
 
-            let filters = sub.to_sub();
+            let filters = sub.get_filters();
 
             // TODO: use the 'subscribe' function if this sub requires subscription
             let events = client
@@ -80,11 +80,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
                     data: NoteData::from(note, i),
-                    on_detail: move |_| {
-                        // let data: Value = serde_json::from_str(&note_datas()[i].event.as_json()).expect("Failed to parse JSON");
-                        // let pretty_json = to_string_pretty(&data).expect("Failed to format JSON");
-                        // json_format(pretty_json);
-                    },
                 }
             }
         }

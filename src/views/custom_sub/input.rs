@@ -30,14 +30,11 @@ pub fn Input(props: InputProps) -> Element {
     }));
 
     // update value and cancel editing when parent data has changed
-    use_effect(use_reactive(
-        (&value, &props.value, &edit),
-        move |(mut value, v, mut edit)| {
-            value.set(v.clone());
-            bak.set(v.clone());
-            edit.set(false);
-        },
-    ));
+    use_effect(use_reactive((&props.value,), move |(v,)| {
+        value.set(v.clone());
+        bak.set(v.clone());
+        edit.set(false);
+    }));
 
     // close when click outside
     let root_click_pos = use_context::<Signal<(f64, f64)>>();
@@ -70,7 +67,7 @@ pub fn Input(props: InputProps) -> Element {
                         edit.set(true);
                     }
                 },
-                "{props.value}"
+                " {bak} "
             }
             div {
                 class: "show-{edit}",

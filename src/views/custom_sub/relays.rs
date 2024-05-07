@@ -105,7 +105,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     edit.set(!edit());
                     props.on_change.call(value.read().clone());
                 },
-                "{props.relay_set.name}"
+                " {props.relay_set.name} "
             }
             div {
                 class: "show-{edit}",

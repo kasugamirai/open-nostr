@@ -83,15 +83,6 @@ svg path {
     fill: var(--txt-1);
 }
 
-.btn-icon.small svg {
-    width: 16px;
-    height: 16px;
-}
-
-.btn-icon.purple svg path {
-    fill: var(--bgc-1);
-}
-
 .btn-icon {
     cursor: pointer;
     width: 32px;
@@ -120,4 +111,13 @@ svg path {
 
 .btn-icon svg path {
     fill: var(--bgc-0);
+}
+
+.btn-icon.small svg {
+    width: 16px;
+    height: 16px;
+}
+
+.btn-icon.purple svg path {
+    fill: var(--bgc-1);
 }
