@@ -9,6 +9,7 @@ mod profile;
 mod relay;
 mod search;
 mod settings;
+mod subscription;
 mod test;
 
 pub use bookmark::Bookmark;
@@ -22,4 +23,5 @@ pub use profile::Profile;
 pub use relay::Relay;
 pub use search::Search;
 pub use settings::Settings;
+pub use subscription::Subscription;
 pub use test::Test;

@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, Button, Dropdown},
     views::{
-        Bookmark, Channel, CustomSubscription, Group, Home, Message, Note, Profile, Relay, Search,
-        Settings, Test,
+        Bookmark, Channel, Group, Home, Message, Note, Profile, Relay, Search, Settings,
+        Subscription, Test,
     },
     CustomSub,
 };
@@ -140,10 +140,16 @@ fn Layout() -> Element {
                 div {
                     class: "subscriptions",
                     for (i, sub) in subs.read().iter().enumerate() {
-                        button {
-                            class: format!("subscriptions-btn{}", if i == cur() { " active" } else { "" }),
-                            onclick: move |_| cur.set(i),
-                            "#{sub.name}",
+                        // button {
+                        //     class: format!("subscriptions-btn{}", if i == cur() { " active" } else { "" }),
+                        //     onclick: move |_| cur.set(i),
+                        //     "#{sub.name}",
+                        // }
+                        Link {
+                            active_class: "active",
+                            class: "nav-item",
+                            to: Route::Subscription{ subscription: sub.name.clone() },
+                            "#{sub.name}"
                         }
                     }
                 }
@@ -154,10 +160,10 @@ fn Layout() -> Element {
             class: "layout-main",
             Outlet::<Route> {}
         }
-        div {
-            class: "layout-right",
-            CustomSubscription {}
-        }
+        // div {
+        //     class: "layout-right",
+        //     CustomSubscription {}
+        // }
     }
 }
 
@@ -196,6 +202,9 @@ pub enum Route {
 
     #[route("/test/:id")]
     Test { id: i32 },
+
+    #[route("/:subscription")]
+    Subscription { subscription: String },
 
     #[end_layout]
     #[route("/:..route")]
