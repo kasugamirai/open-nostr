@@ -1,15 +1,19 @@
+use anyhow::anyhow;
+use anyhow::Result;
+use lazy_static::lazy_static;
 use nostr_sdk::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use lazy_static::lazy_static;
 
 type NotificationHandler = Arc<
-    dyn Fn(RelayPoolNotification) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send>>
-    + Send
-    + Sync,
+    dyn Fn(
+            RelayPoolNotification,
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = anyhow::Result<bool>> + Send>>
+        + Send
+        + Sync,
 >;
-
 pub struct Register {
     clients: Arc<Mutex<HashMap<String, Client>>>,
     subscriptions: Arc<Mutex<HashMap<SubscriptionId, String>>>,
@@ -53,11 +57,12 @@ impl Register {
         sub_id: Option<SubscriptionId>,
         filters: Vec<Filter>,
         handler: NotificationHandler,
-        opts: Option<SubscribeAutoCloseOptions>
-    ) -> Result<SubscriptionId, Box<dyn std::error::Error>> {
+        opts: Option<SubscribeAutoCloseOptions>,
+    ) -> Result<SubscriptionId> {
         let clients = self.clients.lock().await;
-        let client = clients.get(client_key)
-            .ok_or_else(|| format!("Client not found for key: {}", client_key))?;
+        let client = clients
+            .get(client_key)
+            .ok_or_else(|| anyhow!("Client not found for key: {}", client_key))?;
 
         let subscription_id = if let Some(id) = sub_id {
             client.subscribe_with_id(id.clone(), filters, opts).await;
@@ -83,11 +88,14 @@ impl Register {
         handlers.remove(sub_id);
     }
 
-    async fn handle_notification(
-        &self,
-        notification: RelayPoolNotification,
-    ) -> Result<bool, Box<dyn std::error::Error>> {
-        if let RelayPoolNotification::Message { message: RelayMessage::Event { subscription_id, .. }, .. } = &notification {
+    async fn handle_notification(&self, notification: RelayPoolNotification) -> Result<bool> {
+        if let RelayPoolNotification::Message {
+            message: RelayMessage::Event {
+                subscription_id, ..
+            },
+            ..
+        } = &notification
+        {
             let handlers = self.handlers.lock().await;
             if let Some(handler) = handlers.get(subscription_id) {
                 return (handler)(notification.clone()).await;
@@ -95,18 +103,24 @@ impl Register {
         }
         Ok(false)
     }
-    
 
-    pub async fn handle_notifications(&self, client_key: &str) -> Result<(), Box<dyn std::error::Error>> {
-        let client = self.get_client(client_key)
-            .await.ok_or_else(|| format!("Client not found for key: {}", client_key))?;
+    pub async fn handle_notifications(&self, client_key: &str) -> Result<()> {
+        let client = self
+            .get_client(client_key)
+            .await
+            .ok_or_else(|| anyhow!("Client not found for key: {}", client_key))?;
 
-        client.handle_notifications(|notification| {
-            let register = self;
-            async move {
-                register.handle_notification(notification).await
-            }
-        }).await?;
+        client
+            .handle_notifications(|notification| {
+                let register = self;
+                async move {
+                    register
+                        .handle_notification(notification)
+                        .await
+                        .map_err(|e| e.into())
+                }
+            })
+            .await?;
 
         Ok(())
     }
@@ -116,4 +130,3 @@ impl Register {
 lazy_static! {
     pub static ref SUB_REIGISTER: Register = Register::new();
 }
-
