@@ -1,5 +1,5 @@
 mod components;
-mod nostr;
+pub mod nostr;
 mod router;
 mod state;
 pub mod storage;
