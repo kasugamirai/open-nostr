@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use lazy_static::lazy_static;
 
-type NotificationHandler = Arc<
+pub type NotificationHandler = Arc<
     dyn Fn(RelayPoolNotification) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send>>
     + Send
     + Sync,
