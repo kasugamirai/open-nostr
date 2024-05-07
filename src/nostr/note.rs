@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 
+use dioxus::html::geometry::euclid::default;
 use dioxus::prelude::server_fn::response::Res;
 use indextree::{Arena, NodeId};
 use nostr_sdk::prelude::*;
@@ -128,14 +129,16 @@ impl PartialEq for ReplyTrees<'_> {
     }
 }
 
-impl<'a> ReplyTrees<'a> {
-    pub fn new() -> Self {
-        ReplyTrees {
+impl<'a> Default for ReplyTrees<'a> {
+    fn default() -> Self {
+        Self {
             id2id: HashMap::new(),
             arena: Arena::new(),
         }
     }
+}
 
+impl<'a> ReplyTrees<'a> {
     //todo
     pub fn accept(&mut self, events: &[&'a Event]) {
         let text_notes: Vec<TextNote<'_>> = events
@@ -274,7 +277,7 @@ mod tests {
     #[test]
     fn test_get_note() {
         let event = event_from(ROOT_NOTE);
-        let mut reply_tree = ReplyTrees::new();
+        let mut reply_tree = ReplyTrees::default();
         reply_tree.accept(&[&event]);
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
@@ -290,7 +293,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let event_refs: Vec<&Event> = events.iter().collect();
-        let mut reply_tree = ReplyTrees::new();
+        let mut reply_tree = ReplyTrees::default();
         reply_tree.accept(&event_refs);
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
@@ -317,7 +320,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let event_refs: Vec<&Event> = events.iter().collect();
-        let mut reply_tree = ReplyTrees::new();
+        let mut reply_tree = ReplyTrees::default();
         reply_tree.accept(&event_refs);
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
@@ -335,7 +338,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let event_refs: Vec<&Event> = events.iter().collect();
-        let mut reply_tree = ReplyTrees::new();
+        let mut reply_tree = ReplyTrees::default();
         reply_tree.accept(&event_refs);
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
