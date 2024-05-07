@@ -30,16 +30,14 @@ pub struct NoteProps {
 
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    let client = use_context::<Signal<Client>>();
-
     let author = props.data.author.clone();
     let e = EventId::from_hex(author).unwrap();
 
     let future = use_resource(move || async move {
+        let client = Client::default();
         // TODO: get metadata
         let filter = Filter::new().event(e);
         match client
-            .read()
             .get_events_of(vec![filter], Some(Duration::from_secs(30)))
             .await
         {

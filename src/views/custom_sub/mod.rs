@@ -82,7 +82,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     class: "custom-sub-header-more",
                     Dropdown {
                         pos: "right".to_string(),
-                        show: "active".to_string(),
+                        mode: "active".to_string(),
                         trigger: rsx! {
                             div {
                                 class: "trigger",
