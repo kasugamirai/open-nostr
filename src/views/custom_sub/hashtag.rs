@@ -1,6 +1,9 @@
 use dioxus::prelude::*;
 
-use crate::components::icons::{ADD, FALSE, TRUE};
+use crate::components::{
+    icons::{ADD, FALSE, TRUE},
+    ClickOutside,
+};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct HashTagInputProps {
@@ -39,72 +42,56 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
         },
     ));
 
-    // close when click outside
-    let root_click_pos = use_context::<Signal<(f64, f64)>>();
-    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
-    use_effect(use_reactive((&pos,), move |(pos,)| {
-        // The coordinates of root element
-        let root_pos = root_click_pos();
-
-        // The coordinates of current element
-        let current_pos = pos();
-
-        // Determine if two coordinates are the same
-        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
-            edit.set(false);
-            props.on_change.call(value.read().clone());
-        }
-    }));
-
     rsx! {
-        div {
-            style: "position: relative;",
-            onclick: move |event| {
-                // Save the coordinates of the event relative to the screen
-                pos.set(event.screen_coordinates().to_tuple());
+        ClickOutside {
+            on_click: move |_| {
+                edit.set(false);
             },
             div {
-                style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
-                onclick: move |_| {
-                    if allow_edit() {
-                        edit.set(true);
-                    }
-                },
-                "{props.tag}"
-            }
-            div {
-                class: "show-{edit}",
-                style: "position: absolute; left: 50%; transform: translateX(-50%); background-color: var(--bgc-0); border-radius: var(--radius-circle); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
-                label {
-                    style: "display: flex; align-items: center; gap: 10px;",
-                    input {
-                        r#type: "text",
-                        style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px; width: 160px;",
-                        placeholder: "hashtag",
-                        value: "{value}",
-                        oninput: move |event| {
-                            value.set(event.value());
+                style: "position: relative;",
+                div {
+                    style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
+                    onclick: move |_| {
+                        if allow_edit() {
+                            edit.set(true);
                         }
-                    }
-                    button {
-                        class: "btn-circle btn-circle-true",
-                        onclick: move |_| {
-                            // TODO: Get 'alt name' if 'value.alt_name' is empty
-                            bak.set(value());
-                            edit.set(false);
-                            props.on_change.call(value.read().clone());
-                        },
-                        dangerous_inner_html: "{TRUE}"
-                    }
-                    button {
-                        class: "btn-circle btn-circle-false",
-                        onclick: move |_| {
-                            let v = bak();
-                            value.set(v);
-                            edit.set(false);
-                            props.on_change.call(value());
-                        },
-                        dangerous_inner_html: "{FALSE}"
+                    },
+                    "{props.tag}"
+                }
+                div {
+                    class: "show-{edit}",
+                    style: "position: absolute; left: 50%; transform: translateX(-50%); background-color: var(--bgc-0); border-radius: var(--radius-circle); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                    label {
+                        style: "display: flex; align-items: center; gap: 10px;",
+                        input {
+                            r#type: "text",
+                            style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px; width: 160px;",
+                            placeholder: "hashtag",
+                            value: "{value}",
+                            oninput: move |event| {
+                                value.set(event.value());
+                            }
+                        }
+                        button {
+                            class: "btn-circle btn-circle-true",
+                            onclick: move |_| {
+                                // TODO: Get 'alt name' if 'value.alt_name' is empty
+                                bak.set(value());
+                                edit.set(false);
+                                props.on_change.call(value.read().clone());
+                            },
+                            dangerous_inner_html: "{TRUE}"
+                        }
+                        button {
+                            class: "btn-circle btn-circle-false",
+                            onclick: move |_| {
+                                let v = bak();
+                                value.set(v);
+                                edit.set(false);
+                                props.on_change.call(value());
+                            },
+                            dangerous_inner_html: "{FALSE}"
+                        }
                     }
                 }
             }
@@ -133,74 +120,59 @@ pub fn HashTagAdd(props: HashTagAddProps) -> Element {
         }
     }));
 
-    // close when click outside
-    let root_click_pos = use_context::<Signal<(f64, f64)>>();
-    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
-    use_effect(use_reactive((&pos,), move |(pos,)| {
-        // The coordinates of root element
-        let root_pos = root_click_pos();
-
-        // The coordinates of current element
-        let current_pos = pos();
-
-        // Determine if two coordinates are the same
-        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
-            edit.set(false);
-            if !value.read().is_empty() {
-                props.on_change.call(value.read().clone());
-                value.set(String::new());
-            }
-        }
-    }));
-
     rsx! {
-        div {
-            style: "position: relative;",
-            onclick: move |event| {
-                // Save the coordinates of the event relative to the screen
-                pos.set(event.screen_coordinates().to_tuple());
+        ClickOutside {
+            on_click: move |_| {
+                edit.set(false);
+                if !value.read().is_empty() {
+                    props.on_change.call(value.read().clone());
+                    value.set(String::new());
+                }
             },
-            button {
-                class: "btn-add",
-                onclick: move |_| {
-                    if allow_edit() {
-                        edit.set(true);
-                    }
-                },
-                dangerous_inner_html: "{ADD}",
-            }
             div {
-                class: "show-{edit}",
-                style: "position: absolute; left: 50%; transform: translateX(-50%); background-color: var(--bgc-0); border-radius: var(--radius-circle); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
-                label {
-                    style: "display: flex; align-items: center; gap: 10px;",
-                    input {
-                        r#type: "text",
-                        style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px;",
-                        placeholder: "hashtag",
-                        value: "{value}",
-                        oninput: move |event| {
-                            value.set(event.value());
+                style: "position: relative;",
+                button {
+                    class: "btn-add",
+                    onclick: move |_| {
+                        if allow_edit() {
+                            edit.set(true);
                         }
-                    }
-                    button {
-                        class: "btn-circle btn-circle-true",
-                        onclick: move |_| {
-                            edit.set(false);
-                            if !value.read().is_empty() {
-                                props.on_change.call(value.read().clone());
-                                value.set(String::new());
+                    },
+                    dangerous_inner_html: "{ADD}",
+                }
+                div {
+                    class: "show-{edit}",
+                    style: "position: absolute; left: 50%; transform: translateX(-50%); background-color: var(--bgc-0); border-radius: var(--radius-circle); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                    label {
+                        style: "display: flex; align-items: center; gap: 10px;",
+                        input {
+                            r#type: "text",
+                            style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px;",
+                            placeholder: "hashtag",
+                            value: "{value}",
+                            oninput: move |event| {
+                                value.set(event.value());
                             }
-                        },
-                        dangerous_inner_html: "{TRUE}"
-                    }
-                    button {
-                        class: "btn-circle btn-circle-false",
-                        onclick: move |_| {
-                            value.set(String::new());
-                            edit.set(false);
-                        },
-                        dangerous_inner_html: "{FALSE}"
+                        }
+                        button {
+                            class: "btn-circle btn-circle-true",
+                            onclick: move |_| {
+                                edit.set(false);
+                                if !value.read().is_empty() {
+                                    props.on_change.call(value.read().clone());
+                                    value.set(String::new());
+                                }
+                            },
+                            dangerous_inner_html: "{TRUE}"
+                        }
+                        button {
+                            class: "btn-circle btn-circle-false",
+                            onclick: move |_| {
+                                value.set(String::new());
+                                edit.set(false);
+                            },
+                            dangerous_inner_html: "{FALSE}"
+                        }
                     }
                 }
             }
