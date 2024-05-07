@@ -39,14 +39,12 @@ async fn handler_repost(notification: RelayPoolNotification) -> Result<bool, Box
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn StdError>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     let secret_key = SecretKey::from_bech32(BECH32_SK)?;
     let keys = Keys::new(secret_key);
     let public_key = keys.public_key();
-
-    let registry = &*SUB_REIGISTER;
 
     let client_for_text_note = ClientBuilder::new().opts(Options::new().wait_for_send(false)).build();
     client_for_text_note.add_relay("wss://relay.damus.io").await?;
@@ -56,20 +54,18 @@ async fn main() -> Result<(), Box<dyn StdError>> {
     client_for_repost.add_relay("wss://relay.damus.io").await?;
     client_for_repost.connect().await;
 
-    registry.add_client(String::from("client_for_text_note"), client_for_text_note).await;
-    registry.add_client(String::from("client_for_repost"), client_for_repost).await;
-
     let filter_text_note = Filter::new()
         .author(public_key)
         .kind(Kind::TextNote)
         .since(Timestamp::now());
 
-    let filter_repost: Filter = Filter::new()
+    let filter_repost = Filter::new()
         .author(public_key)
         .kind(Kind::Repost)
         .since(Timestamp::now());
 
-    registry.add_subscription(
+    SUB_REGISTER.add_subscription(
+        &client_for_text_note,
         "client_for_text_note",
         None,
         vec![filter_text_note.clone()],
@@ -77,7 +73,8 @@ async fn main() -> Result<(), Box<dyn StdError>> {
         None,
     ).await?;
 
-    registry.add_subscription(
+    SUB_REGISTER.add_subscription(
+        &client_for_text_note,
         "client_for_text_note",
         None,
         vec![filter_text_note],
@@ -85,7 +82,8 @@ async fn main() -> Result<(), Box<dyn StdError>> {
         None,
     ).await?;
 
-    registry.add_subscription(
+    SUB_REGISTER.add_subscription(
+        &client_for_repost,
         "client_for_repost",
         None,
         vec![filter_repost],
@@ -93,13 +91,12 @@ async fn main() -> Result<(), Box<dyn StdError>> {
         None,
     ).await?;
 
-    // Handle subscription notifications with `handle_notifications` method
     let handle1 = tokio::spawn(async move {
-        registry.handle_notifications("client_for_text_note").await.unwrap();
+        SUB_REGISTER.handle_notifications(&client_for_text_note).await.unwrap();
     });
 
     let handle2 = tokio::spawn(async move {
-        registry.handle_notifications("client_for_repost").await.unwrap();
+        SUB_REGISTER.handle_notifications(&client_for_repost).await.unwrap();
     });
 
     handle1.await?;
