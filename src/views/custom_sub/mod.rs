@@ -56,8 +56,8 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_reload = move |_| {
+        tracing::info!("handle_reload11111111111");
         props.on_reload.call(sub_current.read().clone());
-        edit.set(false);
     };
 
     let handle_export = move || {

@@ -38,13 +38,16 @@ pub fn Subscription(subscription: String) -> Element {
         });
     };
 
-    let handle_reload = move |value: CustomSub| {};
+    let handle_reload = move |value: CustomSub| {
+        tracing::info!("handle_reload: {value:?}");
+        sub_current.set(value);
+    };
 
     rsx! {
         div {
             style: "display: flex; width: 100%; height: 100%; gap: 20px;",
             div {
-                style: "flex: 1;",
+                style: "flex: 1; overflow-y: scroll;",
                 NoteList {
                     subscription: sub_current.read().clone(),
                 }

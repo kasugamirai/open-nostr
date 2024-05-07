@@ -79,7 +79,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
 
     rsx! {
         div {
-            style: "display: flex; flex-direction: column; gap: 10px;",
+            style: "display: flex; flex-direction: column; gap: 10px; width: 100%;",
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
                     data: NoteData::from(note, i),
