@@ -28,6 +28,7 @@ use tag::TagInput;
 #[derive(PartialEq, Clone, Props)]
 pub struct CustomSubscriptionProps {
     on_save: EventHandler<CustomSub>,
+    on_reload: EventHandler<CustomSub>,
     subscription: CustomSub,
 }
 
@@ -38,7 +39,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
-            tracing::info!("Current sub: {:?}", subscription);
             sub_current.set(subscription.clone());
         },
     ));
@@ -52,6 +52,11 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
 
     let handle_save = move |_| {
         props.on_save.call(sub_current.read().clone());
+        edit.set(false);
+    };
+
+    let handle_reload = move |_| {
+        props.on_reload.call(sub_current.read().clone());
         edit.set(false);
     };
 
@@ -69,7 +74,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     h2 { "Custom Sub" }
                     button {
                         class: "btn-icon purple small",
-                        onclick: handle_save,
+                        onclick: handle_reload,
                         dangerous_inner_html: "{RELOAD}",
                     }
                 }
