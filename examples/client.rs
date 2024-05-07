@@ -30,12 +30,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Use the channel to send commands to the worker
     command_tx.send(WorkerCommand::Subscribe {
-        filters: vec![filter_text_note],
+        filters: vec![filter_text_note.clone()],
         handler: Arc::new(|notification| Box::pin(async move {
             println!("Received notification: {:?}", notification);
             Ok(false)
         })),
     }).await?;
+
+    command_tx.send(WorkerCommand::Start).await?;
+
+    // add a command after start
+    command_tx.send(WorkerCommand::Subscribe {
+        filters: vec![filter_text_note.clone()],
+        handler: Arc::new(|notification| Box::pin(async move {
+            println!("Received notification222: {:?}", notification);
+            Ok(false)
+        })),
+    }).await?;
+
+    
 
     // Notify for controlled shutdown
     let notify = Notify::new();
