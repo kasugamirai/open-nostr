@@ -33,6 +33,7 @@ wasm-bindgen-futures = "0.4"
 async-std = "1.8"
 tokio = "1.37.0"
 lazy_static = "1.4.0"
+anyhow = "1.0.40"
 [features]
 default = []
 server = ["dioxus/axum"]
