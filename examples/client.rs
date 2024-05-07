@@ -1,6 +1,6 @@
 use async_utility::tokio;
-use nostr_sdk::prelude::*;
 use capybastr::nostr::client::*;
+use nostr_sdk::prelude::*;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
@@ -12,7 +12,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (command_tx, command_rx) = tokio::sync::mpsc::channel(32);
 
     // Create a client
-    let client = ClientBuilder::new().opts(Options::new().wait_for_send(false)).build();
+    let client = ClientBuilder::new()
+        .opts(Options::new().wait_for_send(false))
+        .build();
     client.add_relay("wss://relay.damus.io").await?;
     client.connect().await;
 
@@ -21,34 +23,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let public_key = keys.public_key();
 
     let filter_text_note = Filter::new()
-    .author(public_key)
-    .kind(Kind::TextNote)
-    .since(Timestamp::now());
+        .author(public_key)
+        .kind(Kind::TextNote)
+        .since(Timestamp::now());
 
     // Spawn the client worker
     tokio::spawn(client_worker(client, "test", command_rx));
 
     // Use the channel to send commands to the worker
-    command_tx.send(WorkerCommand::Subscribe {
-        filters: vec![filter_text_note.clone()],
-        handler: Arc::new(|notification| Box::pin(async move {
-            println!("Received notification: {:?}", notification);
-            Ok(false)
-        })),
-    }).await?;
+    command_tx
+        .send(WorkerCommand::Subscribe {
+            filters: vec![filter_text_note.clone()],
+            handler: Arc::new(|notification| {
+                Box::pin(async move {
+                    println!("Received notification: {:?}", notification);
+                    Ok(false)
+                })
+            }),
+        })
+        .await?;
 
     command_tx.send(WorkerCommand::Start).await?;
 
     // add a command after start
-    command_tx.send(WorkerCommand::Subscribe {
-        filters: vec![filter_text_note.clone()],
-        handler: Arc::new(|notification| Box::pin(async move {
-            println!("Received notification222: {:?}", notification);
-            Ok(false)
-        })),
-    }).await?;
-
-    
+    command_tx
+        .send(WorkerCommand::Subscribe {
+            filters: vec![filter_text_note.clone()],
+            handler: Arc::new(|notification| {
+                Box::pin(async move {
+                    println!("Received notification222: {:?}", notification);
+                    Ok(false)
+                })
+            }),
+        })
+        .await?;
 
     // Notify for controlled shutdown
     let notify = Notify::new();
