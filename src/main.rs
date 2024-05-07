@@ -2,11 +2,11 @@
 
 use std::collections::HashMap;
 
+use capybastr::{CustomSub, Route, User};
 use dioxus::prelude::*;
 use nostr_sdk::{Client, Keys};
-use std::sync::{Arc, Mutex};
+//use std::sync::{Arc, Mutex};
 use tracing::Level;
-use capybastr::{CustomSub, Route, User};
 
 fn main() {
     // Init debug
@@ -42,12 +42,6 @@ fn App() -> Element {
 
     let _last_reload: Signal<i32> = use_context_provider(|| Signal::new(0));
 
-    // Define a shared HashMap wrapped in Arc and Mutex
-    let subscription_clients: Arc<Mutex<HashMap<usize, Client>>> =
-        Arc::new(Mutex::new(HashMap::new()));
-
-    // Clone a reference to the shared HashMap for use in closures
-    let shared_subscription_clients = Arc::clone(&subscription_clients);
     // current user has changed
     use_effect(use_reactive(
         (&all_user(), &all_sub(), &current_sub()),
@@ -74,33 +68,17 @@ fn App() -> Element {
 
     // current subscription has changed
     use_effect(use_reactive(&all_sub(), move |subs| {
-        let shared_subscription_clients = Arc::clone(&shared_subscription_clients); // Clone reference
         spawn(async move {
             tracing::info!("Current sub index ====== {}", *current_sub.read());
             let index = *current_sub.read();
             if index != usize::MAX && index < subs.len() {
                 let subscription = subs.get(index).unwrap();
                 let relays = subscription.relay_set.relays.clone();
-
-                let subscription_clients = shared_subscription_clients.lock().unwrap();
-
-                // Release the lock before awaiting the asynchronous operation
-                drop(subscription_clients);
-
-                if let Some(client) = shared_subscription_clients.lock().unwrap().get_mut(&index) {
-                    let _ = client.disconnect().await;
-                    //let _ = client.remove_all_relays().await;
-                    //let _ = client.add_relays(relays).await;
-                    client.connect().await;
-                } else {
-                    let new_client = Client::default();
-                    let _ = new_client.add_relays(relays).await;
-                    new_client.connect().await;
-
-                    // Reacquire the lock before modifying the HashMap
-                    let mut subscription_clients = shared_subscription_clients.lock().unwrap();
-                    subscription_clients.insert(index, new_client);
-                }
+                let client = client.read();
+                let _ = client.disconnect().await;
+                let _ = client.remove_all_relays().await;
+                let _ = client.add_relays(relays).await;
+                client.connect().await;
             }
         });
     }));
