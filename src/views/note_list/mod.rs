@@ -1,5 +1,5 @@
 mod custom_sub;
-mod note;
+pub mod note;
 
 use std::time::Duration;
 

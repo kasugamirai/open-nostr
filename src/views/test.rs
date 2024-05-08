@@ -3,6 +3,8 @@ use std::{collections::HashMap, time::Duration};
 use dioxus::prelude::*;
 use nostr_sdk::prelude::*;
 
+use crate::views::note_list::note::{Note, NoteData};
+
 #[derive(Debug, Clone)]
 pub struct Clients {
     clients: HashMap<String, Client>,
@@ -104,7 +106,11 @@ pub fn Children(name: String) -> Element {
                 "Children: {n}"
             }
             div {
-                "{serde_json::to_string(&events()).unwrap()}"
+                for (i, note) in events.read().clone().iter().enumerate() {
+                    Note {
+                        data: NoteData::from(note, i),
+                    }
+                }
             }
         }
     }
