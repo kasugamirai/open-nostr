@@ -1,13 +1,20 @@
+use lazy_static::lazy_static;
 use nostr_sdk::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use lazy_static::lazy_static;
+
+pub enum RegisterError {
+    SubscriptionNotFound,
+}
 
 pub type NotificationHandler = Arc<
-    dyn Fn(RelayPoolNotification) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send>>
-    + Send
-    + Sync,
+    dyn Fn(
+            RelayPoolNotification,
+        ) -> std::pin::Pin<
+            Box<dyn std::future::Future<Output = Result<bool, Box<dyn std::error::Error>>> + Send>,
+        > + Send
+        + Sync,
 >;
 
 pub struct Register {
@@ -30,7 +37,7 @@ impl Register {
         sub_id: Option<SubscriptionId>,
         filters: Vec<Filter>,
         handler: NotificationHandler,
-        opts: Option<SubscribeAutoCloseOptions>
+        opts: Option<SubscribeAutoCloseOptions>,
     ) -> Result<SubscriptionId, Box<dyn std::error::Error>> {
         let subscription_id = if let Some(id) = sub_id {
             client.subscribe_with_id(id.clone(), filters, opts).await;
@@ -60,7 +67,13 @@ impl Register {
         &self,
         notification: RelayPoolNotification,
     ) -> Result<bool, Box<dyn std::error::Error>> {
-        if let RelayPoolNotification::Message { message: RelayMessage::Event { subscription_id, .. }, .. } = &notification {
+        if let RelayPoolNotification::Message {
+            message: RelayMessage::Event {
+                subscription_id, ..
+            },
+            ..
+        } = &notification
+        {
             let handlers = self.handlers.lock().await;
             if let Some(handler) = handlers.get(subscription_id) {
                 return (handler)(notification.clone()).await;
@@ -69,13 +82,16 @@ impl Register {
         Ok(false)
     }
 
-    pub async fn handle_notifications(&self, client: &Client) -> Result<(), Box<dyn std::error::Error>> {
-        client.handle_notifications(|notification| {
-            let register = self;
-            async move {
-                register.handle_notification(notification).await
-            }
-        }).await?;
+    pub async fn handle_notifications(
+        &self,
+        client: &Client,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        client
+            .handle_notifications(|notification| {
+                let register = self;
+                async move { register.handle_notification(notification).await }
+            })
+            .await?;
 
         Ok(())
     }

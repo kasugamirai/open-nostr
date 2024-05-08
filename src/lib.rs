@@ -6,6 +6,7 @@ pub mod storage;
 mod utils;
 mod views;
 
+pub use nostr::ClientManager;
 use std::collections::HashMap;
 
 //pub use nostr::get_metadata;
