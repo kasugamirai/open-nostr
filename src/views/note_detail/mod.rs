@@ -57,7 +57,7 @@ pub fn NoteDetail(id: String) -> Element {
         .map(|raw: &&str| Event::from_json(raw).unwrap())
         .collect();
     let event_refs: Vec<&Event> = events.iter().collect();
-    let mut reply_tree = ReplyTrees::new();
+    let mut reply_tree = ReplyTrees::default();
     reply_tree.accept(&event_refs);
 
     fn get_notetree(id: EventId, reply_tree: &ReplyTrees) -> Vec<NoteTree> {
