@@ -69,13 +69,23 @@ pub fn Note(props: NoteProps) -> Element {
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
 
+    let highlight = move || {
+        let eval: UseEval = eval(
+            r#"
+                let _ = await dioxus.recv();
+                hljs.highlightAll();
+            "#,
+        );
+        eval.send("".into()).unwrap();
+    };
+
     rsx! {
         div {
             class: "com-post",
             div {
                 style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
                 div {
-                    style: "width: 50%; height: 60%; max-width: 700px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
+                    style: "width: 50%; height: 60%; max-width: 900px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
                     button {
                         class: "btn-icon remove",
                         style: "position: absolute; top: -12px; left: -12px;",
@@ -85,7 +95,11 @@ pub fn Note(props: NoteProps) -> Element {
                         dangerous_inner_html: "{FALSE}"
                     }
                     pre {
-                        "{detail}"
+                        style: "height: 100%; overflow-y: auto; font-size: 16px;",
+                        code {
+                            class: "language-json",
+                            "{detail}"
+                        }
                     }
                 }
             }
@@ -119,7 +133,10 @@ pub fn Note(props: NoteProps) -> Element {
                     class: "com-post-author-more",
                     MoreInfo {
                         on_detail: move |_| {
-                            detail.set(props.data.event.as_json());
+                            let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
+                            let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                            detail.set(formatted_json);
+                            highlight();
                             show_detail.set(!show_detail());
                         },
                     }
