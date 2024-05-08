@@ -5,6 +5,8 @@ use tokio::spawn;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let my_pub: &str = "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9";
+    let my_publicKey = PublicKey::from_bech32(my_pub)?;
     tracing_subscriber::fmt::init();
     let dm_count = Arc::new(Mutex::new(0));
     let mut notification_handles = vec![];
@@ -15,10 +17,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let k = Keys::generate();
     // 创建并连接 Client
     let client = Arc::new(Client::new(&k));
-    client.add_relay("ws://127.0.0.1:8080").await.unwrap();
+    //client.add_relay("ws://127.0.0.1:8080").await.unwrap();
+    client.add_relay("wss://relay.damus.io").await.unwrap();
+
     client.connect().await;
 
-    for i in 0..50 {
+    for i in 0..10 {
         let keys = Keys::generate();
         saved_keys.push(keys.clone());
         let public_key = keys.public_key();
@@ -57,8 +61,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let client = Client::new(key.clone());
         let public_key = key.public_key();
         //client.add_relay("wss://nostr.oxtr.dev").await.unwrap();
-        client.add_relay("ws://127.0.0.1:8080").await.unwrap();
-        //client.add_relay("wss://relay.damus.io").await.unwrap();
+        //client.add_relay("ws://127.0.0.1:8080").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
         let kind = Kind::EncryptedDirectMessage;
         let msg = "Hello, World!";
@@ -93,6 +97,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     for handle in notification_handles {
         handle.await.unwrap();
     }
+
+    let sub_id_3 = SubscriptionId::new("other-ids");
+    let filter = Filter::new()
+        .author(my_publicKey)
+        .kind(Kind::TextNote)
+        .since(Timestamp::now());
+    client.subscribe_with_id(sub_id_3, vec![filter], None).await;
 
     Ok(())
 }

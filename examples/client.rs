@@ -1,5 +1,6 @@
 use async_utility::tokio;
 use capybastr::nostr::client::*;
+use dioxus::html::p;
 use nostr_sdk::prelude::*;
 use std::sync::Arc;
 use tokio::sync::Notify;
@@ -44,6 +45,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     command_tx.send(WorkerCommand::Start).await?;
+
+    println!("---------------------------------------------------------------");
 
     // add a command after start
     command_tx
