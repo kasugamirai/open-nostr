@@ -1,6 +1,9 @@
 #![allow(non_snake_case)]
 
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
+use nostr_sdk::Client;
 use tracing::Level;
 
 use capybastr::{CustomSub, Route};
@@ -14,7 +17,7 @@ fn main() {
 fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
 
-    let client = use_context_provider(|| Signal::new(nostr_sdk::Client::default()));
+    let mut clients = use_context_provider(|| Signal::new(HashMap::<String, Client>::new()));
 
     // all custom subscriptions
     let mut all_sub: Signal<Vec<CustomSub>> =
@@ -25,22 +28,33 @@ fn App() -> Element {
 
     // hook: on mounted
     let on_mounted = move |_| {
-
         spawn(async move {
-            let c = client();
-            c.add_relay("wss://relay.damus.io").await.unwrap();
-            c.connect().await;
-
             // TODO: Step 1, read cache from indexeddb else create new subscription
 
-            all_sub.push(CustomSub::default_with_hashtags(
-                "Dog".to_string(),
-                vec!["dog".to_string()],
-            ));
-            all_sub.push(CustomSub::default_with_hashtags(
-                "Car".to_string(),
-                vec!["car".to_string()],
-            ));
+            let subs = vec![
+                CustomSub::default_with_opt(
+                    "Dog".to_string(),
+                    "wss://btc.klendazu.com".to_string(),
+                    vec!["dog".to_string()],
+                ),
+                CustomSub::default_with_opt(
+                    "Car".to_string(),
+                    "wss://relay.damus.io".to_string(),
+                    vec!["car".to_string()],
+                ),
+            ];
+
+            let mut cs = clients.write();
+            for i in subs.iter() {
+                let c = Client::default();
+                c.add_relays(i.relay_set.relays.clone()).await.unwrap();
+                c.connect().await;
+                cs.insert(i.name.clone(), c);
+            }
+
+            for i in subs.iter() {
+                all_sub.push(i.clone());
+            }
         });
     };
 

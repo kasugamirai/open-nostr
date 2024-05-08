@@ -1,7 +1,7 @@
 mod custom_sub;
 pub mod note;
 
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
 use dioxus::prelude::*;
 use nostr_sdk::{Client, Event, Timestamp};
@@ -85,7 +85,7 @@ pub fn List(props: ListProps) -> Element {
 
     let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
 
-    let client = use_context::<Signal<Client>>();
+    let clients = use_context::<Signal<HashMap<String, Client>>>();
 
     // get events from relay && set data to database and notes
     let handle_fetch = move || {
@@ -100,7 +100,9 @@ pub fn List(props: ListProps) -> Element {
 
             // client.connect().await;
 
-            let c = client();
+            let cs = clients();
+
+            let c = cs.get(&sub.name).unwrap();
 
             let filters = sub.get_filters();
 

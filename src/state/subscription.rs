@@ -46,14 +46,14 @@ impl Default for CustomSub {
 }
 
 impl CustomSub {
-    pub fn default_with_hashtags(name: String, tags: Vec<String>) -> Self {
+    pub fn default_with_opt(name: String, relay: String, tags: Vec<String>) -> Self {
         let now = Timestamp::now().as_i64();
         Self {
             tampstamp: now,
             name: name.clone(),
             relay_set: RelaySet {
                 name: format!("{} - relays", name),
-                relays: vec![String::from("wss://btc.klendazu.com")],
+                relays: vec![relay],
             },
             filters: vec![FilterTemp::HashTag(CustomHashTag {
                 r#type: String::from("hashtag"),

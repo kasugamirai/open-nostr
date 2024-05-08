@@ -58,14 +58,14 @@ pub fn Test(id: i32) -> Element {
                 style: "display: flex; flex-direction: column; gap: 20px;",
                 div {
                     style: "border: 1px solid #333; border-radius: 10px; padding: 10px; flex: 1; word-wrap:break-word;",
-                    Children {
+                    ChildrenKeep {
                         name: "Dog".to_string()
                     }
                 }
                 div {
                     style: "border: 1px solid #333; border-radius: 10px; padding: 10px; flex: 1; word-wrap:break-word;",
                     Children {
-                        name: "Cat".to_string()
+                        name: "Dog".to_string()
                     }
                 }
             }
@@ -95,6 +95,76 @@ pub fn Children(name: String) -> Element {
                 .unwrap();
 
             events.set(data);
+        });
+    };
+
+    rsx! {
+        div {
+            button {
+                onclick: on_mounted,
+                "Get Data"
+            }
+            h2 {
+                style: "font-weight: bold;",
+                "Children: {n}"
+            }
+            div {
+                for (i, note) in events.read().clone().iter().enumerate() {
+                    Note {
+                        data: NoteData::from(note, i),
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+pub fn ChildrenKeep(name: String) -> Element {
+    let clients = use_context::<Signal<Clients>>();
+
+    let mut events = use_signal(|| vec![]);
+
+    let n = name.clone();
+
+    let on_mounted = move |_| {
+        let name = name.clone();
+        spawn(async move {
+            let clients = clients();
+            let client = clients.get(&name).unwrap();
+
+            // let filter = Filter::new().hashtag(name).kind(Kind::TextNote).limit(2);
+
+            // let data = client.subscribe(sub_id_1.clone(), vec![filter], None).await;
+
+            // events.set(data);
+
+            let subscription = Filter::new()
+                .hashtag(name)
+                .kind(Kind::TextNote)
+                .since(Timestamp::now());
+
+            // Subscribe
+            let sub_id = client.subscribe(vec![subscription], None).await;
+
+            client
+                .handle_notifications(|notification| async {
+                    match notification {
+                        RelayPoolNotification::Event {
+                            relay_url,
+                            subscription_id,
+                            event,
+                        } => {
+                            if subscription_id == sub_id {
+                                tracing::info!("{relay_url}: {event:?}");
+                            }
+                        }
+                        _ => {}
+                    }
+                    Ok(false) // Set to true to exit from the loop
+                })
+                .await
+                .unwrap();
         });
     };
 
