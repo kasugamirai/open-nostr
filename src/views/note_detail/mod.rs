@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, Event, EventId, Filter, JsonUtil, Keys};
+use nostr_sdk::{Client, Event, EventId, Filter, JsonUtil};
 
 use crate::{
     components::icons::*,
@@ -22,15 +22,11 @@ impl PartialEq for NoteTree {
 }
 
 #[component]
-pub fn Note(id: String) -> Element {
+pub fn NoteDetail(id: String) -> Element {
     let mut data = use_signal(Vec::<Event>::new);
     let get_events = move |id: String| {
         spawn(async move {
-            let pk = "nsec1dmvtj7uldpeethalp2ttwscy32jx36hr9jslskwdqreh2yk70anqhasx64";
-            // pk to hex
-            let my_keys = Keys::parse(pk).unwrap();
-
-            let client = Client::new(&my_keys);
+            let client = Client::default();
 
             client.add_relay("wss://btc.klendazu.com").await.unwrap();
 
@@ -144,41 +140,50 @@ pub fn Note(id: String) -> Element {
             "#
         }
         div {
-            style: "max-width: 800px; white-space: wrap;",
-            onmounted: move |_cx| {
-                get_events(id.clone());
-            },
-            Layer {
-                notes: notetree,
-                index: 999999,
-                root: true,
+            style: "display: flex; width: 100%; height: 100%; gap: 20px;",
+            div {
+                style: "flex: 1; overflow-y: scroll; width: 100%;",
+                div {
+                    style: "max-width: 800px; white-space: wrap;",
+                    onmounted: move |_cx| {
+                        get_events(id.clone());
+                    },
+                    Layer {
+                        notes: notetree,
+                        index: 999999,
+                        root: true,
+                    }
+                    br{}
+                    br{}
+                    br{}
+                    for i in data() {
+                        Item {
+                            event: i.clone(),
+                            reply: false,
+                            index: 2,
+                        }
+                        Item {
+                            event: i,
+                            reply: true,
+                            index: 1,
+                        }
+                    }
+                    for i in data() {
+                        Item {
+                            event: i.clone(),
+                            reply: false,
+                            index: 2,
+                        }
+                        Item {
+                            event: i,
+                            reply: true,
+                            index: 1,
+                        }
+                    }
+                }
             }
-            br{}
-            br{}
-            br{}
-            for i in data() {
-                Item {
-                    event: i.clone(),
-                    reply: false,
-                    index: 2,
-                }
-                Item {
-                    event: i,
-                    reply: true,
-                    index: 1,
-                }
-            }
-            for i in data() {
-                Item {
-                    event: i.clone(),
-                    reply: false,
-                    index: 2,
-                }
-                Item {
-                    event: i,
-                    reply: true,
-                    index: 1,
-                }
+            div {
+                style: "width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; gap: 10px;",
             }
         }
     }

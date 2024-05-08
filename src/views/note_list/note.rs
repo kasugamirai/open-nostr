@@ -173,7 +173,7 @@ pub fn Note(props: NoteProps) -> Element {
                 }
                 Link {
                     class: "com-post-info-item com-post-info-reply",
-                    to: Route::Note { id: props.data.id.clone() },
+                    to: Route::NoteDetail { id: props.data.id.clone() },
                     span {
                         dangerous_inner_html: "{ADD}",
                     }

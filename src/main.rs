@@ -14,6 +14,8 @@ fn main() {
 fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
 
+    let client = use_context_provider(|| Signal::new(nostr_sdk::Client::default()));
+
     // all custom subscriptions
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
@@ -23,7 +25,12 @@ fn App() -> Element {
 
     // hook: on mounted
     let on_mounted = move |_| {
+
         spawn(async move {
+            let c = client();
+            c.add_relay("wss://relay.damus.io").await.unwrap();
+            c.connect().await;
+
             // TODO: Step 1, read cache from indexeddb else create new subscription
 
             all_sub.push(CustomSub::default_with_hashtags(

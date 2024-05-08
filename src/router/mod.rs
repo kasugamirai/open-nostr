@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, Button, Dropdown},
     views::{
-        Bookmark, Channel, Group, Home, Message, Note, Profile, Relay, Search, Settings,
-        Subscription, Test,
+        Bookmark, Channel, Group, Home, Message, NoteDetail, NoteList, Profile, Relay, Search,
+        Settings, Test,
     },
     CustomSub,
 };
@@ -142,7 +142,7 @@ fn Layout() -> Element {
                         Link {
                             active_class: "active",
                             class: "nav-item",
-                            to: Route::Subscription{ subscription: sub.name.clone() },
+                            to: Route::NoteList { name: sub.name.clone() },
                             "#{sub.name}"
                         }
                     }
@@ -162,9 +162,6 @@ pub enum Route {
     #[layout(Layout)]
     #[route("/")]
     Home {},
-
-    #[route("/note/:id")]
-    Note { id: String },
 
     #[route("/profile")]
     Profile {},
@@ -193,8 +190,11 @@ pub enum Route {
     #[route("/test/:id")]
     Test { id: i32 },
 
-    #[route("/subscription/:subscription")]
-    Subscription { subscription: String },
+    #[route("/subscription/:name")]
+    NoteList { name: String },
+
+    #[route("/note/:id")]
+    NoteDetail { id: String },
 
     #[end_layout]
     #[route("/:..route")]
