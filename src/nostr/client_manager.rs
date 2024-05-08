@@ -2,6 +2,7 @@ use nostr_sdk::Client;
 use std::collections::HashMap;
 //use std::sync::Arc;
 use nostr_sdk::Filter;
+use nostr_sdk::RelayPoolNotification;
 use nostr_sdk::Result;
 use nostr_sdk::SubscribeAutoCloseOptions;
 use nostr_sdk::SubscriptionId;
@@ -71,13 +72,16 @@ impl ClientManager {
 
     pub async fn handle_notifications(&self, name: &str) {
         if let Some(client) = self.get_client(name).await {}
+        todo!()
     }
 
     pub async fn update_handle_notifications(&self, name: &str) {
         if let Some(client) = self.get_client(name).await {}
+        todo!()
     }
 
     pub async fn del_handle_notifications(&self, name: &str) {
         if let Some(client) = self.get_client(name).await {}
+        todo!()
     }
 }
