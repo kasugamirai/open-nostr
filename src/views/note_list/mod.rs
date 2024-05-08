@@ -85,7 +85,7 @@ pub fn List(props: ListProps) -> Element {
 
     let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
 
-    let client = use_context::<Signal<nostr_sdk::Client>>();
+    let client = use_context::<Signal<Client>>();
 
     // get events from relay && set data to database and notes
     let handle_fetch = move || {

@@ -73,11 +73,11 @@ fn Layout() -> Element {
             icon: SETTING,
             name: "Settings",
         },
-        // RouterItem {
-        //     to: Route::Test { id: 1 },
-        //     icon: PROFILE.to_string(),
-        //     name: "Test".to_string(),
-        // },
+        RouterItem {
+            to: Route::Test { id: 1 },
+            icon: TRUE,
+            name: "Test",
+        },
     ];
     const SVG: &str = r#"
         <svg class="svg" t="1712897153675" class="icon" viewBox="0 0 1024 1024" version="1.1"

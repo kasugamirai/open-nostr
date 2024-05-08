@@ -69,16 +69,6 @@ pub fn Note(props: NoteProps) -> Element {
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
 
-    let highlight = move || {
-        let eval: UseEval = eval(
-            r#"
-                let _ = await dioxus.recv();
-                hljs.highlightAll();
-            "#,
-        );
-        eval.send("".into()).unwrap();
-    };
-
     rsx! {
         div {
             class: "com-post",
@@ -92,14 +82,11 @@ pub fn Note(props: NoteProps) -> Element {
                         onclick: move |_| {
                             show_detail.set(false);
                         },
-                        dangerous_inner_html: "{FALSE}"
+                        dangerous_inner_html: "{FALSE}",
                     }
                     pre {
                         style: "height: 100%; overflow-y: auto; font-size: 16px;",
-                        code {
-                            class: "language-json",
-                            "{detail}"
-                        }
+                        "{detail}"
                     }
                 }
             }
@@ -136,7 +123,6 @@ pub fn Note(props: NoteProps) -> Element {
                             let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
                             let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
                             detail.set(formatted_json);
-                            highlight();
                             show_detail.set(!show_detail());
                         },
                     }
