@@ -11,7 +11,7 @@ mod tag;
 use dioxus::prelude::*;
 
 use crate::{
-    components::{icons::*, DateTimePicker, Dropdown},
+    components::{icons::*, DateTimePicker, Dropdown, Switch},
     state::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
     utils::js::{export_to_clipboard, import_from_clipboard},
 };
@@ -156,6 +156,45 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                 sub.relay_set = v;
                             },
                             relay_set: sub_current.read().relay_set.clone(),
+                        }
+                    }
+                }
+                div {
+                    class: "custom-sub-live",
+                    "Live:"
+                    div {
+                        style: "display: inline-block;",
+                        div {
+                            style: "display: flex; align-items: center; gap: 10px;",
+                            Switch {
+                                value: sub_current().live,
+                                on_change: move |value: bool| {
+                                    let mut sub = sub_current.write();
+                                    sub.live = value;
+                                },
+                            }
+                            button {
+                                class: "btn-icon purple small",
+                                style: format!("visibility: {};", if sub_current().live { "visible" } else { "hidden" }),
+                                onclick: handle_reload,
+                                dangerous_inner_html: "{RELOAD}",
+                            }
+                        }
+                    }
+                }
+                div {
+                    class: "custom-sub-time",
+                    "Time:"
+                    div {
+                        style: "display: inline-block;",
+                        DateTimePicker {
+                            value: sub_current().since,
+                            end: sub_current().until,
+                            on_change: move |(start, end): (u64, u64)| {
+                                let mut sub = sub_current.write();
+                                sub.since = start;
+                                sub.until = end;
+                            },
                         }
                     }
                 }
@@ -370,24 +409,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                                 filter_ref.accounts.push(Account::empty());
                                             }
                                         }
-                                    }
-                                }
-                                div {
-                                    class: "custom-sub-filter-item",
-                                    span {
-                                        class: "title",
-                                        "Time:"
-                                    }
-                                    DateTimePicker {
-                                        value: filter.since,
-                                        end: filter.until,
-                                        on_change: move |(start, end): (u64, u64)| {
-                                            let mut sub = sub_current.write();
-                                            if let FilterTemp::Customize(ref mut filter_ref) = sub.filters[i] {
-                                                filter_ref.since = start;
-                                                filter_ref.until = end;
-                                            }
-                                        },
                                     }
                                 }
                                 div {

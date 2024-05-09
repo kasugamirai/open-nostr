@@ -81,6 +81,8 @@
 
 .custom-sub-content .custom-sub-name,
 .custom-sub-relays,
+.custom-sub-time,
+.custom-sub-live,
 .custom-sub-filters {
     padding: 0 20px;
     display: flex;

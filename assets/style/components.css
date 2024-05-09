@@ -172,16 +172,16 @@
     position: relative;
     background-color: var(--bgc-2);
     border-radius: var(--radius-circle);
-    width: 80px;
-    height: 40px;
+    width: 60px;
+    height: 30px;
     display: inline-block;
 }
 
 .com-switch .com-switch-slider {
     position: absolute;
+    width: calc(50% - 10px);
     height: calc(100% - 10px);
-    padding-left: calc(50% - 5px);
-    background: greenyellow;
+    background: #fff;
     border-radius: var(--radius-circle);
     transition: var(--trans-default);
     top: 5px;
@@ -189,7 +189,8 @@
 }
 
 .com-switch input:checked+.com-switch-slider {
-    left: 40px;
+    left: calc(50% + 5px);
+    background: greenyellow;
 }
 
 .com-input_card {

@@ -18,6 +18,9 @@ pub struct CustomSub {
     pub tampstamp: i64,
     pub name: String,
     pub relay_set: RelaySet,
+    pub live: bool,
+    pub since: u64,
+    pub until: u64,
     pub filters: Vec<FilterTemp>,
     pub keep_alive: bool,
 }
@@ -36,6 +39,9 @@ impl Default for CustomSub {
                     // String::from("wss://nostr.pjv.me"),
                 ],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![FilterTemp::HashTag(CustomHashTag {
                 r#type: String::from("hashtag"),
                 tags: vec![String::from("dog")],
@@ -46,7 +52,7 @@ impl Default for CustomSub {
 }
 
 impl CustomSub {
-    pub fn default_with_opt(name: String, relay: String, tags: Vec<String>) -> Self {
+    pub fn default_with_opt(name: String, relay: String, tags: Vec<String>, live: bool) -> Self {
         let now = Timestamp::now().as_i64();
         Self {
             tampstamp: now,
@@ -55,6 +61,9 @@ impl CustomSub {
                 name: format!("{} - relays", name),
                 relays: vec![relay],
             },
+            live: live,
+            since: 0,
+            until: 0,
             filters: vec![FilterTemp::HashTag(CustomHashTag {
                 r#type: String::from("hashtag"),
                 tags,
@@ -87,6 +96,9 @@ impl CustomSub {
                 name: String::new(),
                 relays: vec![],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![],
             keep_alive: true,
         }
@@ -385,6 +397,9 @@ mod test {
                 name: String::from("TestRelaySet"),
                 relays: vec![String::from("wss://relay.damus.io")],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![FilterTemp::Accounts(CustomAccounts {
                 r#type: String::from("accounts"),
                 kinds: vec![1],
@@ -427,6 +442,9 @@ mod test {
                 name: String::from("TestRelaySet"),
                 relays: vec![String::from("wss://relay.damus.io")],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![FilterTemp::Customize(CustomFilter {
                 r#type: String::from("customized"),
                 kinds: vec![1],
@@ -462,6 +480,9 @@ mod test {
                 name: String::from("TestRelaySet"),
                 relays: vec![String::from("wss://relay.damus.io")],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![FilterTemp::Events(CustomEvents {
                 r#type: String::from("events"),
                 events: vec![Event {
@@ -492,6 +513,9 @@ mod test {
                 name: String::from("TestRelaySet"),
                 relays: vec![String::from("wss://relay.damus.io")],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![
                 FilterTemp::Accounts(CustomAccounts {
                     r#type: String::from("accounts"),
@@ -530,6 +554,9 @@ mod test {
                 name: String::from("EmptyRelaySet"),
                 relays: vec![String::from("wss://relay.damus.io")],
             },
+            live: false,
+            since: 0,
+            until: 0,
             filters: vec![],
             keep_alive: true,
         };

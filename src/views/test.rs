@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::Duration};
 
 use dioxus::prelude::*;
+use nostr_indexeddb::WebDatabase;
 use nostr_sdk::prelude::*;
 
 use crate::views::note_list::note::{Note, NoteData};
@@ -130,6 +131,7 @@ pub fn ChildrenKeep(name: String) -> Element {
     let on_mounted = move |_| {
         let name = name.clone();
         spawn(async move {
+            let database = WebDatabase::open("EVENTS_DB").await.unwrap();
             let clients = clients();
             let client = clients.get(&name).unwrap();
 
@@ -156,6 +158,7 @@ pub fn ChildrenKeep(name: String) -> Element {
                             event,
                         } => {
                             if subscription_id == sub_id {
+                                // database.save_event(&event).await.unwrap();
                                 tracing::info!("{relay_url}: {event:?}");
                             }
                         }

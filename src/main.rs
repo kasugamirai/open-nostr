@@ -36,11 +36,13 @@ fn App() -> Element {
                     "Dog".to_string(),
                     "wss://btc.klendazu.com".to_string(),
                     vec!["dog".to_string()],
+                    true,
                 ),
                 CustomSub::default_with_opt(
                     "Car".to_string(),
                     "wss://relay.damus.io".to_string(),
                     vec!["car".to_string()],
+                    false,
                 ),
             ];
 
