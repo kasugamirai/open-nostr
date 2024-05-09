@@ -1,13 +1,10 @@
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use dioxus::html::geometry::euclid::default;
-use dioxus::prelude::server_fn::response::Res;
 use indextree::{Arena, NodeId};
 use nostr_sdk::prelude::*;
 use std::fmt;
 
-use super::utils::{self, get_ancestors, get_children};
+use super::utils::{self, get_children};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {

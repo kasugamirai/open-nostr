@@ -1,4 +1,3 @@
-use lazy_static::lazy_static;
 use nostr_sdk::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -18,14 +17,18 @@ pub type NotificationHandler = Arc<
 >;
 
 pub struct Register {
-    subscriptions: Arc<Mutex<HashMap<SubscriptionId, String>>>,
     handlers: Arc<Mutex<HashMap<SubscriptionId, NotificationHandler>>>,
 }
 
+impl Default for Register {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Register {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
-            subscriptions: Arc::new(Mutex::new(HashMap::new())),
             handlers: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -33,32 +36,18 @@ impl Register {
     pub async fn add_subscription(
         &self,
         client: &Client,
-        client_key: &str,
-        sub_id: Option<SubscriptionId>,
+        sub_id: SubscriptionId,
         filters: Vec<Filter>,
         handler: NotificationHandler,
         opts: Option<SubscribeAutoCloseOptions>,
-    ) -> Result<SubscriptionId, Box<dyn std::error::Error>> {
-        let subscription_id = if let Some(id) = sub_id {
-            client.subscribe_with_id(id.clone(), filters, opts).await;
-            id
-        } else {
-            client.subscribe(filters, opts).await
-        };
-
-        let mut subscriptions = self.subscriptions.lock().await;
-        subscriptions.insert(subscription_id.clone(), client_key.to_string());
-
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        client.subscribe_with_id(sub_id.clone(), filters, opts).await;
         let mut handlers = self.handlers.lock().await;
-        handlers.insert(subscription_id.clone(), handler);
-
-        Ok(subscription_id)
+        handlers.insert(sub_id.clone(), handler);
+        Ok(())
     }
 
     pub async fn remove_subscription(&self, sub_id: &SubscriptionId) {
-        let mut subscriptions = self.subscriptions.lock().await;
-        subscriptions.remove(sub_id);
-
         let mut handlers = self.handlers.lock().await;
         handlers.remove(sub_id);
     }
@@ -95,9 +84,4 @@ impl Register {
 
         Ok(())
     }
-}
-
-// Static Register instance
-lazy_static! {
-    pub static ref SUB_REGISTER: Register = Register::new();
 }
