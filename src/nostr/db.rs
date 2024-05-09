@@ -1,6 +1,7 @@
 use core::fmt;
 
 use nostr_indexeddb::WebDatabase;
+use nostr_sdk::NostrDatabase;
 
 pub struct Database {
     pub db: WebDatabase,
