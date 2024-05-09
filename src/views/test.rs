@@ -33,12 +33,14 @@ pub fn Test(id: i32) -> Element {
 
     let on_mounted = move |_| {
         spawn(async move {
-            let client_builder1 = ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+            let client_builder1 =
+                ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
             let c1 = client_builder1.build();
             c1.add_relay("wss://relay.damus.io").await.unwrap();
             c1.connect().await;
 
-            let client_builder2 = ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+            let client_builder2 =
+                ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
             let c2 = client_builder2.build();
             c2.add_relay("wss://btc.klendazu.com").await.unwrap();
             c2.connect().await;
@@ -134,8 +136,13 @@ pub fn ChildrenKeep(name: String) -> Element {
         let name = name.clone();
         spawn(async move {
             let clients = clients();
-            let client = clients.get(&name).unwrap();
-
+            let client = match clients.get(&name) {
+                Some(client) => client,
+                None => {
+                    eprintln!("No client found for name: {}", name);
+                    return;
+                }
+            };
             // let filter = Filter::new().hashtag(name).kind(Kind::TextNote).limit(2);
 
             // let data = client.subscribe(sub_id_1.clone(), vec![filter], None).await;
