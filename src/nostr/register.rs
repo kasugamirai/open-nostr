@@ -1,7 +1,8 @@
+use async_std::sync::Mutex;
 use nostr_sdk::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+
 
 pub enum RegisterError {
     SubscriptionNotFound,

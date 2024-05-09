@@ -33,11 +33,13 @@ pub fn Test(id: i32) -> Element {
 
     let on_mounted = move |_| {
         spawn(async move {
-            let c1 = Client::default();
+            let client_builder1 = ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+            let c1 = client_builder1.build();
             c1.add_relay("wss://relay.damus.io").await.unwrap();
             c1.connect().await;
 
-            let c2 = Client::default();
+            let client_builder2 = ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+            let c2 = client_builder2.build();
             c2.add_relay("wss://btc.klendazu.com").await.unwrap();
             c2.connect().await;
 
@@ -131,7 +133,6 @@ pub fn ChildrenKeep(name: String) -> Element {
     let on_mounted = move |_| {
         let name = name.clone();
         spawn(async move {
-            let database = WebDatabase::open("EVENTS_DB").await.unwrap();
             let clients = clients();
             let client = clients.get(&name).unwrap();
 
@@ -158,7 +159,7 @@ pub fn ChildrenKeep(name: String) -> Element {
                             event,
                         } => {
                             if subscription_id == sub_id {
-                                // database.save_event(&event).await.unwrap();
+                                client.database().save_event(&event).await.unwrap();
                                 tracing::info!("{relay_url}: {event:?}");
                             }
                         }
