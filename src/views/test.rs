@@ -82,7 +82,7 @@ pub fn Test(id: i32) -> Element {
 pub fn Children(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(|| vec![]);
+    let mut events = use_signal(std::vec::Vec::new);
 
     let n = name.clone();
 
@@ -128,7 +128,7 @@ pub fn Children(name: String) -> Element {
 pub fn ChildrenKeep(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(|| vec![]);
+    let events = use_signal(std::vec::Vec::new);
 
     let n = name.clone();
 
@@ -159,18 +159,16 @@ pub fn ChildrenKeep(name: String) -> Element {
 
             client
                 .handle_notifications(|notification| async {
-                    match notification {
-                        RelayPoolNotification::Event {
-                            relay_url,
-                            subscription_id,
-                            event,
-                        } => {
-                            if subscription_id == sub_id {
-                                client.database().save_event(&event).await.unwrap();
-                                tracing::info!("{relay_url}: {event:?}");
-                            }
+                    if let RelayPoolNotification::Event {
+                        relay_url,
+                        subscription_id,
+                        event,
+                    } = notification
+                    {
+                        if subscription_id == sub_id {
+                            client.database().save_event(&event).await.unwrap();
+                            tracing::info!("{relay_url}: {event:?}");
                         }
-                        _ => {}
                     }
                     Ok(false) // Set to true to exit from the loop
                 })
