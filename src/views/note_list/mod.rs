@@ -4,7 +4,7 @@ pub mod note;
 use std::{collections::HashMap, time::Duration};
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, Event, Timestamp};
+use nostr_sdk::{Client, Event, RelayPoolNotification, SubscriptionId, Timestamp};
 
 use crate::{state::subscription::CustomSub, storage::CapybastrDb};
 
@@ -144,8 +144,36 @@ pub fn List(props: ListProps) -> Element {
         },
     ));
 
+    let handle_mounted = move || {
+        spawn(async move {
+            let sub = sub_current.read().clone();
+            if sub.live {
+                let cs = clients();
+                let c = cs.get(&sub.name).unwrap();
+                c.handle_notifications(|notification| async {
+                    if let RelayPoolNotification::Event {
+                        relay_url,
+                        subscription_id,
+                        event,
+                    } = notification
+                    {
+                        if subscription_id == SubscriptionId::new(sub.name.clone()) {
+                            tracing::info!("{relay_url}: {event:?}");
+                        }
+                    }
+                    Ok(false) // Set to true to exit from the loop
+                })
+                .await
+                .unwrap();
+            }
+        });
+    };
+
     rsx! {
         div {
+            onmounted: move |_| {
+                handle_mounted();
+            },
             style: "display: flex; flex-direction: column; gap: 10px; width: 100%;",
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
