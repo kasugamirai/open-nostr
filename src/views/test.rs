@@ -23,7 +23,6 @@ impl Clients {
     }
 
     pub fn get(&self, name: &str) -> Option<&Client> {
-        tracing::info!("keys {:?}", self.clients.keys());
         self.clients.get(name)
     }
 }
@@ -34,15 +33,11 @@ pub fn Test(id: i32) -> Element {
 
     let on_mounted = move |_| {
         spawn(async move {
-            let client_builder1 =
-                ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-            let c1 = client_builder1.build();
+            let c1 = Client::default();
             c1.add_relay("wss://relay.damus.io").await.unwrap();
             c1.connect().await;
 
-            let client_builder2 =
-                ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-            let c2 = client_builder2.build();
+            let c2 = Client::default();
             c2.add_relay("wss://btc.klendazu.com").await.unwrap();
             c2.connect().await;
 
@@ -83,7 +78,7 @@ pub fn Test(id: i32) -> Element {
 pub fn Children(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(std::vec::Vec::new);
+    let mut events = use_signal(|| vec![]);
 
     let n = name.clone();
 
@@ -99,10 +94,6 @@ pub fn Children(name: String) -> Element {
                 .get_events_of(vec![filter], Some(Duration::from_secs(30)))
                 .await
                 .unwrap();
-
-            tracing::debug!("save1 {:?}", false);
-            let res = client.database().save_event(&data[0]).await.unwrap();
-            tracing::debug!("save2 {:?}", res);
 
             events.set(data);
         });
@@ -133,21 +124,17 @@ pub fn Children(name: String) -> Element {
 pub fn ChildrenKeep(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let events = use_signal(std::vec::Vec::new);
+    let mut events = use_signal(|| vec![]);
 
     let n = name.clone();
 
     let on_mounted = move |_| {
         let name = name.clone();
         spawn(async move {
+            let database = WebDatabase::open("EVENTS_DB").await.unwrap();
             let clients = clients();
-            let client = match clients.get(&name) {
-                Some(client) => client,
-                None => {
-                    eprintln!("No client found for name: {}", name);
-                    return;
-                }
-            };
+            let client = clients.get(&name).unwrap();
+
             // let filter = Filter::new().hashtag(name).kind(Kind::TextNote).limit(2);
 
             // let data = client.subscribe(sub_id_1.clone(), vec![filter], None).await;
@@ -162,18 +149,22 @@ pub fn ChildrenKeep(name: String) -> Element {
             // Subscribe
             let sub_id = client.subscribe(vec![subscription], None).await;
 
+            tracing::info!("client: {client:?}");
+
             client
                 .handle_notifications(|notification| async {
-                    if let RelayPoolNotification::Event {
-                        relay_url,
-                        subscription_id,
-                        event,
-                    } = notification
-                    {
-                        if subscription_id == sub_id {
-                            client.database().save_event(&event).await.unwrap();
-                            tracing::info!("{relay_url}: {event:?}");
+                    match notification {
+                        RelayPoolNotification::Event {
+                            relay_url,
+                            subscription_id,
+                            event,
+                        } => {
+                            if subscription_id == sub_id {
+                                // database.save_event(&event).await.unwrap();
+                                tracing::info!("{relay_url}: {event:?}");
+                            }
                         }
+                        _ => {}
                     }
                     Ok(false) // Set to true to exit from the loop
                 })

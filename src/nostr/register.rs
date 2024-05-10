@@ -76,6 +76,7 @@ impl Register {
         &self,
         client: &Client,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        tracing::info!("Register::handle_notifications");
         client
             .handle_notifications(|notification| {
                 let register = self;

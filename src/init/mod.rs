@@ -27,6 +27,7 @@ pub fn App() -> Element {
             // TODO: Step 1, read cache from indexeddb else create new subscription
             let db = CapybastrDb::new("subscription".to_string()).await.unwrap();
             // let sub_names: Vec<String> = db.read_data("SUBSCRIPTION_LIST").await.unwrap();
+
             let sub_names: Vec<String> = vec!["Dog".to_string(), "Car".to_string()];
 
             let mut subs = vec![];
@@ -59,16 +60,24 @@ pub fn App() -> Element {
                 cs.insert(i.name.clone(), c.clone());
 
                 if i.live {
-                    register.write()
-                        .add_subscription(
-                            &c.clone(),
-                            SubscriptionId::new(i.name.clone()),
-                            i.get_filters(),
-                            Arc::new(|notification| Box::pin(handler_text_note(notification))),
-                            None,
-                        )
-                        .await
-                        .unwrap();
+                    let s = i.clone();
+                    use_coroutine(|_: UnboundedReceiver<()>| {
+                        async move {
+                            (*register.read())
+                                .add_subscription(
+                                    &c.clone(),
+                                    SubscriptionId::new(s.name.clone()),
+                                    s.get_filters(),
+                                    Arc::new(|notification| {
+                                        Box::pin(handler_text_note(notification))
+                                    }),
+                                    None,
+                                )
+                                .await
+                                .unwrap();
+                            (*register.read()).handle_notifications(&c.clone()).await.unwrap();
+                        }
+                    });
                 }
             }
 
