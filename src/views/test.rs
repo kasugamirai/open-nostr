@@ -23,6 +23,7 @@ impl Clients {
     }
 
     pub fn get(&self, name: &str) -> Option<&Client> {
+        tracing::info!("keys {:?}", self.clients.keys());
         self.clients.get(name)
     }
 }
@@ -98,6 +99,10 @@ pub fn Children(name: String) -> Element {
                 .get_events_of(vec![filter], Some(Duration::from_secs(30)))
                 .await
                 .unwrap();
+
+            tracing::debug!("save1 {:?}", false);
+            let res = client.database().save_event(&data[0]).await.unwrap();
+            tracing::debug!("save2 {:?}", res);
 
             events.set(data);
         });

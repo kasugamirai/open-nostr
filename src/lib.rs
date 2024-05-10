@@ -1,4 +1,5 @@
 mod components;
+mod init;
 pub mod nostr;
 mod router;
 mod state;
@@ -9,6 +10,7 @@ mod views;
 use std::collections::HashMap;
 
 //pub use nostr::get_metadata;
+pub use init::App;
 pub use router::Route;
 pub use state::{CustomSub, User};
 
