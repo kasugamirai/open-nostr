@@ -26,6 +26,6 @@ cargo install dioxus-cli@0.5
 
 Launch the Dioxus Fullstack app:
 
-```bashd
+```bash
 dx serve --platform fullstack
 ```
