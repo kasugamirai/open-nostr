@@ -39,7 +39,7 @@ pub fn NoteList(name: String) -> Element {
         spawn(async move {
             let db = CapybastrDb::new("subscription".to_string()).await.unwrap();
             db.delete_data(&s.name).await.unwrap();
-            db.add_data(&s.name, &s.json()).await.unwrap();
+            db.add_data(&s.name, &s).await.unwrap();
 
             // let db = CapybastrDb::new("subscription list".to_string()).await.unwrap();
             // db.delete_data("SUBSCRIPTION_LIST").await.unwrap();

@@ -1,13 +1,16 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use dioxus::prelude::*;
-use nostr_sdk::Client;
+use nostr_indexeddb::WebDatabase;
+use nostr_sdk::{Client, ClientBuilder, RelayMessage, RelayPoolNotification, SubscriptionId};
+use serde::ser::StdError;
 
-use crate::{storage::CapybastrDb, CustomSub, Route};
+use crate::{nostr::register::*, storage::CapybastrDb, CustomSub, Route};
 
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
+    let mut register = use_context_provider(|| Signal::new(Register::new()));
 
     let mut clients = use_context_provider(|| Signal::new(HashMap::<String, Client>::new()));
 
@@ -22,40 +25,51 @@ pub fn App() -> Element {
     let on_mounted = move |_| {
         spawn(async move {
             // TODO: Step 1, read cache from indexeddb else create new subscription
-            // let db = CapybastrDb::new("subscription list".to_string())
-            //     .await
-            //     .unwrap();
-            // db.delete_data(&String::from("SUBSCRIPTION_LIST"))
-            //     .await
-            //     .unwrap();
-            // db.add_data(
-            //     &String::from("SUBSCRIPTION_LIST"),
-            //     &String::from("[\"Dog\", \"Car\"]"),
-            // )
-            // .await
-            // .unwrap();
+            let db = CapybastrDb::new("subscription".to_string()).await.unwrap();
+            // let sub_names: Vec<String> = db.read_data("SUBSCRIPTION_LIST").await.unwrap();
+            let sub_names: Vec<String> = vec!["Dog".to_string(), "Car".to_string()];
 
-            let subs = vec![
-                CustomSub::default_with_opt(
-                    "Dog".to_string(),
-                    "wss://btc.klendazu.com".to_string(),
-                    vec!["dog".to_string()],
-                    true,
-                ),
-                CustomSub::default_with_opt(
-                    "Car".to_string(),
-                    "wss://relay.damus.io".to_string(),
-                    vec!["car".to_string()],
-                    false,
-                ),
-            ];
+            let mut subs = vec![];
+            for i in sub_names.iter() {
+                let v: String = db.read_data(i).await.unwrap();
+                subs.push(CustomSub::from(&v));
+            }
+
+            async fn handler_text_note(
+                notification: RelayPoolNotification,
+            ) -> Result<bool, Box<dyn StdError>> {
+                if let RelayPoolNotification::Message {
+                    message: RelayMessage::Event { event, .. },
+                    ..
+                } = notification
+                {
+                    println!("TextNote: {:?}", event);
+                    tracing::info!("TextNote: {:?}", event);
+                }
+                Ok(false)
+            }
 
             let mut cs = clients.write();
             for i in subs.iter() {
-                let c = Client::default();
+                let client_builder =
+                    ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+                let c = client_builder.build();
                 c.add_relays(i.relay_set.relays.clone()).await.unwrap();
                 c.connect().await;
-                cs.insert(i.name.clone(), c);
+                cs.insert(i.name.clone(), c.clone());
+
+                if i.live {
+                    register.write()
+                        .add_subscription(
+                            &c.clone(),
+                            SubscriptionId::new(i.name.clone()),
+                            i.get_filters(),
+                            Arc::new(|notification| Box::pin(handler_text_note(notification))),
+                            None,
+                        )
+                        .await
+                        .unwrap();
+                }
             }
 
             for i in subs.iter() {
