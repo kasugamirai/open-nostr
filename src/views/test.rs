@@ -36,13 +36,13 @@ pub fn Test(id: i32) -> Element {
         spawn(async move {
             let client_builder1 =
                 ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-            let c1 = Client::default();
+            let c1 = client_builder1.build();
             c1.add_relay("wss://relay.damus.io").await.unwrap();
             c1.connect().await;
 
             let client_builder2 =
                 ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-            let c2 = Client::default();
+            let c2 = client_builder2.build();
             c2.add_relay("wss://btc.klendazu.com").await.unwrap();
             c2.connect().await;
 
@@ -83,7 +83,7 @@ pub fn Test(id: i32) -> Element {
 pub fn Children(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(|| vec![]);
+    let mut events = use_signal(std::vec::Vec::new);
 
     let n = name.clone();
 
@@ -133,7 +133,7 @@ pub fn Children(name: String) -> Element {
 pub fn ChildrenKeep(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(|| vec![]);
+    let events = use_signal(std::vec::Vec::new);
 
     let n = name.clone();
 
@@ -141,8 +141,13 @@ pub fn ChildrenKeep(name: String) -> Element {
         let name = name.clone();
         spawn(async move {
             let clients = clients();
-            let client = clients.get(&name).unwrap();
-
+            let client = match clients.get(&name) {
+                Some(client) => client,
+                None => {
+                    eprintln!("No client found for name: {}", name);
+                    return;
+                }
+            };
             // let filter = Filter::new().hashtag(name).kind(Kind::TextNote).limit(2);
 
             // let data = client.subscribe(sub_id_1.clone(), vec![filter], None).await;
@@ -159,18 +164,16 @@ pub fn ChildrenKeep(name: String) -> Element {
 
             client
                 .handle_notifications(|notification| async {
-                    match notification {
-                        RelayPoolNotification::Event {
-                            relay_url,
-                            subscription_id,
-                            event,
-                        } => {
-                            if subscription_id == sub_id {
-                                client.database().save_event(&event).await.unwrap();
-                                tracing::info!("{relay_url}: {event:?}");
-                            }
+                    if let RelayPoolNotification::Event {
+                        relay_url,
+                        subscription_id,
+                        event,
+                    } = notification
+                    {
+                        if subscription_id == sub_id {
+                            client.database().save_event(&event).await.unwrap();
+                            tracing::info!("{relay_url}: {event:?}");
                         }
-                        _ => {}
                     }
                     Ok(false) // Set to true to exit from the loop
                 })
