@@ -31,7 +31,7 @@ fn App() -> Element {
         spawn(async move {
             // TODO: Step 1, read cache from indexeddb else create new subscription
 
-            let subs = vec![
+            let subs = [
                 CustomSub::default_with_opt(
                     "Dog".to_string(),
                     "wss://btc.klendazu.com".to_string(),
