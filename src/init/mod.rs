@@ -32,10 +32,11 @@ pub fn App() -> Element {
 
             let mut subs = vec![];
             for i in sub_names.iter() {
-                let v: String = db.read_data(i).await.unwrap();
-                subs.push(CustomSub::from(&v));
+                match db.read_data::<String>(i).await {
+                    Ok(v) => subs.push(CustomSub::from(&v)),
+                    Err(e) => eprintln!("Error reading data: {}", e),
+                }
             }
-
             async fn handler_text_note(
                 notification: RelayPoolNotification,
             ) -> Result<bool, Box<dyn StdError>> {
@@ -61,22 +62,21 @@ pub fn App() -> Element {
 
                 if i.live {
                     let s = i.clone();
-                    use_coroutine(|_: UnboundedReceiver<()>| {
-                        async move {
-                            (*register.read())
-                                .add_subscription(
-                                    &c.clone(),
-                                    SubscriptionId::new(s.name.clone()),
-                                    s.get_filters(),
-                                    Arc::new(|notification| {
-                                        Box::pin(handler_text_note(notification))
-                                    }),
-                                    None,
-                                )
-                                .await
-                                .unwrap();
-                            (*register.read()).handle_notifications(&c.clone()).await.unwrap();
-                        }
+                    use_coroutine(|_: UnboundedReceiver<()>| async move {
+                        (*register.read())
+                            .add_subscription(
+                                &c.clone(),
+                                SubscriptionId::new(s.name.clone()),
+                                s.get_filters(),
+                                Arc::new(|notification| Box::pin(handler_text_note(notification))),
+                                None,
+                            )
+                            .await
+                            .unwrap();
+                        (*register.read())
+                            .handle_notifications(&c.clone())
+                            .await
+                            .unwrap();
                     });
                 }
             }
