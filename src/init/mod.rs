@@ -26,12 +26,19 @@ pub fn App() -> Element {
         spawn(async move {
             // TODO: Step 1, read cache from indexeddb else create new subscription
             let db = CapybastrDb::new("subscription".to_string()).await.unwrap();
+            let db2 = CapybastrDb::new("subscription2".to_string()).await.unwrap();
             // let sub_names: Vec<String> = db.read_data("SUBSCRIPTION_LIST").await.unwrap();
+            db.add_data("key", &1);
+            db2.add_data("key", &2);
 
             let sub_names: Vec<String> = vec!["Dog".to_string(), "Car".to_string()];
 
             let mut subs = vec![];
             for i in sub_names.iter() {
+                match db2.read_data::<String>(i).await {
+                    Ok(v) => subs.push(CustomSub::from(&v)),
+                    Err(e) => eprintln!("Error reading data: {}", e),
+                }
                 match db.read_data::<String>(i).await {
                     Ok(v) => subs.push(CustomSub::from(&v)),
                     Err(e) => eprintln!("Error reading data: {}", e),

@@ -1,3 +1,4 @@
+use rand::random;
 use std::fmt;
 use std::rc::Rc;
 
@@ -7,7 +8,6 @@ use serde_wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 const DB_NAME: &str = "CAPYBASTR_DB";
-const DB_VERSION: u32 = 1;
 
 #[derive(Debug)]
 pub enum CapybastrError {
@@ -56,13 +56,13 @@ impl CapybastrDb {
     pub async fn new(store_name: String) -> Result<Self, CapybastrError> {
         let db_exists = CapybastrDb::store_exists(&store_name).await?;
         let version = if db_exists {
-            CapybastrDb::get_current_version().await?
-        } else {
             let current_version = CapybastrDb::get_current_version().await?;
             current_version + 1.0
+        } else {
+            random::<f64>()
         };
 
-        let db = CapybastrDb::open(store_name.clone(), version).await?;
+        let db = CapybastrDb::open(version).await?;
         Ok(Self {
             db: Rc::new(db),
             store_name,
@@ -81,17 +81,18 @@ impl CapybastrDb {
         Ok(db.version())
     }
 
-    async fn open(store_name: String, version: f64) -> Result<IdbDatabase, CapybastrError> {
+    async fn open(version: f64) -> Result<IdbDatabase, CapybastrError> {
         let mut db_req = IdbDatabase::open_f64(DB_NAME, version)?;
-        db_req.set_on_upgrade_needed(Some(
-            move |evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
-                if !evt.db().object_store_names().any(|n| n == store_name) {
-                    evt.db().create_object_store(&store_name)?;
-                }
-                Ok(())
-            },
-        ));
-
+        db_req.set_on_upgrade_needed(Some(|evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
+            let db = evt.db();
+            if !db.object_store_names().any(|n| n == "subscription") {
+                db.create_object_store("subscription")?;
+            }
+            if !db.object_store_names().any(|n| n == "subscription2") {
+                db.create_object_store("subscription2")?;
+            }
+            Ok(())
+        }));
         db_req.await.map_err(CapybastrError::from)
     }
     pub async fn add_data<T: Serialize>(&self, key: &str, value: &T) -> Result<(), CapybastrError> {
