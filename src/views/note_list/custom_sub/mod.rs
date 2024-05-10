@@ -135,7 +135,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 class: "custom-sub-content",
                 div {
                     class: "custom-sub-name",
-                    "Name:"
+                    div {
+                        style: "width: 70px;",
+                        "Name:"
+                    }
                     Input {
                         edit: false,
                         on_change: move |v| {
@@ -147,7 +150,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 }
                 div {
                     class: "custom-sub-relays",
-                    "Relays:"
+                    div {
+                        style: "width: 80px;",
+                        "Relays:"
+                    }
                     div {
                         style: "display: inline-block;",
                         RelaysInput {
@@ -161,7 +167,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 }
                 div {
                     class: "custom-sub-live",
-                    "Live:"
+                    div {
+                        style: "width: 80px;",
+                        "Live:"
+                    }
                     div {
                         style: "display: inline-block;",
                         div {
@@ -175,7 +184,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             }
                             button {
                                 class: "btn-icon purple small",
-                                style: format!("visibility: {};", if sub_current().live { "visible" } else { "hidden" }),
+                                style: format!("display: {};", if sub_current().live { "inline-block" } else { "none" }),
                                 onclick: handle_reload,
                                 dangerous_inner_html: "{RELOAD}",
                             }
@@ -184,7 +193,11 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 }
                 div {
                     class: "custom-sub-time",
-                    "Time:"
+                    style: format!("display: {}; align-items: center; gap: 10px;", if sub_current().live { "flex" } else { "none" }),
+                    div {
+                        style: "width: 90px;",
+                        "Window:"
+                    }
                     div {
                         style: "display: inline-block;",
                         DateTimePicker {
@@ -198,10 +211,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         }
                     }
                 }
-            }
-            div {
-                class: "custom-sub-filters",
-                "Filters:"
             }
             for (i, filter) in sub_current.read().filters.iter().enumerate() {
                 div {
