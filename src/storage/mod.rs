@@ -54,15 +54,35 @@ pub struct CapybastrDb {
 
 impl CapybastrDb {
     pub async fn new(store_name: String) -> Result<Self, CapybastrError> {
-        let db = CapybastrDb::open(store_name.clone()).await?;
+        let db_exists = CapybastrDb::store_exists(&store_name).await?;
+        let version = if db_exists {
+            CapybastrDb::get_current_version().await?
+        } else {
+            let current_version = CapybastrDb::get_current_version().await?;
+            current_version + 1.0
+        };
+
+        let db = CapybastrDb::open(store_name.clone(), version).await?;
         Ok(Self {
             db: Rc::new(db),
             store_name,
         })
     }
 
-    async fn open(store_name: String) -> Result<IdbDatabase, CapybastrError> {
-        let mut db_req = IdbDatabase::open_u32(DB_NAME, DB_VERSION)?;
+    async fn store_exists(store_name: &String) -> Result<bool, CapybastrError> {
+        let db = IdbDatabase::open(DB_NAME)?;
+        let db = db.await.map_err(CapybastrError::from)?;
+        Ok(db.object_store_names().any(|n| n == *store_name))
+    }
+
+    async fn get_current_version() -> Result<f64, CapybastrError> {
+        let db = IdbDatabase::open(DB_NAME)?;
+        let db = db.await.map_err(CapybastrError::from)?;
+        Ok(db.version())
+    }
+
+    async fn open(store_name: String, version: f64) -> Result<IdbDatabase, CapybastrError> {
+        let mut db_req = IdbDatabase::open_f64(DB_NAME, version)?;
         db_req.set_on_upgrade_needed(Some(
             move |evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
                 if !evt.db().object_store_names().any(|n| n == store_name) {
@@ -74,7 +94,6 @@ impl CapybastrDb {
 
         db_req.await.map_err(CapybastrError::from)
     }
-
     pub async fn add_data<T: Serialize>(&self, key: &str, value: &T) -> Result<(), CapybastrError> {
         let tx = self
             .db
