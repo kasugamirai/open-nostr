@@ -139,7 +139,7 @@ enum StopCondition {
 }
 
 impl StopCondition {
-    pub async fn check(&self, events: &[Event], db: &WebDatabase) -> bool {
+    async fn check(&self, events: &[Event], db: &WebDatabase) -> bool {
         match self {
             Self::NoEvents => events.is_empty(),
             Self::DataInDb => {
