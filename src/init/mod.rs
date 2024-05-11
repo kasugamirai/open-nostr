@@ -5,7 +5,9 @@ use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Client, ClientBuilder, RelayMessage, RelayPoolNotification, SubscriptionId};
 use serde::ser::StdError;
 
-use crate::{nostr::register::*, storage::CapybastrDb, CustomSub, Route};
+use crate::{nostr::register::*, Route};
+use crate::store::subscription::CustomSub;
+use crate::store::CBWebDatabase;
 
 #[allow(non_snake_case)]
 pub fn App() -> Element {
@@ -24,73 +26,70 @@ pub fn App() -> Element {
     // hook: on mounted
     let on_mounted = move |_| {
         spawn(async move {
-            // TODO: Step 1, read cache from indexeddb else create new subscription
-            let db = CapybastrDb::new("subscription".to_string()).await.unwrap();
-            let db2 = CapybastrDb::new("subscription2".to_string()).await.unwrap();
-            // let sub_names: Vec<String> = db.read_data("SUBSCRIPTION_LIST").await.unwrap();
-            db.add_data("key", &1);
-            db2.add_data("key", &2);
+            let CBdatabase = CBWebDatabase::open("Capybastr-db").await.unwrap();
 
-            let sub_names: Vec<String> = vec!["Dog".to_string(), "Car".to_string()];
 
-            let mut subs = vec![];
-            for i in sub_names.iter() {
-                match db2.read_data::<String>(i).await {
-                    Ok(v) => subs.push(CustomSub::from(&v)),
-                    Err(e) => eprintln!("Error reading data: {}", e),
-                }
-                match db.read_data::<String>(i).await {
-                    Ok(v) => subs.push(CustomSub::from(&v)),
-                    Err(e) => eprintln!("Error reading data: {}", e),
-                }
-            }
-            async fn handler_text_note(
-                notification: RelayPoolNotification,
-            ) -> Result<bool, Box<dyn StdError>> {
-                if let RelayPoolNotification::Message {
-                    message: RelayMessage::Event { event, .. },
-                    ..
-                } = notification
-                {
-                    println!("TextNote: {:?}", event);
-                    tracing::info!("TextNote: {:?}", event);
-                }
-                Ok(false)
-            }
+            // let sub_names: Vec<String> = vec!["Dog".to_string(), "Car".to_string()];
 
-            let mut cs = clients.write();
-            for i in subs.iter() {
-                let client_builder =
-                    ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-                let c = client_builder.build();
-                c.add_relays(i.relay_set.relays.clone()).await.unwrap();
-                c.connect().await;
-                cs.insert(i.name.clone(), c.clone());
+            // let mut subs = vec![];
+            // for i in sub_names.iter() {
+            //     subs.push(CustomSub::from(i));
+            //     // match db2.read_data::<String>(i).await {
+            //     //     Ok(v) => subs.push(CustomSub::from(&v)),
+            //     //     Err(e) => eprintln!("Error reading data: {}", e),
+            //     // }
+            //     // match db.read_data::<String>(i).await {
+            //     //     Ok(v) => subs.push(CustomSub::from(&v)),
+            //     //     Err(e) => eprintln!("Error reading data: {}", e),
+            //     // }
+            // }
+            // async fn handler_text_note(
+            //     notification: RelayPoolNotification,
+            // ) -> Result<bool, Box<dyn StdError>> {
+            //     if let RelayPoolNotification::Message {
+            //         message: RelayMessage::Event { event, .. },
+            //         ..
+            //     } = notification
+            //     {
+            //         println!("TextNote: {:?}", event);
+            //         tracing::info!("TextNote: {:?}", event);
+            //     }
+            //     Ok(false)
+            // }
 
-                if i.live {
-                    let s = i.clone();
-                    use_coroutine(|_: UnboundedReceiver<()>| async move {
-                        (*register.read())
-                            .add_subscription(
-                                &c.clone(),
-                                SubscriptionId::new(s.name.clone()),
-                                s.get_filters(),
-                                Arc::new(|notification| Box::pin(handler_text_note(notification))),
-                                None,
-                            )
-                            .await
-                            .unwrap();
-                        (*register.read())
-                            .handle_notifications(&c.clone())
-                            .await
-                            .unwrap();
-                    });
-                }
-            }
+            // let mut cs = clients.write();
+            // for i in subs.iter() {
+            //     let client_builder =
+            //         ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+            //     let c = client_builder.build();
+            //     c.add_relays(i.relay_set.relays.clone()).await.unwrap();
+            //     c.connect().await;
+            //     cs.insert(i.name.clone(), c.clone());
 
-            for i in subs.iter() {
-                all_sub.push(i.clone());
-            }
+            //     if i.live {
+            //         let s = i.clone();
+            //         use_coroutine(|_: UnboundedReceiver<()>| async move {
+            //             (*register.read())
+            //                 .add_subscription(
+            //                     &c.clone(),
+            //                     SubscriptionId::new(s.name.clone()),
+            //                     s.get_filters(),
+            //                     Arc::new(|notification| Box::pin(handler_text_note(notification))),
+            //                     None,
+            //                 )
+            //                 .await
+            //                 .unwrap();
+            //             (*register.read())
+            //                 .handle_notifications(&c.clone())
+            //                 .await
+            //                 .unwrap();
+            //         });
+            //     }
+            // }
+
+            // for i in subs.iter() {
+            //     all_sub.push(i.clone());
+            // }
         });
     };
 

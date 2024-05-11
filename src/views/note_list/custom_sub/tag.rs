@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{
     components::icons::{FALSE, TRUE},
-    state::subscription::Tag,
+    store::subscription::Tag,
 };
 
 #[derive(PartialEq, Clone, Props)]
