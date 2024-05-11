@@ -6,7 +6,7 @@ use std::{collections::HashMap, time::Duration};
 use dioxus::prelude::*;
 use nostr_sdk::{Client, Event, RelayPoolNotification, SubscriptionId, Timestamp};
 
-use crate::{state::subscription::CustomSub, storage::CapybastrDb};
+use crate::{store::subscription::CustomSub};
 
 use custom_sub::CustomSubscription;
 use note::{Note, NoteData};
@@ -37,20 +37,12 @@ pub fn NoteList(name: String) -> Element {
         let s = sub_current();
 
         spawn(async move {
-            let db = CapybastrDb::new("subscription".to_string()).await.unwrap();
-            db.delete_data(&s.name).await.unwrap();
-            db.add_data(&s.name, &s).await.unwrap();
-
-            // let db = CapybastrDb::new("subscription list".to_string()).await.unwrap();
-            // db.delete_data("SUBSCRIPTION_LIST").await.unwrap();
-            // db.add_data("SUBSCRIPTION_LIST", &String::from("[\"Dog\", \"Car\"]")).await.unwrap();
+            //todo
         });
     };
 
     let handle_reload = move |value: CustomSub| {
-        let mut v = value.clone();
-        v.tampstamp = Timestamp::now().as_i64();
-        sub_current.set(v);
+        //todo
     };
 
     rsx! {
@@ -136,7 +128,7 @@ pub fn List(props: ListProps) -> Element {
         (&props.subscription,),
         move |(subscription,)| {
             let sub = sub_current();
-            if subscription.tampstamp != sub.tampstamp || subscription.name != sub.name {
+            if subscription.name != sub.name {
                 sub_current.set(subscription.clone());
                 notes.clear();
                 handle_load();

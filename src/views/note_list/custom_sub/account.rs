@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::{
     components::icons::{FALSE, TRUE},
-    state::subscription::Account,
+    store::subscription::Account,
     utils::format::format_public_key,
 };
 

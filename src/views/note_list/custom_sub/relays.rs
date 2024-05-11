@@ -5,7 +5,7 @@ use crate::{
         icons::{ADD, FALSE, LEFT, RIGHT, TRUE},
         ClickOutside,
     },
-    state::subscription::RelaySet,
+    store::subscription::RelaySet,
     utils::js::{export_to_clipboard, import_from_clipboard},
 };
 

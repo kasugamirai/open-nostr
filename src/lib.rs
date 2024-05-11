@@ -2,17 +2,16 @@ mod components;
 mod init;
 pub mod nostr;
 mod router;
-mod state;
-pub mod storage;
 mod utils;
 mod views;
+pub mod store;
 
 use std::collections::HashMap;
 
 //pub use nostr::get_metadata;
 pub use init::App;
 pub use router::Route;
-pub use state::{CustomSub, User};
+pub use store::{User, subscription::CustomSub};
 
 #[derive(Debug, Clone)]
 pub struct Clients {

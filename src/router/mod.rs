@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use crate::store::subscription::CustomSub;
 
 use crate::{
     // Dropdown
@@ -7,7 +8,6 @@ use crate::{
         Bookmark, Channel, Group, Home, Message, NoteDetail, NoteList, Profile, Relay, Search,
         Settings, Test,
     },
-    CustomSub,
 };
 
 struct RouterItem {
