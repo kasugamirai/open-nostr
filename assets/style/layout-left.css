@@ -1,123 +1,202 @@
+/*.layout-left {*/
+/*    position: absolute;*/
+/*    top: 0;*/
+/*    left: 0;*/
+/*    bottom: 0;*/
+/*    width: 300px;*/
+/*    padding: 20px;*/
+/*}*/
+
+/*.layout-left .menu {*/
+/*    width: 100%;*/
+/*    height: 100%;*/
+/*    background-color: var(--bgc-2);*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*    align-items: center;*/
+/*    gap: 10px;*/
+/*    padding: 10px;*/
+/*    overflow: scroll;*/
+/*    border-radius: var(--radius-2);*/
+/*}*/
+
+/*.layout-left .menu .nav {*/
+/*    width: 100%;*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*    align-items: center;*/
+/*    gap: 10px;*/
+/*    padding: 10px;*/
+/*    border-radius: var(--radius-2);*/
+/*}*/
+
+/*.layout-left .menu .nav .nav-item {*/
+/*    width: 80%;*/
+/*    margin: 0 10%;*/
+/*    padding: 10px 20px;*/
+/*    cursor: pointer;*/
+/*    transition: 0.4s;*/
+/*    text-decoration: none;*/
+/*    border-radius: 500px;*/
+/*    color: var(--txt-1);*/
+/*}*/
+
+/*.layout-left .menu .nav .nav-item:hover {*/
+/*    color: var(--txt-3);*/
+/*}*/
+
+/*.layout-left .menu .nav .nav-item .nav-item-content {*/
+/*    display: flex;*/
+/*    align-items: center;*/
+/*    gap: 10px;*/
+/*}*/
+
+/*.layout-left .menu .nav .nav-item .nav-item-content svg {*/
+/*    width: 24px;*/
+/*    height: 24px;*/
+/*}*/
+
+/*.layout-left .menu .nav .nav-item .nav-item-content svg path {*/
+/*    fill: var(--txt-1);*/
+/*}*/
+/*.layout-left .menu .subscriptions{*/
+/*    width: 100%;*/
+/*    margin-top: 50px;*/
+/*}*/
+/*.layout-left .menu .subscriptions-item {*/
+/*    width: 100%;*/
+/*    background-color: var(--bgc-0);*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*    align-items: center;*/
+/*    gap: 4px;*/
+/*    padding: 10px;*/
+/*    border-radius: var(--radius-2);*/
+/*    color: var(--txt-1);*/
+/*}*/
+
+.layout-left .menu .subscriptions-item .nav-item {
+   background: none;
+   border: none;
+   font-size: 12px;
+   padding: 4px 20px;
+   border-radius: var(--radius-1);
+   cursor: pointer;
+   width: 100%;
+}
+
+.layout-left .menu .subscriptions-item .nav-item:hover {
+   background-color: var(--bgc-2);
+}
+
+.layout-left .menu .subscriptions-item .nav-item.active {
+   background-color: var(--bgc-2);
+}
+
+
+
+:root {
+  --size-26: 26px;
+}
 .layout-left {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 300px;
-    padding: 20px;
+  width: 230px;
+  background-color: var(--bgc-2);
+  padding: 10px;
+  color: var(--txt-2);
+}
+.layout-left .pro-title {
+  color: var(--txt-2);
+  font-family: "Raleway";
+  font-weight: bolder;
+  line-height: var(--size-26);
+  font-size: var(--size-26);
+  text-align: center;
+  margin: 20px 0;
 }
 
-.layout-left .menu {
-    width: 100%;
-    height: 100%;
-    background-color: var(--bgc-2);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: var(--radius-2);
+.layout-left .account-wrapper {
+  margin-bottom: 16px;
+  border-radius: var(--size-26);
+  background-color: var(--bgc-0);
+}
+.layout-left .user-item {padding: 5px 10px
+}
+.layout-left .user-avatar-img {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 7px;
 }
 
-.layout-left .menu .nav {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: var(--radius-2);
+.layout-left .nav-item {
+  border-radius: var(--size-26);
+  padding: 6px 18px;
+  margin-bottom: 10px;
+}
+.layout-left .nav-item.active {
+  background-color: var(--bgc-0);
+}
+.layout-left .nav-item-text {
+  margin-left: 12px;
+  color: var(--txt-2);
+  font-size: 16px;
+  font-family: "Raleway";
+  font-weight: 500;
+  line-height: 20px;
 }
 
-.layout-left .menu .nav .nav-item {
-    width: 80%;
-    margin: 0 10%;
-    padding: 10px 20px;
-    cursor: pointer;
-    transition: 0.4s;
-    text-decoration: none;
-    border-radius: 500px;
-    color: var(--txt-1);
+.layout-left .nav {
+  margin-bottom: 45px;
 }
-
-.layout-left .menu .nav .nav-item:hover {
-    color: var(--txt-3);
+.layout-left .subscriptions {
+  color: var(--txt-2);
+  font-size: 16px;
+  font-family: "Raleway";
+  font-weight: 600;
+  line-height: 20px;
 }
-
-.layout-left .menu .nav .nav-item.active {
-    background-color: var(--bgc-0);
+.user-trigger-item {
+  padding: 5px 10px;
 }
-
-.layout-left .menu .nav .nav-item .nav-item-content {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.user-trigger-item:not(:last-child) {
+  border-bottom: 1px solid #c2c2c2;
 }
-
-.layout-left .menu .nav .nav-item .nav-item-content svg {
-    width: 24px;
-    height: 24px;
+.user-trigger-item-button {
+  cursor: pointer;
+  width: 72px;
+  height: 27px;
+  padding: 0px 8px;
+  border: 0;
+  box-sizing: border-box;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: "Raleway";
+  font-weight: 600;
+  line-height: 18px;
+  outline: none;
 }
-
-.layout-left .menu .nav .nav-item .nav-item-content svg path {
-    fill: var(--txt-1);
+.user-trigger-item .log-button {
+  background: var(--col-error);
+  margin-right: 6px;
 }
-
-.layout-left .menu .subscriptions {
-    width: 100%;
-    background-color: var(--bgc-0);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 10px;
-    border-radius: var(--radius-2);
+.user-trigger-item .pro-button {
+  background: var(--link);
+  color: var(--bgc-0);
 }
-
-.layout-left .menu .subscriptions .nav-item {
-    background: none;
-    border: none;
-    font-size: 12px;
-    padding: 4px 20px;
-    border-radius: var(--radius-1);
-    cursor: pointer;
+.user-trigger-item .copy-btn svg {
+  width: 28px;
+  height: 28px;
 }
-
-.layout-left .menu .subscriptions .nav-item:hover {
-    background-color: var(--bgc-2);
+.layout-left .user-name {
+    width: 100px;
 }
-
-.layout-left .menu .subscriptions .nav-item.active {
-    background-color: var(--bgc-2);
-}
-
-.user {
-    width: 100%;
-    padding: 10px;
-    color: var(--txt-1);
-}
-
-.user-trigger {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background-color: var(--bgc-0);
-    border-radius: 100px;
-    padding: 10px 20px;
-}
-
-.user-trigger img {
-    width: 40px;
-    height: 40px;
-}
-
-.user-content {
-    width: 400px;
-    height: 300px;
-    transform: translateY(10px);
-    background-color: var(--bgc-0);
-    border: 1px solid var(--boc-1);
-    border-radius: var(--radius-1);
-    padding: 10px;
+.layout-left .add-note-btn {
+    line-height: 27px;
+    border-radius: 10px;
+    background-color: var(--bgc-1);
+    font-size: 14px;
+    font-family: "Raleway";
+    font-weight: 600;
+    color: #fff;
 }

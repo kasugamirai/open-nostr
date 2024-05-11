@@ -4,9 +4,6 @@ pub const MARKS: &str = include_str!("../../public/static/marks.svg");
 pub const FLASH: &str = include_str!("../../public/static/flash.svg");
 pub const ADD: &str = include_str!("../../public/static/add.svg");
 pub const PROFILE: &str = include_str!("../../public/static/profile.svg");
-pub const SEARCH: &str = include_str!("../../public/static/search.svg");
-pub const RELAY: &str = include_str!("../../public/static/relay.svg");
-pub const MESSAGE: &str = include_str!("../../public/static/message.svg");
 pub const SIGNAL: &str = include_str!("../../public/static/signal.svg");
 pub const CHAT: &str = include_str!("../../public/static/chat.svg");
 pub const STAR: &str = include_str!("../../public/static/star.svg");
@@ -20,3 +17,16 @@ pub const LEFT: &str = include_str!("../../public/static/left.svg");
 pub const TRUE: &str = include_str!("../../public/static/true.svg");
 pub const FALSE: &str = include_str!("../../public/static/false.svg");
 pub const RELOAD: &str = include_str!("../../public/static/reload.svg");
+pub const DOWN: &str = include_str!("../../public/static/down.svg");
+pub const COPY_ALL: &str = include_str!("../../public/static/copy_all.svg");
+pub const ARROW_UP: &str = include_str!("../../public/static/arrow_up.svg");
+
+// slider icons 
+pub const HOME: &str = include_str!("../../public/svgs/home.svg");
+pub const SEARCH: &str = include_str!("../../public/svgs/search.svg");
+pub const RELAY: &str = include_str!("../../public/svgs/relay.svg");
+pub const MESSAGE: &str = include_str!("../../public/svgs/message.svg");
+pub const CHANNEL: &str = include_str!("../../public/svgs/channel.svg");
+pub const GROUP: &str = include_str!("../../public/svgs/group.svg");
+pub const BOOKMARK: &str = include_str!("../../public/svgs/bookmark.svg");
+pub const SETTINGS: &str = include_str!("../../public/svgs/settings.svg");

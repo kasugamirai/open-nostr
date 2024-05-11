@@ -31,6 +31,7 @@
     --bgc-2: #f6f2ff;
     --bgc-3: #f5f5f5;
     --boc-1: #030303;
+    --boc-2: #e7e7e7;
     --txt-1: #030303;
     --txt-2: #2b2c2b;
     --txt-3: #b4b4b4;
@@ -42,6 +43,7 @@
     --bgc-2: #242424;
     --bgc-3: #2b2b2b;
     --boc-1: #BFBFBF;
+    --boc-2: #FFFFFF;
     --txt-1: #FFFFFF;
     --txt-2: #BFBFBF;
     --txt-3: #6B6B6B;
@@ -120,4 +122,28 @@ svg path {
 
 .btn-icon.purple svg path {
     fill: var(--bgc-1);
+}
+
+
+
+/* common css */
+.items-center {
+    align-items: center;
+}
+.justify-between {
+    justify-content: space-between;
+}
+.overflow-hidden {
+    overflow: hidden;
+}
+.cursor-pointer {
+    cursor: pointer;
+}
+.text-center {
+    text-align: center;
+}
+.text-overflow {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

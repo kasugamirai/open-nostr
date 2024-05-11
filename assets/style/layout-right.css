@@ -20,7 +20,7 @@
     justify-content: space-between;
     align-items: center;
     gap: 12px;
-    border-bottom: 2px solid var(--boc-1);
+    border-bottom: 4px solid var(--boc-2);
 }
 
 .custom-sub-header .custom-sub-header-more {
@@ -81,8 +81,6 @@
 
 .custom-sub-content .custom-sub-name,
 .custom-sub-relays,
-.custom-sub-time,
-.custom-sub-live,
 .custom-sub-filters {
     padding: 0 20px;
     display: flex;

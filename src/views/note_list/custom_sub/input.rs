@@ -48,7 +48,7 @@ pub fn Input(props: InputProps) -> Element {
             div {
                 style: "position: relative;",
                 div {
-                    style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
+                    style: "background-color: var(--bgc-3); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
                     onclick: move |_| {
                         if allow_edit() {
                             edit.set(true);
