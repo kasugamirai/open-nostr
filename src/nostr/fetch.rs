@@ -103,23 +103,23 @@ impl Fetcher {
                     break 'outer;
                 }
             }
-            filters = self.filters_transformer(&filters, &events);
+            filters = filters_transformer(&filters, &events);
         }
 
         Ok(())
     }
+}
 
-    pub fn filters_transformer(&self, filters: &[Filter], events: &[Event]) -> Vec<Filter> {
-        let earliest_event_date = get_earliest_event_date(events);
-        let mut updated_filters = Vec::new();
-        for filter in filters.iter() {
-            let updated_filter = <nostr_sdk::Filter as Clone>::clone(filter)
-                .until(earliest_event_date)
-                .limit(500);
-            updated_filters.push(updated_filter);
-        }
-        updated_filters
+fn filters_transformer(filters: &[Filter], events: &[Event]) -> Vec<Filter> {
+    let earliest_event_date = get_earliest_event_date(events);
+    let mut updated_filters = Vec::new();
+    for filter in filters.iter() {
+        let updated_filter = <nostr_sdk::Filter as Clone>::clone(filter)
+            .until(earliest_event_date)
+            .limit(500);
+        updated_filters.push(updated_filter);
     }
+    updated_filters
 }
 
 fn get_earliest_event_date(events: &[Event]) -> Timestamp {
