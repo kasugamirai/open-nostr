@@ -110,11 +110,11 @@ impl Fetcher {
     }
 
     pub fn filters_transformer(&self, filters: &[Filter], events: &[Event]) -> Vec<Filter> {
-        let last_event_time = get_last_event_date(events);
+        let earliest_event_date = get_earliest_event_date(events);
         let mut updated_filters = Vec::new();
         for filter in filters.iter() {
             let updated_filter = <nostr_sdk::Filter as Clone>::clone(filter)
-                .until(last_event_time)
+                .until(earliest_event_date)
                 .limit(500);
             updated_filters.push(updated_filter);
         }
@@ -122,15 +122,15 @@ impl Fetcher {
     }
 }
 
-fn get_last_event_date(events: &[Event]) -> Timestamp {
-    let mut last_event_time: Option<Timestamp> = None;
+fn get_earliest_event_date(events: &[Event]) -> Timestamp {
+    let mut event_time: Option<Timestamp> = None;
     for event in events.iter() {
         let e_time = event.created_at();
-        if last_event_time.is_none() || e_time > last_event_time.unwrap() {
-            last_event_time = Some(e_time);
+        if event_time.is_none() || e_time < event_time.unwrap() {
+            event_time = Some(e_time);
         }
     }
-    last_event_time.unwrap()
+    event_time.unwrap()
 }
 
 enum StopCondition {
@@ -171,10 +171,10 @@ fn test() {
 
 #[cfg(test)]
 mod tests {
-    use std::pin::Pin;
+    //use std::pin::Pin;
 
     use super::Fetcher;
-    use futures::Future;
+    //use futures::Future;
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::prelude::*;
     use wasm_bindgen_test::*;
@@ -210,7 +210,7 @@ mod tests {
 
     async fn test_sync_data_saved() {
         let public_key = PublicKey::from_bech32(
-            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+            "npub1drvpzev3syqt0kjrls50050uzf25gehpz9vgdw08hvex7e0vgfeq0eseet",
         )
         .unwrap();
         let db = WebDatabase::open("EVENTS_DB").await.unwrap();
