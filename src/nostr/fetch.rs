@@ -1,32 +1,52 @@
+use dioxus::html::{meta, metadata};
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{client, Client, Event, Filter, FilterOptions};
+use nostr_sdk::key::public_key;
+use nostr_sdk::{
+    client, Client, Event, Filter, FilterOptions, JsonUtil, Kind, Metadata, PublicKey,
+};
 use nostr_sdk::{NostrDatabase, Timestamp};
 use web_sys::console;
 
 #[derive(Debug)]
-pub enum FetcherError {
-    NostrSdkClientError(client::Error),
-    DatabaseError(nostr_indexeddb::IndexedDBError),
+pub enum Error {
+    NostrSdkClient(client::Error),
+    Database(nostr_indexeddb::IndexedDBError),
+    Metadata(nostr_sdk::types::metadata::Error),
+    Custom(String),
 }
 
-impl From<client::Error> for FetcherError {
+impl From<nostr_sdk::types::metadata::Error> for Error {
+    fn from(err: nostr_sdk::types::metadata::Error) -> Self {
+        Self::Metadata(err)
+    }
+}
+
+impl From<client::Error> for Error {
     fn from(err: client::Error) -> Self {
-        Self::NostrSdkClientError(err)
+        Self::NostrSdkClient(err)
     }
 }
 
-impl From<nostr_indexeddb::IndexedDBError> for FetcherError {
+impl From<nostr_indexeddb::IndexedDBError> for Error {
     fn from(err: nostr_indexeddb::IndexedDBError) -> Self {
-        Self::DatabaseError(err)
+        Self::Database(err)
     }
 }
 
-impl std::fmt::Display for FetcherError {
+impl From<String> for Error {
+    fn from(err: String) -> Self {
+        Self::Custom(err)
+    }
+}
+
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NostrSdkClientError(err) => write!(f, "NostrSdkClientError: {}", err),
-            Self::DatabaseError(err) => write!(f, "DatabaseError: {}", err),
+            Self::NostrSdkClient(err) => write!(f, "NostrSdkClientError: {}", err),
+            Self::Database(err) => write!(f, "DatabaseError: {}", err),
+            Self::Metadata(err) => write!(f, "MetadataError: {}", err),
+            Self::Custom(err) => write!(f, "CustomError: {}", err),
         }
     }
 }
@@ -44,11 +64,27 @@ impl Fetcher {
         Self {}
     }
 
+    pub async fn get_profile(client: Client, public_key: PublicKey) -> Result<Metadata, Error> {
+        let filter = Filter::new()
+            .author(public_key)
+            .kind(Kind::Metadata)
+            .limit(1);
+        let events = client.get_events_of(vec![filter], None).await?;
+        let event = events.first();
+        if let Some(event) = event {
+            let m = Metadata::from_json(&event.content)?;
+            Ok(m)
+        } else {
+            Err("MetaData not found".to_string().into())
+        }
+        //todo order by created_at
+    }
+
     pub async fn get_events_from_db(
         &self,
         db: WebDatabase,
         filters: Filter,
-    ) -> Result<Vec<Event>, FetcherError> {
+    ) -> Result<Vec<Event>, Error> {
         let events = db.query(vec![filters], Order::Desc).await?;
         Ok(events)
     }
@@ -61,7 +97,7 @@ impl Fetcher {
         save_opts: bool,
         opts: FilterOptions,
         timeout: Option<std::time::Duration>,
-    ) -> Result<Vec<Event>, FetcherError> {
+    ) -> Result<Vec<Event>, Error> {
         let events = client
             .get_events_of_with_opts(filters, timeout, opts)
             .await?;
@@ -81,7 +117,7 @@ impl Fetcher {
         timeout: Option<std::time::Duration>,
         //filters_transformer: impl Fn(&Vec<Filter>) -> Vec<Filter>,
         //enum_stop_conditions: Vec<impl Fn(&Vec<Event>) -> bool>,
-    ) -> Result<(), FetcherError> {
+    ) -> Result<(), Error> {
         //let mut all_events = Vec::new();
         let conditions = vec![StopCondition::NoEvents, StopCondition::DataInDb];
 
@@ -135,7 +171,7 @@ fn get_earliest_event_date(events: &[Event]) -> Timestamp {
     event_time.unwrap()
 }
 
-async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), FetcherError> {
+async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error> {
     for event in events.iter() {
         db.save_event(event).await?;
     }
