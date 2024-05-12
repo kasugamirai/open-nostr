@@ -1,7 +1,9 @@
+use dioxus::html::p;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{client, Client, Event, Filter, FilterOptions};
 use nostr_sdk::{NostrDatabase, Timestamp};
+use web_sys::console;
 
 #[derive(Debug)]
 pub enum FetcherError {
@@ -92,7 +94,7 @@ impl Fetcher {
                     client.clone(),
                     db.clone(),
                     filters.clone(),
-                    true,
+                    false,
                     opts,
                     timeout,
                 )
@@ -102,6 +104,9 @@ impl Fetcher {
                 if condition.check(&events, &db).await {
                     break 'outer;
                 }
+            }
+            for event in events.iter() {
+                db.save_event(event).await?;
             }
             filters = filters_transformer(&filters, &events);
         }
@@ -116,9 +121,10 @@ fn filters_transformer(filters: &[Filter], events: &[Event]) -> Vec<Filter> {
     for filter in filters.iter() {
         let updated_filter = <nostr_sdk::Filter as Clone>::clone(filter)
             .until(earliest_event_date)
-            .limit(500);
+            .limit(2);
         updated_filters.push(updated_filter);
     }
+    console::log_1(&format!("Updated filters: {:?}", updated_filters).into());
     updated_filters
 }
 
@@ -130,6 +136,7 @@ fn get_earliest_event_date(events: &[Event]) -> Timestamp {
             event_time = Some(e_time);
         }
     }
+    console::log_1(&format!("Earliest event date: {}", event_time.unwrap()).into());
     event_time.unwrap()
 }
 
@@ -141,7 +148,14 @@ enum StopCondition {
 impl StopCondition {
     async fn check(&self, events: &[Event], db: &WebDatabase) -> bool {
         match self {
-            Self::NoEvents => events.is_empty(),
+            Self::NoEvents => {
+                if events.is_empty() {
+                    let message = "No events found";
+                    console::log_1(&message.into());
+                    return true;
+                }
+                false
+            }
             Self::DataInDb => {
                 let mut filters = Vec::new();
                 for event in events.iter() {
@@ -149,8 +163,16 @@ impl StopCondition {
                     filters.extend(filter);
                 }
 
-                let ret = db.query(filters, Order::Desc).await.unwrap();
-                if !ret.is_empty() {
+                let ret = match db.query(filters, Order::Desc).await {
+                    Ok(result) => result,
+                    Err(e) => {
+                        console::log_1(&format!("Database query failed: {}", e).into());
+                        return false;
+                    }
+                };
+                if ret.len() == events.len() {
+                    let message = "All data saved in db";
+                    console::log_1(&message.into());
                     return true;
                 }
                 false
@@ -183,7 +205,7 @@ mod tests {
 
     async fn test_get_events() {
         let public_key = PublicKey::from_bech32(
-            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+            "npub1zfss807aer0j26mwp2la0ume0jqde3823rmu97ra6sgyyg956e0s6xw445",
         )
         .unwrap();
         let db = WebDatabase::open("EVENTS_DB").await.unwrap();
@@ -210,7 +232,7 @@ mod tests {
 
     async fn test_sync_data_saved() {
         let public_key = PublicKey::from_bech32(
-            "npub1drvpzev3syqt0kjrls50050uzf25gehpz9vgdw08hvex7e0vgfeq0eseet",
+            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
         )
         .unwrap();
         let db = WebDatabase::open("EVENTS_DB").await.unwrap();
@@ -221,7 +243,7 @@ mod tests {
         let filter = Filter::new()
             .author(public_key)
             .kind(Kind::TextNote)
-            .limit(500);
+            .limit(2);
         let opts = FilterOptions::default();
         let timeout = None;
         let ret = fetcher
