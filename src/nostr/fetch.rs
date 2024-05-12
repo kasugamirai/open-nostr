@@ -68,9 +68,7 @@ impl Fetcher {
             .await?;
 
         if save_opts {
-            for event in events.iter() {
-                db.save_event(event).await?;
-            }
+            save_all_events(&events, &db).await?;
         }
         Ok(events)
     }
@@ -105,9 +103,7 @@ impl Fetcher {
                     break 'outer;
                 }
             }
-            for event in events.iter() {
-                db.save_event(event).await?;
-            }
+            save_all_events(&events, &db).await?;
             filters = filters_transformer(&filters, &events);
         }
 
@@ -138,6 +134,13 @@ fn get_earliest_event_date(events: &[Event]) -> Timestamp {
     }
     console::log_1(&format!("Earliest event date: {}", event_time.unwrap()).into());
     event_time.unwrap()
+}
+
+async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), FetcherError> {
+    for event in events.iter() {
+        db.save_event(event).await?;
+    }
+    Ok(())
 }
 
 enum StopCondition {
