@@ -1,7 +1,5 @@
-use dioxus::html::{meta, metadata};
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::key::public_key;
 use nostr_sdk::{
     client, Client, Event, Filter, FilterOptions, JsonUtil, Kind, Metadata, PublicKey,
 };
