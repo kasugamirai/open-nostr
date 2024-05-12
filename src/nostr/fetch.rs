@@ -1,4 +1,3 @@
-use dioxus::html::p;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{client, Client, Event, Filter, FilterOptions};
@@ -115,7 +114,7 @@ fn filters_transformer(filters: &[Filter], events: &[Event]) -> Vec<Filter> {
     let earliest_event_date = get_earliest_event_date(events);
     let mut updated_filters = Vec::new();
     for filter in filters.iter() {
-        let updated_filter = <nostr_sdk::Filter as Clone>::clone(filter)
+        let updated_filter = <Filter as Clone>::clone(filter)
             .until(earliest_event_date)
             .limit(2);
         updated_filters.push(updated_filter);
