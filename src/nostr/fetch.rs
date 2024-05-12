@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{
@@ -62,20 +64,22 @@ impl Fetcher {
         Self {}
     }
 
-    pub async fn get_profile(client: Client, public_key: PublicKey) -> Result<Metadata, Error> {
-        let filter = Filter::new()
-            .author(public_key)
-            .kind(Kind::Metadata)
-            .limit(1);
-        let events = client.get_events_of(vec![filter], None).await?;
-        let event = events.first();
+    pub async fn get_metadata(
+        &self,
+        client: Client,
+        public_key: PublicKey,
+    ) -> Result<Metadata, Error> {
+        let filter = Filter::new().author(public_key).kind(Kind::Metadata);
+        let events = client
+            .get_events_of(vec![filter], Some(Duration::from_secs(10)))
+            .await?;
+        let event = get_newest_event(&events);
         if let Some(event) = event {
             let m = Metadata::from_json(&event.content)?;
             Ok(m)
         } else {
             Err("MetaData not found".to_string().into())
         }
-        //todo order by created_at
     }
 
     pub async fn get_events_from_db(
@@ -167,6 +171,19 @@ fn get_earliest_event_date(events: &[Event]) -> Timestamp {
     }
     console::log_1(&format!("Earliest event date: {}", event_time.unwrap()).into());
     event_time.unwrap()
+}
+
+fn get_newest_event(events: &[Event]) -> Option<Event> {
+    let mut newest_event: Option<Event> = None;
+    for event in events.iter() {
+        if newest_event
+            .as_ref()
+            .map_or(true, |ne| event.created_at() > ne.created_at())
+        {
+            newest_event = Some(event.clone());
+        }
+    }
+    newest_event
 }
 
 async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error> {
@@ -286,5 +303,21 @@ mod tests {
             .sync_data_saved(client, db, vec![filter], opts, timeout)
             .await;
         assert!(ret.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_profile() {
+        let name = "xy";
+        let public_key = PublicKey::from_bech32(
+            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+        )
+        .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let fetcher = Fetcher::new();
+        let metadata = fetcher.get_metadata(client, public_key).await.unwrap();
+        console_log!("Metadata: {:?}", metadata);
+        assert_eq!(metadata.name, Some(name.to_string()));
     }
 }
