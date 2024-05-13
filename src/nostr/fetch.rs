@@ -11,6 +11,7 @@ use nostr_sdk::{
 use nostr_sdk::{NostrDatabase, Timestamp};
 use web_sys::console;
 
+/// Error enum to represent possible errors in the application.
 #[derive(Debug)]
 pub enum Error {
     NostrSdkClient(client::Error),
@@ -54,6 +55,7 @@ impl std::fmt::Display for Error {
     }
 }
 
+/// The `Fetcher` struct is responsible for fetching data from a specified source.
 pub struct Fetcher {}
 
 impl Default for Fetcher {
@@ -67,11 +69,12 @@ impl Fetcher {
         Self {}
     }
 
+    /// Fetches the metadata of a user with the given public key.
     pub async fn get_metadata(
         &self,
         client: Client,
         public_key: PublicKey,
-        timeout: Option<std::time::Duration>,
+        timeout: Option<Duration>,
     ) -> Result<Metadata, Error> {
         let filter = Filter::new().author(public_key).kind(Kind::Metadata);
         let events = client.get_events_of(vec![filter], timeout).await?;
@@ -84,6 +87,7 @@ impl Fetcher {
         }
     }
 
+    /// Fetches the reactions of an event with the given event ID.
     pub async fn get_reactions(
         &self,
         client: Client,
@@ -100,6 +104,7 @@ impl Fetcher {
         Ok(ret)
     }
 
+    /// Fetches the replies of an event with the given event ID.
     pub async fn get_reply(
         &self,
         client: Client,
@@ -114,6 +119,7 @@ impl Fetcher {
         Ok(events)
     }
 
+    /// Fetches the reposts of an event with the given event ID.
     pub async fn get_repost(
         &self,
         client: Client,
@@ -128,6 +134,7 @@ impl Fetcher {
         Ok(events)
     }
 
+    /// Fetches the following of a user with the given public key.
     pub async fn get_following(
         &self,
         client: Client,
@@ -136,6 +143,7 @@ impl Fetcher {
         todo!()
     }
 
+    /// get events from db
     pub async fn get_events_from_db(
         &self,
         db: WebDatabase,
@@ -145,6 +153,7 @@ impl Fetcher {
         Ok(events)
     }
 
+    /// get events and save them to db
     pub async fn get_events(
         &self,
         client: Client,
@@ -164,6 +173,7 @@ impl Fetcher {
         Ok(events)
     }
 
+    // sync data and save them to db
     pub async fn sync_data_saved(
         &self,
         client: Client,
@@ -202,6 +212,7 @@ impl Fetcher {
     }
 }
 
+/// Transforms the filters based on the events.
 fn filters_transformer(filters: &[Filter], events: &[Event]) -> Vec<Filter> {
     let earliest_event_date = get_earliest_event_date(events);
     let mut updated_filters = Vec::new();
@@ -215,6 +226,22 @@ fn filters_transformer(filters: &[Filter], events: &[Event]) -> Vec<Filter> {
     updated_filters
 }
 
+/// Returns the earliest event date from the given list of events.
+///
+/// The function iterates over the events and keeps track of the earliest event date.
+/// It initializes an `event_time` variable as `None`. Then, for each event, it compares
+/// the event's creation time with the current earliest event time. If the `event_time`
+/// is `None` or the event's time is earlier than the current earliest time, the `event_time`
+/// is updated to the event's time. Finally, the function logs the earliest event date
+/// to the console using `console::log_1`, and returns the earliest event time.
+///
+/// # Arguments
+///
+/// * `events` - A slice of events for which to find the earliest event date.
+///
+/// # Returns
+///
+/// The earliest event date as a `Timestamp`.
 fn get_earliest_event_date(events: &[Event]) -> Timestamp {
     let mut event_time: Option<Timestamp> = None;
     for event in events.iter() {
@@ -227,6 +254,30 @@ fn get_earliest_event_date(events: &[Event]) -> Timestamp {
     event_time.unwrap()
 }
 
+/// Returns the newest event from a slice of events.
+///
+/// # Arguments
+///
+/// * `events` - A slice of events to search from.
+///
+/// # Returns
+///
+/// The newest event as an option. If the slice is empty, returns `None`.
+///
+/// # Examples
+///
+/// ```rust
+/// use my_module::Event;
+/// let events = vec![
+///     Event::new("Event 1", 1609459200),
+///     Event::new("Event 2", 1609545600),
+///     Event::new("Event 3", 1609632000),
+/// ];
+///
+/// let newest_event = my_module::get_newest_event(&events);
+///
+/// assert_eq!(newest_event, Some(Event::new("Event 3", 1609632000)));
+/// ```
 fn get_newest_event(events: &[Event]) -> Option<Event> {
     let mut newest_event: Option<Event> = None;
     for event in events.iter() {
@@ -240,6 +291,29 @@ fn get_newest_event(events: &[Event]) -> Option<Event> {
     newest_event
 }
 
+/// Saves a slice of events to the provided `WebDatabase`.
+///
+/// # Arguments
+///
+/// * `events` - A reference to a slice of `Event` structs.
+/// * `db` - A reference to a `WebDatabase`.
+///
+/// # Returns
+///
+/// This function returns a `Result` indicating success or failure.
+///
+/// # Example
+///
+/// ```rust
+/// let events = vec![
+///     Event { id: 1, name: "Event 1" },
+///     Event { id: 2, name: "Event 2" },
+/// ];
+///
+/// let db = WebDatabase::new();
+/// save_all_events(&events, &db).await?;
+/// ```
+/// If the function succeeds, it returns `Ok(())`.
 async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error> {
     for event in events.iter() {
         db.save_event(event).await?;
@@ -247,6 +321,53 @@ async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error
     Ok(())
 }
 
+/// Counts the number of occurrences of each event content.
+///
+/// This function takes a slice of events and returns a `Result` wrapping a `HashMap` where the keys are the event contents
+/// and the values are the count of occurrences of each event content. If an error occurs during the execution, an `Error` is
+/// returned.
+///
+/// # Arguments
+///
+/// * `events` - A slice of `Event` objects representing the events to count.
+///
+/// # Returns
+///
+/// * `Result<HashMap<String, i32>, Error>` - A `Result` that wraps a `HashMap` where the keys are the event contents and
+///    the values are the count of occurrences of each event content. If successful, it returns `Ok(ret)`, where `ret` is the
+///    resulting `HashMap`. If an error occurs, it returns `Err(Error)`.
+///
+/// # Examples
+///
+/// ```rust
+/// use std::collections::HashMap;
+///
+/// struct Event {
+///     content: String,
+/// }
+///
+/// impl Event {
+///     fn content(&self) -> &str {
+///         &self.content
+///     }
+/// }
+///
+/// fn count_events(events: &[Event]) -> Result<HashMap<String, i32>, Error> {
+///     // implementation here
+/// }
+///
+/// let events = vec![
+///     Event { content: String::from("event1") },
+///     Event { content: String::from("event2") },
+///     Event { content: String::from("event1") },
+/// ];
+///
+/// let result = count_events(&events);
+/// assert_eq!(result.unwrap().get("event1"), Some(&2));
+/// assert_eq!(result.unwrap().get("event2"), Some(&1));
+/// assert_eq!(result.unwrap().get("event3"), None);
+/// ```
+///
 fn count_events(events: &[Event]) -> Result<HashMap<String, i32>, Error> {
     let mut ret = HashMap::new();
     for event in events.iter() {
@@ -256,6 +377,22 @@ fn count_events(events: &[Event]) -> Result<HashMap<String, i32>, Error> {
     Ok(ret)
 }
 
+/// Represents the possible stop conditions for a process.
+///
+/// # Examples
+///
+/// ```rust
+/// use crate::StopCondition;
+///
+/// let condition = StopCondition::NoEvents;
+/// ```
+///
+/// ```rust
+/// use crate::StopCondition;
+///
+/// let condition = StopCondition::DataInDb;
+/// ```
+///
 enum StopCondition {
     NoEvents,
     DataInDb,
@@ -307,6 +444,51 @@ fn test() {
 }
 */
 
+/// Test module for the Fetcher structure.
+///
+/// # Examples
+///
+/// ```
+/// #[cfg(test)]
+/// mod tests {
+///     use super::Fetcher;
+///     use nostr_indexeddb::WebDatabase;
+///     use nostr_sdk::prelude::*;
+///     use wasm_bindgen_test::*;
+///
+///     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+///
+///     #[wasm_bindgen_test]
+///     async fn test_get_events() {
+///         // Code goes here
+///     }
+///
+///     #[wasm_bindgen_test]
+///     async fn test_sync_data_saved() {
+///         // Code goes here
+///     }
+///
+///     #[wasm_bindgen_test]
+///     async fn test_get_metadata() {
+///         // Code goes here
+///     }
+///
+///     #[wasm_bindgen_test]
+///     async fn test_get_reactions() {
+///         // Code goes here
+///     }
+///
+///     #[wasm_bindgen_test]
+///     async fn test_get_reply() {
+///         // Code goes here
+///     }
+///
+///     #[wasm_bindgen_test]
+///     async fn test_get_repost() {
+///         // Code goes here
+///     }
+/// }
+/// ```
 #[cfg(test)]
 mod tests {
     //use std::pin::Pin;
