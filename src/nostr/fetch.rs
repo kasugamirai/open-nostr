@@ -306,7 +306,7 @@ mod tests {
     }
 
     #[wasm_bindgen_test]
-    async fn test_get_profile() {
+    async fn test_get_metadata() {
         let name = "xy";
         let public_key = PublicKey::from_bech32(
             "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
