@@ -39,6 +39,7 @@ impl NoteData {
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
     pub data: NoteData,
+    pub clsname: Option<String>,
     //pub metadata: nostr_sdk::Metadata,
 }
 enum NoteAction {
@@ -99,7 +100,8 @@ pub fn Note(props: NoteProps) -> Element {
     // let 
     rsx! {
         div {
-            class: "com-post",
+            class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
+            id: format!("note-{}", props.data.id),
             div {
                 style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
                 div {

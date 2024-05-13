@@ -49,6 +49,34 @@
     --txt-3: #6B6B6B;
 }
 
+.bgc-0 {
+    background-color: var(--bgc-0);
+}
+.bgc-1 {
+    background-color: var(--bgc-1);
+}
+.bgc-2 {
+    background-color: var(--bgc-2);
+}
+.bgc-3 {
+    background-color: var(--bgc-3);
+}
+.boc-1 {
+    border-color: var(--boc-1);
+}
+.boc-2 {
+    border-color: var(--boc-2);
+}
+.txt-1 {
+    color: var(--txt-1);
+}
+.txt-2 {
+    color: var(--txt-2);
+}
+.txt-3 {
+    color: var(--txt-3);
+}
+
 #app {
     position: fixed;
     top: 0;
