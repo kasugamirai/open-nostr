@@ -99,6 +99,13 @@ $z-index_max_size: 100;
         transform: translateY(-$i + $unitpx);
     }
 }
+// lh 
+@for $i from 1 through 100 {
+    .lh-#{$i} {
+        line-height: $i + $unitpx;
+    }
+}
+
 
 .relative {
     position: relative;
@@ -115,3 +122,8 @@ $z-index_max_size: 100;
 .items-start {
     align-items: flex-start;
 }
+
+.wor-wrap {
+    word-wrap: break-word;
+}
+

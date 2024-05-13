@@ -97,27 +97,20 @@
     fill: var(--txt-1);
 }
 
-.com-post .com-post-content {
-    font-size: 16px;
-    line-height: 1.6;
-    word-wrap: break-word;
-}
-
 .com-post .note-action-count {
-    font-size: 12px;
     font-family: "Source Sans Pro";
-    color: #030303;
 }
 
-.com-post .com-post-info svg {
-    display: flex;
-    width: 24px;
-    height: 24px;
+.com-post .note-action {
+    svg {
+        width: 24px;
+        height: 24px;
+    }
+    &-item:not(:first-child) {
+        margin-left: 10px;
+    }
 }
 
-.com-post .com-post-info-item:not(:first-child) {
-    margin-left: 10px;
-}
 
 .com-switch {
     display: flex;
@@ -356,5 +349,18 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: pre-wrap;
+    }
+}
+
+.expand-list {
+    height: fit-content;
+    transition: height 0.5s;
+    overflow: hidden;
+    &-open {
+        height: fit-content;
+        margin-top: -34px;
+    }
+    &-close {
+        height: 0;
     }
 }

@@ -1,7 +1,8 @@
 use std::time::Duration;
+use std::cell::RefCell;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, Event, EventId, Filter, JsonUtil};
+use nostr_sdk::{hashes::siphash24::State, Client, Event, EventId, Filter, JsonUtil};
 
 use crate::{
     nostr::note::{DisplayOrder, ReplyTrees, TextNote}, views::note_list::note::{Note, NoteData},
@@ -11,7 +12,7 @@ use crate::{
 struct NoteTree {
     content: String,
     children: Vec<NoteTree>,
-    event: Event
+    event: Event,
 }
 
 impl PartialEq for NoteTree {
@@ -67,7 +68,7 @@ pub fn NoteDetail(id: String) -> Element {
             .map(|n| NoteTree {
                 content: n.inner_ref.content.clone(),
                 children: get_notetree(n.inner_ref.id, reply_tree),
-                event: Event::from(n.inner_ref.clone())
+                event: Event::from(n.inner_ref.clone()),
             })
             .collect()
     }
@@ -80,8 +81,25 @@ pub fn NoteDetail(id: String) -> Element {
                 .unwrap(),
             &reply_tree,
         ),
-        event: Event::from_json(R).unwrap()
+        event: Event::from_json(R).unwrap(),
     }];
+    let scirpts: &str = r#"
+            var expandList = document.querySelectorAll('.note-action-expand');
+            expandList.forEach(function(expand) {
+                expand.addEventListener('click', function() {
+                    var parent = expand.parentElement.parentElement;
+                    const expandItem = parent.nextElementSibling;
+                    if (expandItem.classList.contains('expand-list-open')) {
+                        expandItem.classList.remove('expand-list-open');
+                        expandItem.classList.add('expand-list-close');
+                    } else {
+                        expandItem.classList.add('expand-list-open');
+                        expandItem.classList.remove('expand-list-close');
+                    }
+                });
+            });
+        "#;
+
     rsx! {
         div {
             onmounted: move |_cx| {},
@@ -90,6 +108,9 @@ pub fn NoteDetail(id: String) -> Element {
                 index: events.len() + 1,
                 root: true,
                 events_len: Some(events.len() as u64), // Convert usize to Option<u64>
+            }
+            script{
+                "{scirpts}"
             }
         }
     }
@@ -114,12 +135,12 @@ fn Layer(props: LayerProps) -> Element {
                 event: Event::from(note.event.clone()),
                 reply: false,
                 index: props.index,
+                is_expand: if note.children.len() > 0 {Some(true)} else {None},
                 clsname: if index == 0 {props.clsname.unwrap_or("")} else {""},
             }
             if note.children.len() > 0 {
                 div {
-                    style: "margin-top: -34px",
-                    class: format!("z-{} relative", props.index - 1),
+                    class: format!("expand-list-open expand-list z-{} relative", props.index - 1),
                     Layer {
                         notes: note.children.clone(),
                         index: props.index,
@@ -138,7 +159,8 @@ pub struct ItemProps {
     reply: bool,
     index: usize,
     events_len: Option<u64>,
-    clsname: &'static str
+    clsname: &'static str,
+    is_expand: Option<bool>
 }
 
 #[component]
@@ -147,6 +169,7 @@ fn Item(props: ItemProps) -> Element {
         Note {
             data: NoteData::from(&props.event, props.index),
             clsname: format!("z-{} mb-20 bgc-0 relative {}", props.index, props.clsname),
+            is_expand: props.is_expand
         }
     }
 }

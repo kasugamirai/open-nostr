@@ -41,7 +41,9 @@ impl NoteData {
 pub struct NoteProps {
     pub data: NoteData,
     pub clsname: Option<String>,
+    pub on_detail: Option<EventHandler<()>>,
     //pub metadata: nostr_sdk::Metadata,
+    pub is_expand: Option<bool>
 }
 enum NoteAction {
     Replay,
@@ -130,54 +132,68 @@ pub fn Note(props: NoteProps) -> Element {
                     timestamp: props.data.created_at,
                     nickname: None,
                 }
-                div {
-                    class: "com-post-author-more",
-                    MoreInfo {
-                        on_detail: move |_| {
-                            let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
-                            let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
-                            detail.set(formatted_json);
-                            show_detail.set(!show_detail());
-                        },
-                    }
+                MoreInfo {
+                    on_detail: move |_| {
+                        let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
+                        let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                        detail.set(formatted_json);
+                        show_detail.set(!show_detail());
+                    },
                 }
             }
             div {
-                class: "com-post-content",
+                class: "note-content font-size-16 word-wrap lh-26 pl-52",
                 dangerous_inner_html: "{format_content(&props.data.content)}",
             }
+            
             div {
-                class: "com-post-info flex items-center",
-                {note_action_state.iter().map(|_state| {
-                    rsx! {
-                        div {
-                            class: "com-post-info-item cursor-pointer flex items-center",
-                            span {
-                                class: "note-action-icon",
-                                dangerous_inner_html: match _state.action {
-                                    NoteAction::Replay => TURN_LEFT.to_string(),
-                                    NoteAction::Share => TURN_RIGHT.to_string(),
-                                    NoteAction::Qoute => QUTE.to_string(),
-                                    NoteAction::Zap => ZAP.to_string(),
+                class: "note-action-wrapper flex items-center justify-between pl-52 pr-12",
+                div {
+                    class: "note-action flex items-center",
+                    {note_action_state.iter().map(|_state| {
+                        rsx! {
+                            div {
+                                class: "note-action-item cursor-pointer flex items-center",
+                                span {
+                                    class: "note-action-icon",
+                                    dangerous_inner_html: match _state.action {
+                                        NoteAction::Replay => TURN_LEFT.to_string(),
+                                        NoteAction::Share => TURN_RIGHT.to_string(),
+                                        NoteAction::Qoute => QUTE.to_string(),
+                                        NoteAction::Zap => ZAP.to_string(),
+                                    }
+                                }
+                                span {
+                                    class: "note-action-count font-size-12 txt-1",
+                                    {format!("{}", _state.count)}
                                 }
                             }
-                            span {
-                                class: "note-action-count",
-                                {format!("{}", _state.count)}
-                            }
+                        }
+                    })}
+                    span{
+                        style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
+                    }
+                    Link {
+                        class: "note-action-item cursor-pointer",
+                        to: Route::NoteDetail { id: props.data.id.clone() },
+                        span {
+                            dangerous_inner_html: "{ADD}",
                         }
                     }
-                })}
-                span{
-                    style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
+                    // emojis
+                    
                 }
-                Link {
-                    class: "com-post-info-item com-post-info-reply cursor-pointer",
-                    to: Route::NoteDetail { id: props.data.id.clone() },
-                    span {
-                        dangerous_inner_html: "{ADD}",
+
+                if props.is_expand.unwrap_or(false) {
+                    div {
+                        "data-expand": props.data.id.clone(),
+                        class: "note-action-expand cursor-pointer",
+                        span {
+                            dangerous_inner_html: "{DOWN}",
+                        }
                     }
                 }
+                
             }
         }
     }
