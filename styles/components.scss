@@ -50,43 +50,7 @@
     word-wrap: break-word;
 }
 
-.com-post .com-post-author {
-    display: flex;
-    gap: 10px;
-}
 
-.com-post .com-post-author .com-post-author-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    overflow: hidden;
-}
-
-.com-post .com-post-author .com-post-author-avatar img {
-    width: 45px;
-    height: 45px;
-}
-
-.com-post .com-post-author .com-post-author-profile {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-}
-
-.com-post .com-post-author .com-post-author-profile-name {
-    font-size: 16px;
-    color: var(--txt-1)
-}
-
-.com-post .com-post-author .com-post-author-profile-created {
-    font-size: 12px;
-    color: var(--txt-3)
-}
-
-.com-post svg.icon {
-    width: 24px;
-    height: 24px;
-}
 
 .more-trigger svg {
     cursor: pointer;

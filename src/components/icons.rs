@@ -1,5 +1,3 @@
-pub const MARKS: &str = include_str!("../../public/static/marks.svg");
-pub const FLASH: &str = include_str!("../../public/static/flash.svg");
 pub const STAR: &str = include_str!("../../public/static/star.svg");
 pub const MORE: &str = include_str!("../../public/static/more.svg");
 pub const SHARE: &str = include_str!("../../public/static/share.svg");

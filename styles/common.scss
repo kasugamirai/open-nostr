@@ -83,6 +83,13 @@ $z-index_max_size: 100;
         z-index: $i;
     }
 }
+// square 1 - 100px
+@for $i from 1 through 100 {
+    .square-#{$i} {
+        width: $i + $unitpx;
+        height: $i + $unitpx;
+    }
+}
 
 @for $i from 1 through 100 {
     .translate-y-top-#{$i} {
@@ -98,4 +105,13 @@ $z-index_max_size: 100;
 }
 .absoulte {
     position: absolute;
+}
+.flex-col {
+    flex-direction: column;
+}
+.flex-row {
+    flex-direction: row;
+}
+.items-start {
+    align-items: flex-start;
 }

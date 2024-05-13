@@ -5,6 +5,7 @@ use nostr_sdk::{Client, EventId, Filter, JsonUtil};
 
 use crate::{
     components::icons::*,
+    components::Avatar,
     utils::format::{format_content, format_create_at, format_public_key},
     Route,
 };
@@ -97,11 +98,13 @@ pub fn Note(props: NoteProps) -> Element {
         },
     ];
 
+
     // let 
     rsx! {
         div {
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
             id: format!("note-{}", props.data.id),
+            // detail modal
             div {
                 style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
                 div {
@@ -121,30 +124,11 @@ pub fn Note(props: NoteProps) -> Element {
                 }
             }
             div {
-                class: "com-post-author",
-                div {
-                    class: "com-post-author-avatar",
-                    img {
-                        src: match &*future.read_unchecked() {
-                            Some(Some(s)) => s,
-                            Some(None) => "https://is.gd/hidYxs",
-                            None => "https://is.gd/hidYxs",
-                        }
-                    }
-                }
-                div {
-                    class: "com-post-author-profile",
-                    span {
-                        class: "com-post-author-profile-name",
-                        {format_public_key(&props.data.author, None)}
-                    }
-                    span {
-                        class: "com-post-author-profile-created",
-                        {format_create_at(props.data.created_at)}
-                    }
-                }
-                div {
-                    style: "flex: 1;",
+                class: "note-header flex items-start justify-between",
+                Avatar {
+                    pubkey: props.data.author.clone(),
+                    timestamp: props.data.created_at,
+                    nickname: None,
                 }
                 div {
                     class: "com-post-author-more",

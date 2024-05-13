@@ -23,7 +23,7 @@ impl PartialEq for NoteTree {
 #[component]
 pub fn NoteDetail(id: String) -> Element {
     let mut data = use_signal(Vec::<Event>::new);
-    let get_events = move |id: String| {
+    let _get_events = move |id: String| {
         spawn(async move {
             let client = Client::default();
 
@@ -72,6 +72,7 @@ pub fn NoteDetail(id: String) -> Element {
             .collect()
     }
 
+
     let notetree = vec![NoteTree {
         content: "This is the Root!".to_string(),
         children: get_notetree(
@@ -81,12 +82,9 @@ pub fn NoteDetail(id: String) -> Element {
         ),
         event: Event::from_json(R).unwrap()
     }];
-
     rsx! {
         div {
-            onmounted: move |_cx| {
-                get_events(id.clone());
-            },
+            onmounted: move |_cx| {},
             Layer {
                 notes: notetree,
                 index: events.len() + 1,
@@ -111,23 +109,21 @@ pub struct LayerProps {
 #[component]
 fn Layer(props: LayerProps) -> Element {
     rsx! {
-        for note in props.notes {
+        for (index, note) in props.notes.iter().enumerate() {
             Item {
-                event: Event::from(note.event),
+                event: Event::from(note.event.clone()),
                 reply: false,
                 index: props.index,
-                events_len: props.events_len,
-                clsname: props.clsname.unwrap_or(""),
+                clsname: if index == 0 {props.clsname.unwrap_or("")} else {""},
             }
             if note.children.len() > 0 {
                 div {
                     style: "margin-top: -34px",
                     class: format!("z-{} relative", props.index - 1),
                     Layer {
-                        notes: note.children,
+                        notes: note.children.clone(),
                         index: props.index,
                         root: false,
-                        events_len: props.events_len,
                         clsname: "pt-20",
                     }
                 }
