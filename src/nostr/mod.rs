@@ -3,3 +3,4 @@ pub mod note;
 pub mod register;
 pub mod utils;
 pub use fetch::Fetcher;
+pub mod multiclient;
