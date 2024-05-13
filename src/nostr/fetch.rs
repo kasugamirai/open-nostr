@@ -6,8 +6,8 @@ use super::note::ReplyTrees;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{
-    client, event, Alphabet, Client, Event, EventId, Filter, FilterOptions, JsonUtil, Kind,
-    Metadata, PublicKey, SingleLetterTag,
+    client, event, Alphabet, Client, Event, EventId, Filter, FilterOptions, JsonUtil, Kind, Marker,
+    Metadata, PublicKey, SingleLetterTag, Tag,
 };
 use nostr_sdk::{NostrDatabase, Timestamp};
 use web_sys::console;
@@ -363,17 +363,14 @@ async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error
 fn filter_root_replies(events: &[Event]) -> Vec<Event> {
     let mut ret = Vec::new();
     for event in events.iter() {
-        for tag in event.tags() {
-            if let event::Tag::Event {
-                marker: Some(marker),
-                ..
-            } = tag
-            {
-                if marker.to_string() == "root" {
-                    ret.push(event.clone());
+        event.iter_tags().for_each(|t| {
+            if let Tag::Event { marker, .. } = t {
+                match marker {
+                    Some(Marker::Root) => ret.push(event.clone()),
+                    _ => (),
                 }
             }
-        }
+        });
     }
     ret
 }
@@ -381,17 +378,14 @@ fn filter_root_replies(events: &[Event]) -> Vec<Event> {
 fn filter_reply_replies(events: &[Event]) -> Vec<Event> {
     let mut ret = Vec::new();
     for event in events.iter() {
-        for tag in event.tags() {
-            if let event::Tag::Event {
-                marker: Some(marker),
-                ..
-            } = tag
-            {
-                if marker.to_string() == "reply" {
-                    ret.push(event.clone());
+        event.iter_tags().for_each(|t| {
+            if let Tag::Event { marker, .. } = t {
+                match marker {
+                    Some(Marker::Reply) => ret.push(event.clone()),
+                    _ => (),
                 }
             }
-        }
+        });
     }
     ret
 }
