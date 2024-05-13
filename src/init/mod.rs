@@ -61,67 +61,67 @@ pub fn App() -> Element {
 
     // hook: on mounted
     let on_mounted = move |_| {
-        spawn(async move {
-            // TODO: init().await;
+        // spawn(async move {
+        //     // TODO: init().await;
 
-            let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
+        //     let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
 
-            let name_list = database.get_sub_name_list().await.unwrap();
+        //     let name_list = database.get_sub_name_list().await.unwrap();
 
-            let mut subs = vec![];
-            for i in name_list.names.iter() {
-                let sub = database.get_custom_sub(i.to_string()).await.unwrap();
-                subs.push(sub);
-            }
+        //     let mut subs = vec![];
+        //     for i in name_list.names.iter() {
+        //         let sub = database.get_custom_sub(i.to_string()).await.unwrap();
+        //         subs.push(sub);
+        //     }
 
-            async fn handler_text_note(
-                notification: RelayPoolNotification,
-            ) -> Result<bool, Box<dyn StdError>> {
-                if let RelayPoolNotification::Message {
-                    message: RelayMessage::Event { event, .. },
-                    ..
-                } = notification
-                {
-                    println!("TextNote: {:?}", event);
-                    tracing::info!("TextNote: {:?}", event);
-                }
-                Ok(false)
-            }
+        //     async fn handler_text_note(
+        //         notification: RelayPoolNotification,
+        //     ) -> Result<bool, Box<dyn StdError>> {
+        //         if let RelayPoolNotification::Message {
+        //             message: RelayMessage::Event { event, .. },
+        //             ..
+        //         } = notification
+        //         {
+        //             println!("TextNote: {:?}", event);
+        //             tracing::info!("TextNote: {:?}", event);
+        //         }
+        //         Ok(false)
+        //     }
 
-            let mut cs = clients.write();
-            for i in subs.iter() {
-                let client_builder =
-                    ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-                let c = client_builder.build();
-                c.add_relays(i.relay_set.relays.clone()).await.unwrap();
-                c.connect().await;
-                cs.insert(i.name.clone(), c.clone());
+        //     let mut cs = clients.write();
+        //     for i in subs.iter() {
+        //         let client_builder =
+        //             ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
+        //         let c = client_builder.build();
+        //         c.add_relays(i.relay_set.relays.clone()).await.unwrap();
+        //         c.connect().await;
+        //         cs.insert(i.name.clone(), c.clone());
 
-                if i.live {
-                    let s = i.clone();
-                    use_coroutine(|_: UnboundedReceiver<()>| async move {
-                        (*register.read())
-                            .add_subscription(
-                                &c.clone(),
-                                SubscriptionId::new(s.name.clone()),
-                                s.get_filters(),
-                                Arc::new(|notification| Box::pin(handler_text_note(notification))),
-                                None,
-                            )
-                            .await
-                            .unwrap();
-                        (*register.read())
-                            .handle_notifications(&c.clone())
-                            .await
-                            .unwrap();
-                    });
-                }
-            }
+        //         if i.live {
+        //             let s = i.clone();
+        //             use_coroutine(|_: UnboundedReceiver<()>| async move {
+        //                 (*register.read())
+        //                     .add_subscription(
+        //                         &c.clone(),
+        //                         SubscriptionId::new(s.name.clone()),
+        //                         s.get_filters(),
+        //                         Arc::new(|notification| Box::pin(handler_text_note(notification))),
+        //                         None,
+        //                     )
+        //                     .await
+        //                     .unwrap();
+        //                 (*register.read())
+        //                     .handle_notifications(&c.clone())
+        //                     .await
+        //                     .unwrap();
+        //             });
+        //         }
+        //     }
 
-            for i in subs.iter() {
-                all_sub.push(i.clone());
-            }
-        });
+        //     for i in subs.iter() {
+        //         all_sub.push(i.clone());
+        //     }
+        // });
     };
 
     let mut root_click_pos = use_context_provider(|| Signal::new((0.0, 0.0)));

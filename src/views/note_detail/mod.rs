@@ -80,64 +80,65 @@ pub fn NoteDetail(id: String) -> Element {
             &reply_tree,
         ),
     }];
+    let styles = r#"
+    .note-wrapper {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 30px;
+        background-color: var(--bgc-0);
+    }
+    .note-content {                    
+        position: relative;
+        padding: 10px 10px 0 10px;
+    }
+    .note-content .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        position: relative;
+    }
+    .note-content .header .avatar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+    .note-content .header .info {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+    }
+    .note-content .main {
+        position: relative;
+    }
+    .note-content .footer {
+        display: flex;
+        gap: 10px;
+        position: relative;
+    }
+    .note-content .footer .left {
+        display: flex;
+        gap: 20px;
+    }
+    .note-content .footer .left .btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .note-content .footer .left .btn svg {
+        width: 20px;
+        height: 20px;
+    }
+    .note-content .footer .left .btn .data {
+        transform: translateY(-4px);
+    }
+    "#;
 
     rsx! {
         style {
-            r#"
-                .note-wrapper {{
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 30px;
-                    background-color: var(--bgc-0);
-                }}
-                .note-content {{                    
-                    position: relative;
-                    padding: 10px 10px 0 10px;
-                }}
-                .note-content .header {{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 10px;
-                    position: relative;
-                }}
-                .note-content .header .avatar {{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 10px;
-                }}
-                .note-content .header .info {{
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-around;
-                }}
-                .note-content .main {{
-                    position: relative;
-                }}
-                .note-content .footer {{
-                    display: flex;
-                    gap: 10px;
-                    position: relative;
-                }}
-                .note-content .footer .left {{
-                    display: flex;
-                    gap: 20px;
-                }}
-                .note-content .footer .left .btn {{
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }}
-                .note-content .footer .left .btn svg {{
-                    width: 20px;
-                    height: 20px;
-                }}
-                .note-content .footer .left .btn .data {{
-                    transform: translateY(-4px);
-                }}
-            "#
+            "{styles}"
         }
         div {
             style: "display: flex; width: 100%; height: 100%; gap: 20px;",
@@ -182,9 +183,9 @@ pub fn NoteDetail(id: String) -> Element {
                     }
                 }
             }
-            div {
-                style: "width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; gap: 10px;",
-            }
+            // div {
+            //     style: "width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; gap: 10px;",
+            // }
         }
     }
 }
@@ -253,7 +254,7 @@ fn Layer(props: LayerProps) -> Element {
                                     }
                                 }
                                 div {
-                                    class: "btn",
+                                    class: "btn flex items-center",
                                     span {
                                         dangerous_inner_html: "{TURN_RIGHT}",
                                     }
@@ -263,17 +264,17 @@ fn Layer(props: LayerProps) -> Element {
                                     }
                                 }
                                 div {
-                                    class: "btn",
+                                    class: "btn flex items-center",
                                     span {
                                         dangerous_inner_html: "{MARKS}",
                                     }
                                     span {
-                                        class: "data",
+                                        class: "data items-center",
                                         "2"
                                     }
                                 }
                                 div {
-                                    class: "btn",
+                                    class: "btn flex items-center",
                                     span {
                                         dangerous_inner_html: "{FLASH}",
                                     }
@@ -283,7 +284,7 @@ fn Layer(props: LayerProps) -> Element {
                                     }
                                 }
                                 div {
-                                    class: "btn",
+                                    class: "btn flex items-center",
                                     span {
                                         dangerous_inner_html: "{ADD}",
                                     }
