@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use dioxus::html::time;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{
     client, Alphabet, Client, Event, EventId, Filter, FilterOptions, JsonUtil, Kind, Metadata,
-    PublicKey, SingleLetterTag, Tag,
+    PublicKey, SingleLetterTag,
 };
 use nostr_sdk::{NostrDatabase, Timestamp};
 use web_sys::console;
