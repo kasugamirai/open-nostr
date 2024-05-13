@@ -1,4 +1,4 @@
-use nostr_sdk::key::SecretKey;
+use nostr_sdk::key::{PublicKey, SecretKey};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -12,6 +12,7 @@ pub struct User {
 pub enum AccountType {
     NotLoggedIn,
     Local(LocalSavedKey),
+    Pub(OnlyPubkey),
 }
 
 pub struct NoLogin {
@@ -32,6 +33,12 @@ pub struct LocalSavedKey {
     pub sk: SecretKey,
 }
 
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub struct OnlyPubkey {
+    pub r#type: String,
+    pub pk: PublicKey,
+}
+
 
 
 impl Serialize for AccountType {
@@ -42,6 +49,7 @@ impl Serialize for AccountType {
         match self {
             AccountType::NotLoggedIn => serializer.serialize_unit_variant("AccountType", 0, "NoLogin"),
             AccountType::Local(lk) => lk.sk.serialize(serializer),
+            AccountType::Pub(pk) => pk.pk.serialize(serializer),
         }
     }
 }
@@ -59,6 +67,10 @@ impl<'de> Deserialize<'de> for AccountType {
                 sk: SecretKey::deserialize(value).unwrap(),
             }),
             ),
+            Some("Pub") => Ok(AccountType::Pub(OnlyPubkey {
+                r#type: "Pub".to_string(),
+                pk: PublicKey::deserialize(value).unwrap(),
+            })),
             _ => Err(serde::de::Error::custom("Invalid value")),
         }
     }

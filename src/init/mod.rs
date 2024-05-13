@@ -14,6 +14,7 @@ pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
     let mut register = use_context_provider(|| Signal::new(Register::new()));
 
+    // todo: there should be a struct to wrap clients, not use a hashmap directly
     let mut clients = use_context_provider(|| Signal::new(HashMap::<String, Client>::new()));
 
     // all custom subscriptions
