@@ -98,12 +98,6 @@ pub fn App() -> Element {
     let style = format!(
         "\n{}",
         include_str!("../../assets/main.dev.css"),
-        // include_str!("../../assets/style/main.css"),
-        // include_str!("../../assets/style/common.css"),
-        // include_str!("../../assets/style/components.css"),
-        // include_str!("../../assets/style/layout-left.css"),
-        // include_str!("../../assets/style/layout-main.css"),
-        // include_str!("../../assets/style/layout-right.css"),
     );
 
     rsx! {
