@@ -150,8 +150,9 @@
     width: 24px;
     height: 24px;
 }
+
 .com-post .com-post-info-item:not(:first-child) {
-    margin-left:10px;
+    margin-left: 10px;
 }
 
 .com-switch {
@@ -255,4 +256,141 @@
 .com-dtpicker {
     display: flex;
     gap: 10px;
+}
+
+.event-note {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--boc-1);
+    border-radius: var(--radius-1);
+    padding: 12px;
+
+    .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .user {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            .avatar {
+                width: 46px;
+                height: 46px;
+                border-radius: 50%;
+                overflow: hidden;
+
+                .image {
+                    width: 100%;
+                    height: 100%;
+                }
+            }
+
+            .profile {
+                display: flex;
+                flex-direction: column;
+                justify-content: space-around;
+
+                .nickname {
+                    font-size: 16px;
+                    color: var(--txt-1);
+                }
+
+                .created {
+                    font-size: 12px;
+                    color: var(--txt-3);
+                }
+            }
+        }
+    }
+
+    .reply,
+    .quote {
+        display: flex;
+        align-items: center;
+
+        .title {
+            width: 46px;
+        }
+
+        .note {
+            width: calc(100% - 46px);
+        }
+    }
+
+    .content {
+        padding-left: 46px;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    .footer {
+        padding-left: 46px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .info {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+    }
+}
+
+.event-less {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--boc-1);
+    border-radius: var(--radius-1);
+    padding: 6px;
+
+    .header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 150px;
+
+        .avatar {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            overflow: hidden;
+
+            .image {
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        .profile {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+
+            .nickname {
+                font-size: 16px;
+                color: var(--txt-1);
+            }
+
+            .created {
+                font-size: 12px;
+                color: var(--txt-3);
+            }
+        }
+    }
+
+    .text {
+        flex: 1;
+        word-wrap: break-word;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: pre-wrap;
+    }
 }
