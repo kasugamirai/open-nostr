@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use manganis::font;
+use dioxus::html::time;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{
@@ -71,11 +71,10 @@ impl Fetcher {
         &self,
         client: Client,
         public_key: PublicKey,
+        timeout: Option<std::time::Duration>,
     ) -> Result<Metadata, Error> {
         let filter = Filter::new().author(public_key).kind(Kind::Metadata);
-        let events = client
-            .get_events_of(vec![filter], Some(Duration::from_secs(10)))
-            .await?;
+        let events = client.get_events_of(vec![filter], timeout).await?;
         let event = get_newest_event(&events);
         if let Some(event) = event {
             let m = Metadata::from_json(&event.content)?;
@@ -89,17 +88,44 @@ impl Fetcher {
         &self,
         client: Client,
         event_id: EventId,
+        timeout: Option<std::time::Duration>,
     ) -> Result<HashMap<String, i32>, Error> {
         let filter = Filter::new().kind(Kind::Reaction).custom_tag(
             SingleLetterTag::lowercase(Alphabet::E),
             vec![event_id.to_hex()],
         );
-        let events = client
-            .get_events_of(vec![filter], Some(Duration::from_secs(10)))
-            .await?;
+        let events = client.get_events_of(vec![filter], timeout).await?;
 
         let ret = count_events(&events)?;
         Ok(ret)
+    }
+
+    pub async fn get_reply(
+        &self,
+        client: Client,
+        event_id: EventId,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Vec<Event>, Error> {
+        let filter = Filter::new().kind(Kind::TextNote).custom_tag(
+            SingleLetterTag::lowercase(Alphabet::E),
+            vec![event_id.to_hex()],
+        );
+        let events = client.get_events_of(vec![filter], timeout).await?;
+        Ok(events)
+    }
+
+    pub async fn get_repost(
+        &self,
+        client: Client,
+        event_id: EventId,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Vec<Event>, Error> {
+        let filter = Filter::new().kind(Kind::Repost).custom_tag(
+            SingleLetterTag::lowercase(Alphabet::E),
+            vec![event_id.to_hex()],
+        );
+        let events = client.get_events_of(vec![filter], timeout).await?;
+        Ok(events)
     }
 
     pub async fn get_following(
@@ -345,6 +371,7 @@ mod tests {
 
     #[wasm_bindgen_test]
     async fn test_get_metadata() {
+        let timeout = Some(std::time::Duration::from_secs(5));
         let name = "xy";
         let public_key = PublicKey::from_bech32(
             "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
@@ -354,13 +381,17 @@ mod tests {
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
         let fetcher = Fetcher::new();
-        let metadata = fetcher.get_metadata(client, public_key).await.unwrap();
+        let metadata = fetcher
+            .get_metadata(client, public_key, timeout)
+            .await
+            .unwrap();
         console_log!("Metadata: {:?}", metadata);
         assert_eq!(metadata.name, Some(name.to_string()));
     }
 
     #[wasm_bindgen_test]
     async fn test_get_reactions() {
+        let timeout = Some(std::time::Duration::from_secs(5));
         let event_id =
             EventId::from_bech32("note1yht55eufy56v6twj4jzvs4kmplm6k3yayj3yyjzfs9mjhu2vlnms7x3x4h")
                 .unwrap();
@@ -368,9 +399,44 @@ mod tests {
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
         let fetcher = Fetcher::new();
-        let reactions = fetcher.get_reactions(client, event_id).await.unwrap();
+        let reactions = fetcher
+            .get_reactions(client, event_id, timeout)
+            .await
+            .unwrap();
         let length = reactions.len();
         console_log!("Reactions: {:?}", reactions);
         assert_eq!(reactions.len(), length);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_reply() {
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let event_id =
+            EventId::from_bech32("note1yht55eufy56v6twj4jzvs4kmplm6k3yayj3yyjzfs9mjhu2vlnms7x3x4h")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let fetcher = Fetcher::new();
+        let replies = fetcher.get_reply(client, event_id, timeout).await.unwrap();
+        let length = replies.len();
+        console_log!("Replies: {:?}", replies);
+        assert_eq!(replies.len(), length);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_repost() {
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let event_id =
+            EventId::from_bech32("note1emq5z2agsdqzhztd4t8k9wvjh7nzm7dtype5herygf8dran86fpsm39ncs")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let fetcher = Fetcher::new();
+        let reposts = fetcher.get_repost(client, event_id, timeout).await.unwrap();
+        let length = reposts.len();
+        console_log!("Reposts: {:?}", reposts);
+        assert_eq!(reposts.len(), length);
     }
 }
