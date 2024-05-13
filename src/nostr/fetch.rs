@@ -119,7 +119,8 @@ impl Fetcher {
             vec![event_id.to_hex()],
         );
         let events = client.get_events_of(vec![filter], timeout).await?;
-        Ok(events)
+        let ret = filter_root_replies(&events);
+        Ok(ret)
     }
 
     /// Fetches the metadata of a user with the given public key.
@@ -154,23 +155,6 @@ impl Fetcher {
         let events = client.get_events_of(vec![filter], timeout).await?;
 
         let ret = count_events(&events)?;
-        Ok(ret)
-    }
-
-    /// Fetches the replies of an event with the given event ID.
-    pub async fn get_reply(
-        &self,
-        client: Client,
-        event_id: EventId,
-        timeout: Option<std::time::Duration>,
-    ) -> Result<Vec<Event>, Error> {
-        let filter = Filter::new().kind(Kind::TextNote).custom_tag(
-            SingleLetterTag::lowercase(Alphabet::E),
-            vec![event_id.to_hex()],
-        );
-
-        let events = client.get_events_of(vec![filter], timeout).await?;
-        let ret = filter_root_replies(&events);
         Ok(ret)
     }
 
@@ -692,7 +676,10 @@ mod tests {
         client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
         let fetcher = Fetcher::new();
-        let replies = fetcher.get_reply(client, event_id, timeout).await.unwrap();
+        let replies = fetcher
+            .get_replies(client, event_id, timeout)
+            .await
+            .unwrap();
         let length = replies.len();
         console_log!("Replies: {:?}", replies);
         assert_eq!(replies.len(), length);
