@@ -19,5 +19,8 @@ jobs:
           override: true
           components: clippy
 
+      - name: Add wasm32 target
+        run: rustup target add wasm32-unknown-unknown
+
       - name: Cargo Check
         run: cargo check
