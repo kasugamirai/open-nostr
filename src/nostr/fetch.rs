@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::time::Duration;
 
+use manganis::font;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{
-    client, Client, Event, Filter, FilterOptions, JsonUtil, Kind, Metadata, PublicKey,
+    client, Alphabet, Client, Event, EventId, Filter, FilterOptions, JsonUtil, Kind, Metadata,
+    PublicKey, SingleLetterTag, Tag,
 };
 use nostr_sdk::{NostrDatabase, Timestamp};
 use web_sys::console;
@@ -80,6 +83,31 @@ impl Fetcher {
         } else {
             Err("MetaData not found".to_string().into())
         }
+    }
+
+    pub async fn get_reactions(
+        &self,
+        client: Client,
+        event_id: EventId,
+    ) -> Result<HashMap<String, i32>, Error> {
+        let filter = Filter::new().kind(Kind::Reaction).custom_tag(
+            SingleLetterTag::lowercase(Alphabet::E),
+            vec![event_id.to_hex()],
+        );
+        let events = client
+            .get_events_of(vec![filter], Some(Duration::from_secs(10)))
+            .await?;
+
+        let ret = count_events(&events)?;
+        Ok(ret)
+    }
+
+    pub async fn get_following(
+        &self,
+        client: Client,
+        public_key: PublicKey,
+    ) -> Result<Vec<PublicKey>, Error> {
+        todo!()
     }
 
     pub async fn get_events_from_db(
@@ -193,6 +221,15 @@ async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error
     Ok(())
 }
 
+fn count_events(events: &[Event]) -> Result<HashMap<String, i32>, Error> {
+    let mut ret = HashMap::new();
+    for event in events.iter() {
+        let content = event.content().to_string();
+        *ret.entry(content).or_insert(0) += 1;
+    }
+    Ok(ret)
+}
+
 enum StopCondition {
     NoEvents,
     DataInDb,
@@ -254,6 +291,7 @@ mod tests {
     use nostr_sdk::prelude::*;
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
     #[wasm_bindgen_test]
 
     async fn test_get_events() {
@@ -319,5 +357,20 @@ mod tests {
         let metadata = fetcher.get_metadata(client, public_key).await.unwrap();
         console_log!("Metadata: {:?}", metadata);
         assert_eq!(metadata.name, Some(name.to_string()));
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_reactions() {
+        let event_id =
+            EventId::from_bech32("note1yht55eufy56v6twj4jzvs4kmplm6k3yayj3yyjzfs9mjhu2vlnms7x3x4h")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let fetcher = Fetcher::new();
+        let reactions = fetcher.get_reactions(client, event_id).await.unwrap();
+        let length = reactions.len();
+        console_log!("Reactions: {:?}", reactions);
+        assert_eq!(reactions.len(), length);
     }
 }
