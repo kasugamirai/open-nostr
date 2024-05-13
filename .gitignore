@@ -17,8 +17,6 @@ Cargo.lock
 node_modules
 
 .idea
-package-lock.json
-package.json
 tailwind.config.js
 public/tailwind.css
 .DS_Store
