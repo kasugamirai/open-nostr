@@ -41,7 +41,16 @@ pub struct NoteProps {
     pub data: NoteData,
     //pub metadata: nostr_sdk::Metadata,
 }
-
+enum NoteAction {
+    Replay,
+    Share,
+    Qoute,
+    Zap,
+}
+struct NoteActionState {
+    action: NoteAction,
+    count: u64,
+}
 #[component]
 pub fn Note(props: NoteProps) -> Element {
     let author = props.data.author.clone();
@@ -68,7 +77,26 @@ pub fn Note(props: NoteProps) -> Element {
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
+    let note_action_state = vec![
+        NoteActionState {
+            action: NoteAction::Replay,
+            count: 100,
+        },
+        NoteActionState {
+            action: NoteAction::Share,
+            count: 10,
+        },
+        NoteActionState {
+            action: NoteAction::Qoute,
+            count: 10,
+        },
+        NoteActionState {
+            action: NoteAction::Zap,
+            count: 20,
+        },
+    ];
 
+    // let 
     rsx! {
         div {
             class: "com-post",
@@ -133,49 +161,32 @@ pub fn Note(props: NoteProps) -> Element {
                 dangerous_inner_html: "{format_content(&props.data.content)}",
             }
             div {
-                class: "com-post-info",
-                div {
-                    class: "com-post-info-item com-post-info-reply",
-                    span {
-                        dangerous_inner_html: "{TURN_LEFT}",
+                class: "com-post-info flex items-center",
+                {note_action_state.iter().map(|_state| {
+                    rsx! {
+                        div {
+                            class: "com-post-info-item cursor-pointer flex items-center",
+                            span {
+                                class: "note-action-icon",
+                                dangerous_inner_html: match _state.action {
+                                    NoteAction::Replay => TURN_LEFT.to_string(),
+                                    NoteAction::Share => TURN_RIGHT.to_string(),
+                                    NoteAction::Qoute => QUTE.to_string(),
+                                    NoteAction::Zap => ZAP.to_string(),
+                                }
+                            }
+                            span {
+                                class: "note-action-count",
+                                {format!("{}", _state.count)}
+                            }
+                        }
                     }
-                    span {
-                        class: "com-post-info-item-data",
-                        "5"
-                    }
-                }
-                div {
-                    class: "com-post-info-item com-post-info-share",
-                    span {
-                        dangerous_inner_html: "{TURN_RIGHT}",
-                    }
-                    span {
-                        class: "com-post-info-item-data",
-                        "2"
-                    }
-                }
-                div {
-                    class: "com-post-info-item com-post-info-comment",
-                    span {
-                        dangerous_inner_html: "{MARKS}",
-                    }
-                    span {
-                        class: "com-post-info-item-data",
-                        "2"
-                    }
-                }
-                div {
-                    class: "com-post-info-item com-post-info-reward",
-                    span {
-                        dangerous_inner_html: "{FLASH}",
-                    }
-                    span {
-                        class: "com-post-info-item-data",
-                        "40k"
-                    }
+                })}
+                span{
+                    style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
                 }
                 Link {
-                    class: "com-post-info-item com-post-info-reply",
+                    class: "com-post-info-item com-post-info-reply cursor-pointer",
                     to: Route::NoteDetail { id: props.data.id.clone() },
                     span {
                         dangerous_inner_html: "{ADD}",

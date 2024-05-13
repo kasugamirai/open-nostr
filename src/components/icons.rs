@@ -1,13 +1,6 @@
-pub const TURN_LEFT: &str = include_str!("../../public/static/turn-left.svg");
-pub const TURN_RIGHT: &str = include_str!("../../public/static/turn-right.svg");
 pub const MARKS: &str = include_str!("../../public/static/marks.svg");
 pub const FLASH: &str = include_str!("../../public/static/flash.svg");
-pub const ADD: &str = include_str!("../../public/static/add.svg");
-pub const PROFILE: &str = include_str!("../../public/static/profile.svg");
-pub const SIGNAL: &str = include_str!("../../public/static/signal.svg");
-pub const CHAT: &str = include_str!("../../public/static/chat.svg");
 pub const STAR: &str = include_str!("../../public/static/star.svg");
-pub const SETTING: &str = include_str!("../../public/static/setting.svg");
 pub const MORE: &str = include_str!("../../public/static/more.svg");
 pub const SHARE: &str = include_str!("../../public/static/share.svg");
 pub const STATION: &str = include_str!("../../public/static/station.svg");
@@ -30,3 +23,10 @@ pub const CHANNEL: &str = include_str!("../../public/svgs/channel.svg");
 pub const GROUP: &str = include_str!("../../public/svgs/group.svg");
 pub const BOOKMARK: &str = include_str!("../../public/svgs/bookmark.svg");
 pub const SETTINGS: &str = include_str!("../../public/svgs/settings.svg");
+
+// note icons
+pub const ADD: &str = include_str!("../../public/svgs/add.svg");
+pub const QUTE: &str = include_str!("../../public/svgs/quote.svg");
+pub const TURN_LEFT: &str = include_str!("../../public/svgs/turnLeft.svg");
+pub const TURN_RIGHT: &str = include_str!("../../public/svgs/turnRight.svg");
+pub const ZAP: &str = include_str!("../../public/svgs/zap.svg");

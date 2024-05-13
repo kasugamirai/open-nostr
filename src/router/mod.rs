@@ -77,7 +77,6 @@ fn Layout() -> Element {
             name: "Subscriptions:",
         },
     ];
-    let path: Route = use_route();
     let users = vec![
         UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",

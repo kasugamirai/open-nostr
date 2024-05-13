@@ -98,10 +98,18 @@ pub fn Children(name: String) -> Element {
             events.set(data);
         });
     };
+    let auotGetData: &'static str = "
+        var getDataBtn = document.getElementById('get-data-test');
+        if (getDataBtn){{
+            getDataBtn.click();
+        }}
+        ";
+    
 
     rsx! {
         div {
             button {
+                id: "get-data-test",
                 onclick: on_mounted,
                 "Get Data"
             }
@@ -116,7 +124,11 @@ pub fn Children(name: String) -> Element {
                     }
                 }
             }
+            script {
+                {auotGetData}
+            }
         }
+        
     }
 }
 

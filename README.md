@@ -29,7 +29,3 @@ Launch the Dioxus Fullstack app:
 ```bash
 dx serve 
 ```
-
-```bash
-wasm-pack test --firefox
-```
