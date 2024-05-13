@@ -1,0 +1,18 @@
+{
+  "name": "capybastr",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "./start.sh & npm run sass",
+    "sass": "sass --watch ./styles/main.scss ./assets/main.dev.css",
+    "sass:build": "sass --no-source-map --style compressed ./styles/main.scss ./assets/main.min.css"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-nostr/capybastr.git"
+  },
+  "private": true,
+  "dependencies": {
+    "sass": "^1.77.1"
+  }
+}
