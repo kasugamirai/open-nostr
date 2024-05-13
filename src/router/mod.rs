@@ -2,7 +2,8 @@ use dioxus::prelude::*;
 use crate::store::subscription::CustomSub;
 
 use crate::{
-    components::{icons::*, Button, Dropdown},
+    // Dropdown
+    components::{icons::*, Button},
     views::{
         Bookmark, Channel, Group, Home, Message, NoteDetail, NoteList, Profile, Relay, Search,
         Settings, Test,
@@ -14,7 +15,10 @@ struct RouterItem {
     icon: &'static str,
     name: &'static str,
 }
-
+struct UserItem {
+    avatar: &'static str,
+    username: &'static str,
+}
 #[component]
 fn Layout() -> Element {
     let subs = use_context::<Signal<Vec<CustomSub>>>();
@@ -26,17 +30,11 @@ fn Layout() -> Element {
             theme.set("light".to_string());
         }
     };
-
     let routers = vec![
         RouterItem {
             to: Route::Home {},
-            icon: PROFILE,
+            icon: HOME,
             name: "Home",
-        },
-        RouterItem {
-            to: Route::Profile {},
-            icon: PROFILE,
-            name: "Profile",
         },
         RouterItem {
             to: Route::Search {},
@@ -55,28 +53,42 @@ fn Layout() -> Element {
         },
         RouterItem {
             to: Route::Channel {},
-            icon: SIGNAL,
+            icon: CHANNEL,
             name: "Channel",
         },
         RouterItem {
             to: Route::Group {},
-            icon: CHAT,
+            icon: GROUP,
             name: "Group",
         },
         RouterItem {
             to: Route::Bookmark {},
-            icon: STAR,
+            icon: BOOKMARK,
             name: "Bookmark",
         },
         RouterItem {
             to: Route::Settings {},
-            icon: SETTING,
+            icon: SETTINGS,
             name: "Settings",
         },
         RouterItem {
             to: Route::Test { id: 1 },
             icon: TRUE,
-            name: "Test",
+            name: "Subscriptions:",
+        },
+    ];
+    let users = vec![
+        UserItem{
+            avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
+            username: "James LisaLisaLisaLisaLisaLisaLisa"
+        },
+        UserItem{
+            avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
+            username: "Tom"
+        },
+        UserItem{
+            avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
+            username: "Lisa"
         },
     ];
     const SVG: &str = r#"
@@ -90,29 +102,81 @@ fn Layout() -> Element {
             </path>
         </svg>
     "#;
+    let mut show = use_signal(|| false);
     rsx! {
         div{
             class: "layout-left",
             div {
                 class: "menu",
+                h1 {
+                    class: "pro-title text-ellipsis text-ellipsis-1",
+                    "CapyBastr"
+                },
                 div {
-                    class: "user",
-                    Dropdown {
-                        trigger: rsx! {
-                            div {
-                                class: "user-trigger",
-                                div {
-                                    dangerous_inner_html: "{SVG}"
-                                }
-                                span {
-                                    "Username"
+                    class: "user-trigger user-trigger-{show} account-wrapper",
+                    div{
+                        class: "user-item flex items-center justify-between overflow-hidden cursor-pointer",
+                        onclick: move |_| {
+                            show.set(!show());
+                        },
+                        div {
+                            class: "user-avatar flex items-center",
+                            img{
+                                class: "user-avatar-img",
+                                src: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
+                            }
+                            h1{
+                                class: "user-name text-overflow",
+                                "User Test "
+                            }
+                        }
+                        if !show(){
+                            span{
+                                dangerous_inner_html: "{DOWN}",
+                            }
+                        }else{
+                            span{
+                                dangerous_inner_html:  "{ARROW_UP}",
+                            }
+                        }
+                    }
+                    if show() {
+                        div{
+                            class: "user-trigger-item flex items-center justify-between",
+                            div{
+                                class: "flex items-center",
+                                button {
+                                    class: "user-trigger-item-button log-button",
+                                    "Logout"
+                                },
+                                button {
+                                    class: "user-trigger-item-button pro-button",
+                                    "Profile"
                                 }
                             }
-                        },
-                        children: rsx! {
-                            div {
-                                class: "user-content",
-                                "Content"
+                            div{
+                                class: "copy-btn cursor-pointer",
+                                dangerous_inner_html: "{COPY_ALL}",
+                            }
+                        }
+                        for user in users.iter() {
+                            div{
+                                class: "user-trigger-item flex items-center justify-between",
+                                div {
+                                    class: "user-info flex items-center",
+                                    img{
+                                        class: "user-avatar-img",
+                                        src: "{user.avatar}",
+                                    },
+                                    h1{
+                                        class: "user-name text-overflow",
+                                        "{user.username}"
+                                    }
+                                }
+                                div {
+                                    class: "copy-btn cursor-pointer",
+                                    dangerous_inner_html: "{COPY_ALL}",
+                                }
                             }
                         }
                     }
@@ -122,28 +186,40 @@ fn Layout() -> Element {
                     for router in routers.iter() {
                         Link {
                             active_class: "active",
-                            class: "nav-item",
+                            class: "nav-item block",
                             to: router.to.clone(),
                             div {
-                                class: "nav-item-content",
+                                class: "nav-item-content flex items-center",
                                 span {
                                     dangerous_inner_html: "{router.icon}",
                                 }
                                 span {
+                                    class: "nav-item-text",
                                     "{router.name}"
                                 }
                             }
                         }
                     }
+                    div {
+                        class: "nav-item-content add-note-btn cursor-pointer text-center",
+                        "New Note"
+                    }
                 }
                 div {
                     class: "subscriptions",
-                    for (_i, sub) in subs.read().iter().enumerate() {
-                        Link {
-                            active_class: "active",
-                            class: "nav-item",
-                            to: Route::NoteList { name: sub.name.clone() },
-                            "#{sub.name}"
+                    h1{
+                        style: "color:var(--txt-1)",
+                        "Subscriptions:"
+                    }
+                    div{
+                        class: "subscriptions-item",
+                        for (_i, sub) in subs.read().iter().enumerate() {
+                            Link {
+                                active_class: "active",
+                                class: "nav-item",
+                                to: Route::NoteList { name: sub.name.clone() },
+                                "#{sub.name}"
+                            }
                         }
                     }
                 }

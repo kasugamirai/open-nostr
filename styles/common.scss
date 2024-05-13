@@ -1,0 +1,70 @@
+$unitpx: px;
+$unitem: em;
+$unitrem: rem;
+
+$font_max_size: 120;
+$box_maring_padding_max_size: 120;
+
+// Font size 10 - 120px
+@for $i from 10 through $font_max_size {
+    .font-size-#{$i} {
+        font-size: $i + $unitpx;
+    }
+}
+
+
+@for $i from 10 through $font_max_size {
+    .line-height-#{$i} {
+        line-height: $i + $unitpx;
+    }
+}
+
+// Margin 1 - 120px Padding 1 - 120px
+@for $i from 1 through $box_maring_padding_max_size {
+    .ml-#{$i} {
+        margin-left: $i + $unitpx;
+    }
+    .mr-#{$i} {
+        margin-right: $i + $unitpx;
+    }
+    .mb-#{$i} {
+        margin-bottom: $i + $unitpx;
+    }
+    .mt-#{$i} {
+        margin-top: $i + $unitpx;
+    }
+    .mx-#{$i} {
+        margin-left: $i + $unitpx;
+        margin-right: $i + $unitpx;
+    }
+    .my-#{$i} {
+        margin-top: $i + px;
+        margin-bottom: $i + px;
+    }
+    .m-#{$i} {
+        margin: $i + px;
+    }
+    .p-#{$i} {
+        padding: $i + px;
+    }
+    .pl-#{$i} {
+        padding-left: $i + px;
+    }
+    .pr-#{$i} {
+        padding-right: $i + px;
+    }
+    .pb-#{$i} {
+        padding-bottom: $i + px;
+    }
+    .pt-#{$i} {
+        padding-top: $i + px;
+    }
+    .px-#{$i} {
+        padding-left: $i + px;
+        padding-right: $i + px;
+    }
+    .py-#{$i} {
+        padding-top: $i + px;
+        padding-bottom: $i + px;
+    }
+}

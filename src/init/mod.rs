@@ -96,13 +96,8 @@ pub fn App() -> Element {
     let mut root_click_pos = use_context_provider(|| Signal::new((0.0, 0.0)));
 
     let style = format!(
-        "\n{}\n{}\n{}\n{}\n{}\n{}\n",
-        include_str!("../../assets/style/tailwind.css"),
-        include_str!("../../assets/style/main.css"),
-        include_str!("../../assets/style/components.css"),
-        include_str!("../../assets/style/layout-left.css"),
-        include_str!("../../assets/style/layout-main.css"),
-        include_str!("../../assets/style/layout-right.css"),
+        "\n{}",
+        include_str!("../../assets/main.dev.css"),
     );
 
     rsx! {
