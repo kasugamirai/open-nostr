@@ -61,6 +61,7 @@ pub fn App() -> Element {
 
     // hook: on mounted
     let on_mounted = move |_| {
+
         spawn(async move {
             // TODO: init().await;
             init().await;

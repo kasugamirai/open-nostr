@@ -1,18 +1,18 @@
 use std::time::Duration;
+use std::cell::RefCell;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, Event, EventId, Filter, JsonUtil};
+use nostr_sdk::{hashes::siphash24::State, Client, Event, EventId, Filter, JsonUtil};
 
 use crate::{
-    components::icons::*,
-    nostr::note::{DisplayOrder, ReplyTrees, TextNote},
-    utils::format::{format_content, format_create_at},
+    nostr::note::{DisplayOrder, ReplyTrees, TextNote}, views::note_list::note::{Note, NoteData},
 };
 
 #[derive(Debug, Clone)]
 struct NoteTree {
     content: String,
     children: Vec<NoteTree>,
+    event: Event,
 }
 
 impl PartialEq for NoteTree {
@@ -24,7 +24,7 @@ impl PartialEq for NoteTree {
 #[component]
 pub fn NoteDetail(id: String) -> Element {
     let mut data = use_signal(Vec::<Event>::new);
-    let get_events = move |id: String| {
+    let _get_events = move |id: String| {
         spawn(async move {
             let client = Client::default();
 
@@ -68,9 +68,11 @@ pub fn NoteDetail(id: String) -> Element {
             .map(|n| NoteTree {
                 content: n.inner_ref.content.clone(),
                 children: get_notetree(n.inner_ref.id, reply_tree),
+                event: Event::from(n.inner_ref.clone()),
             })
             .collect()
     }
+
 
     let notetree = vec![NoteTree {
         content: "This is the Root!".to_string(),
@@ -79,111 +81,36 @@ pub fn NoteDetail(id: String) -> Element {
                 .unwrap(),
             &reply_tree,
         ),
+        event: Event::from_json(R).unwrap(),
     }];
+    let scirpts: &str = r#"
+            var expandList = document.querySelectorAll('.note-action-expand');
+            expandList.forEach(function(expand) {
+                expand.addEventListener('click', function() {
+                    var parent = expand.parentElement.parentElement;
+                    const expandItem = parent.nextElementSibling;
+                    if (expandItem.classList.contains('expand-list-open')) {
+                        expandItem.classList.remove('expand-list-open');
+                        expandItem.classList.add('expand-list-close');
+                    } else {
+                        expandItem.classList.add('expand-list-open');
+                        expandItem.classList.remove('expand-list-close');
+                    }
+                });
+            });
+        "#;
 
     rsx! {
-        style {
-            r#"
-                .note-wrapper {{
-                    position: relative;
-                    display: flex;
-                    flex-direction: column;
-                    gap: 30px;
-                    background-color: var(--bgc-0);
-                }}
-                .note-content {{                    
-                    position: relative;
-                    padding: 10px 10px 0 10px;
-                }}
-                .note-content .header {{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 10px;
-                    position: relative;
-                }}
-                .note-content .header .avatar {{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    gap: 10px;
-                }}
-                .note-content .header .info {{
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-around;
-                }}
-                .note-content .main {{
-                    position: relative;
-                }}
-                .note-content .footer {{
-                    display: flex;
-                    gap: 10px;
-                    position: relative;
-                }}
-                .note-content .footer .left {{
-                    display: flex;
-                    gap: 20px;
-                }}
-                .note-content .footer .left .btn {{
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                }}
-                .note-content .footer .left .btn svg {{
-                    width: 20px;
-                    height: 20px;
-                }}
-                .note-content .footer .left .btn .data {{
-                    transform: translateY(-4px);
-                }}
-            "#
-        }
         div {
-            style: "display: flex; width: 100%; height: 100%; gap: 20px;",
-            div {
-                style: "flex: 1; overflow-y: scroll; width: 100%;",
-                div {
-                    style: "max-width: 800px; white-space: wrap;",
-                    onmounted: move |_cx| {
-                        get_events(id.clone());
-                    },
-                    Layer {
-                        notes: notetree,
-                        index: 999999,
-                        root: true,
-                    }
-                    br{}
-                    br{}
-                    br{}
-                    for i in data() {
-                        Item {
-                            event: i.clone(),
-                            reply: false,
-                            index: 2,
-                        }
-                        Item {
-                            event: i,
-                            reply: true,
-                            index: 1,
-                        }
-                    }
-                    for i in data() {
-                        Item {
-                            event: i.clone(),
-                            reply: false,
-                            index: 2,
-                        }
-                        Item {
-                            event: i,
-                            reply: true,
-                            index: 1,
-                        }
-                    }
-                }
+            onmounted: move |_cx| {},
+            Layer {
+                notes: notetree,
+                index: events.len() + 1,
+                root: true,
+                events_len: Some(events.len() as u64), // Convert usize to Option<u64>
             }
-            div {
-                style: "width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; gap: 10px;",
+            script{
+                "{scirpts}"
             }
         }
     }
@@ -196,106 +123,29 @@ pub struct LayerProps {
     index: usize,
     #[props(default = false)]
     root: bool,
+    events_len: Option<u64>,
+    clsname: Option<&'static str>
 }
 
 #[component]
 fn Layer(props: LayerProps) -> Element {
     rsx! {
-        div {
-            class: "note-wrapper",
-            style: format!("z-index: {}", props.index),
-            for note in props.notes {
+        for (index, note) in props.notes.iter().enumerate() {
+            Item {
+                event: Event::from(note.event.clone()),
+                reply: false,
+                index: props.index,
+                is_expand: if note.children.len() > 0 {Some(true)} else {None},
+                clsname: if index == 0 {props.clsname.unwrap_or("")} else {""},
+            }
+            if note.children.len() > 0 {
                 div {
-                    div {
-                        class: "note-content",
-                        style: format!("z-index: {}", props.index),
-                        div {
-                            class: "header",
-                            div {
-                                class: "avatar",
-                                div {
-                                    img {
-                                        style: "width: 50px; height: 50px; border-radius: var(--radius-circle);",
-                                        src: "https://file.service.ahriknow.com/avatar.jpg"
-                                    }
-                                }
-                                div {
-                                    class: "info",
-                                    div {
-                                        "Username"
-                                    }
-                                    div {
-                                        style: "font-size: 12px; color: var(--txt-3);",
-                                        "Created: 2022-01-01 00:00:00"
-                                    }
-                                }
-                            }
-                            div {
-
-                            }
-                        }
-                        div {
-                            class: "main",
-                            "{note.content}"
-                        }
-                        div {
-                            class: "footer",
-                            div {
-                                class: "left",
-                                div {
-                                    class: "btn",
-                                    span {
-                                        dangerous_inner_html: "{TURN_LEFT}",
-                                    }
-                                    span {
-                                        class: "data",
-                                        "5"
-                                    }
-                                }
-                                div {
-                                    class: "btn",
-                                    span {
-                                        dangerous_inner_html: "{TURN_RIGHT}",
-                                    }
-                                    span {
-                                        class: "data",
-                                        "2"
-                                    }
-                                }
-                                div {
-                                    class: "btn",
-                                    span {
-                                        dangerous_inner_html: "{MARKS}",
-                                    }
-                                    span {
-                                        class: "data",
-                                        "2"
-                                    }
-                                }
-                                div {
-                                    class: "btn",
-                                    span {
-                                        dangerous_inner_html: "{FLASH}",
-                                    }
-                                    span {
-                                        class: "data",
-                                        "40k"
-                                    }
-                                }
-                                div {
-                                    class: "btn",
-                                    span {
-                                        dangerous_inner_html: "{ADD}",
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if note.children.len() > 0 {
-                        Layer {
-                            notes: note.children,
-                            index: props.index - 1
-                        }
+                    class: format!("expand-list-open expand-list z-{} relative", props.index - 1),
+                    Layer {
+                        notes: note.children.clone(),
+                        index: props.index,
+                        root: false,
+                        clsname: "pt-20",
                     }
                 }
             }
@@ -308,101 +158,18 @@ pub struct ItemProps {
     event: Event,
     reply: bool,
     index: usize,
+    events_len: Option<u64>,
+    clsname: &'static str,
+    is_expand: Option<bool>
 }
 
 #[component]
 fn Item(props: ItemProps) -> Element {
-    let reply_style = if props.reply {
-        format!("transform: translateY(-16px); z-index: {};", props.index)
-    } else {
-        format!("z-index: {}; border: 2px solid var(--boc-1);", props.index)
-    };
-
     rsx! {
-        div {
-            class: "note-content",
-            style: reply_style,
-            div {
-                class: "header",
-                div {
-                    class: "avatar",
-                    div {
-                        img {
-                            style: "width: 50px; height: 50px; border-radius: var(--radius-circle);",
-                            src: "https://file.service.ahriknow.com/avatar.jpg"
-                        }
-                    }
-                    div {
-                        class: "info",
-                        div {
-                            "Username"
-                        }
-                        div {
-                            style: "font-size: 12px; color: var(--txt-3);",
-                            "{format_create_at(props.event.created_at().as_u64())}"
-                        }
-                    }
-                }
-                div {
-
-                }
-            }
-            div {
-                class: "main",
-                dangerous_inner_html: "{format_content(&props.event.content.to_string())}",
-            }
-            div {
-                class: "footer",
-                div {
-                    class: "left",
-                    div {
-                        class: "btn",
-                        span {
-                            dangerous_inner_html: "{TURN_LEFT}",
-                        }
-                        span {
-                            class: "data",
-                            "5"
-                        }
-                    }
-                    div {
-                        class: "btn",
-                        span {
-                            dangerous_inner_html: "{TURN_RIGHT}",
-                        }
-                        span {
-                            class: "data",
-                            "2"
-                        }
-                    }
-                    div {
-                        class: "btn",
-                        span {
-                            dangerous_inner_html: "{MARKS}",
-                        }
-                        span {
-                            class: "data",
-                            "2"
-                        }
-                    }
-                    div {
-                        class: "btn",
-                        span {
-                            dangerous_inner_html: "{FLASH}",
-                        }
-                        span {
-                            class: "data",
-                            "40k"
-                        }
-                    }
-                    div {
-                        class: "btn",
-                        span {
-                            dangerous_inner_html: "{ADD}",
-                        }
-                    }
-                }
-            }
+        Note {
+            data: NoteData::from(&props.event, props.index),
+            clsname: format!("z-{} mb-20 bgc-0 relative {}", props.index, props.clsname),
+            is_expand: props.is_expand
         }
     }
 }

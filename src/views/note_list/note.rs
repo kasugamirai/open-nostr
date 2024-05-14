@@ -5,6 +5,7 @@ use nostr_sdk::{Client, EventId, Filter, JsonUtil};
 
 use crate::{
     components::icons::*,
+    components::Avatar,
     utils::format::{format_content, format_create_at, format_public_key},
     Route,
 };
@@ -39,7 +40,10 @@ impl NoteData {
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
     pub data: NoteData,
+    pub clsname: Option<String>,
+    pub on_detail: Option<EventHandler<()>>,
     //pub metadata: nostr_sdk::Metadata,
+    pub is_expand: Option<bool>
 }
 enum NoteAction {
     Replay,
@@ -96,10 +100,13 @@ pub fn Note(props: NoteProps) -> Element {
         },
     ];
 
+
     // let 
     rsx! {
         div {
-            class: "com-post",
+            class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
+            id: format!("note-{}", props.data.id),
+            // detail modal
             div {
                 style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
                 div {
@@ -119,79 +126,74 @@ pub fn Note(props: NoteProps) -> Element {
                 }
             }
             div {
-                class: "com-post-author",
-                div {
-                    class: "com-post-author-avatar",
-                    img {
-                        src: match &*future.read_unchecked() {
-                            Some(Some(s)) => s,
-                            Some(None) => "https://is.gd/hidYxs",
-                            None => "https://is.gd/hidYxs",
-                        }
-                    }
+                class: "note-header flex items-start justify-between",
+                Avatar {
+                    pubkey: props.data.author.clone(),
+                    timestamp: props.data.created_at,
+                    nickname: None,
                 }
-                div {
-                    class: "com-post-author-profile",
-                    span {
-                        class: "com-post-author-profile-name",
-                        {format_public_key(&props.data.author, None)}
-                    }
-                    span {
-                        class: "com-post-author-profile-created",
-                        {format_create_at(props.data.created_at)}
-                    }
-                }
-                div {
-                    style: "flex: 1;",
-                }
-                div {
-                    class: "com-post-author-more",
-                    MoreInfo {
-                        on_detail: move |_| {
-                            let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
-                            let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
-                            detail.set(formatted_json);
-                            show_detail.set(!show_detail());
-                        },
-                    }
+                MoreInfo {
+                    on_detail: move |_| {
+                        let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
+                        let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                        detail.set(formatted_json);
+                        show_detail.set(!show_detail());
+                    },
                 }
             }
             div {
-                class: "com-post-content",
+                class: "note-content font-size-16 word-wrap lh-26 pl-52",
                 dangerous_inner_html: "{format_content(&props.data.content)}",
             }
+            
             div {
-                class: "com-post-info flex items-center",
-                {note_action_state.iter().map(|_state| {
-                    rsx! {
-                        div {
-                            class: "com-post-info-item cursor-pointer flex items-center",
-                            span {
-                                class: "note-action-icon",
-                                dangerous_inner_html: match _state.action {
-                                    NoteAction::Replay => TURN_LEFT.to_string(),
-                                    NoteAction::Share => TURN_RIGHT.to_string(),
-                                    NoteAction::Qoute => QUTE.to_string(),
-                                    NoteAction::Zap => ZAP.to_string(),
+                class: "note-action-wrapper flex items-center justify-between pl-52 pr-12",
+                div {
+                    class: "note-action flex items-center",
+                    {note_action_state.iter().map(|_state| {
+                        rsx! {
+                            div {
+                                class: "note-action-item cursor-pointer flex items-center",
+                                span {
+                                    class: "note-action-icon",
+                                    dangerous_inner_html: match _state.action {
+                                        NoteAction::Replay => TURN_LEFT.to_string(),
+                                        NoteAction::Share => TURN_RIGHT.to_string(),
+                                        NoteAction::Qoute => QUTE.to_string(),
+                                        NoteAction::Zap => ZAP.to_string(),
+                                    }
+                                }
+                                span {
+                                    class: "note-action-count font-size-12 txt-1",
+                                    {format!("{}", _state.count)}
                                 }
                             }
-                            span {
-                                class: "note-action-count",
-                                {format!("{}", _state.count)}
-                            }
+                        }
+                    })}
+                    span{
+                        style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
+                    }
+                    Link {
+                        class: "note-action-item cursor-pointer",
+                        to: Route::NoteDetail { id: props.data.id.clone() },
+                        span {
+                            dangerous_inner_html: "{ADD}",
                         }
                     }
-                })}
-                span{
-                    style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
+                    // emojis
+                    
                 }
-                Link {
-                    class: "com-post-info-item com-post-info-reply cursor-pointer",
-                    to: Route::NoteDetail { id: props.data.id.clone() },
-                    span {
-                        dangerous_inner_html: "{ADD}",
+
+                if props.is_expand.unwrap_or(false) {
+                    div {
+                        "data-expand": props.data.id.clone(),
+                        class: "note-action-expand cursor-pointer",
+                        span {
+                            dangerous_inner_html: "{DOWN}",
+                        }
                     }
                 }
+                
             }
         }
     }

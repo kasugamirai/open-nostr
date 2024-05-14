@@ -30,3 +30,7 @@ pub const QUTE: &str = include_str!("../../public/svgs/quote.svg");
 pub const TURN_LEFT: &str = include_str!("../../public/svgs/turnLeft.svg");
 pub const TURN_RIGHT: &str = include_str!("../../public/svgs/turnRight.svg");
 pub const ZAP: &str = include_str!("../../public/svgs/zap.svg");
+pub const LAUGH: &str = include_str!("../../public/svgs/laugh.svg");
+pub const CRY: &str = include_str!("../../public/svgs/cry.svg");
+pub const PULLDOWN: &str = include_str!("../../public/svgs/pullDown.svg");
+

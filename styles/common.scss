@@ -4,6 +4,8 @@ $unitrem: rem;
 
 $font_max_size: 120;
 $box_maring_padding_max_size: 120;
+$border-radius_max_size: 30;
+$z-index_max_size: 100;
 
 // Font size 10 - 120px
 @for $i from 10 through $font_max_size {
@@ -68,3 +70,60 @@ $box_maring_padding_max_size: 120;
         padding-bottom: $i + px;
     }
 }
+
+// Border radius 1 - 30px
+@for $i from 1 through $border-radius_max_size {
+    .radius-#{$i} {
+        border-radius: $i + $unitpx;
+    }
+}
+// Z-index 1 - 100
+@for $i from 1 through $z-index_max_size {
+    .z-#{$i} {
+        z-index: $i;
+    }
+}
+// square 1 - 100px
+@for $i from 1 through 100 {
+    .square-#{$i} {
+        width: $i + $unitpx;
+        height: $i + $unitpx;
+    }
+}
+
+@for $i from 1 through 100 {
+    .translate-y-top-#{$i} {
+        transform: translateY($i + $unitpx);
+    }
+    .translate-y-bottom-#{$i} {
+        transform: translateY(-$i + $unitpx);
+    }
+}
+// lh 
+@for $i from 1 through 100 {
+    .lh-#{$i} {
+        line-height: $i + $unitpx;
+    }
+}
+
+
+.relative {
+    position: relative;
+}
+.absoulte {
+    position: absolute;
+}
+.flex-col {
+    flex-direction: column;
+}
+.flex-row {
+    flex-direction: row;
+}
+.items-start {
+    align-items: flex-start;
+}
+
+.wor-wrap {
+    word-wrap: break-word;
+}
+

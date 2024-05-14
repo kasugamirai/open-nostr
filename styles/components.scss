@@ -40,7 +40,7 @@
 
 .com-post {
     width: 100%;
-    padding: 10px 40px;
+    // padding: 10px 40px;
     border-radius: 20px;
     display: flex;
     flex-direction: column;
@@ -49,6 +49,7 @@
     border: 1px solid var(--boc-1);
     word-wrap: break-word;
 }
+
 
 .com-post .com-post-author {
     display: flex;
@@ -140,9 +141,12 @@
 }
 
 .com-post .note-action-count {
-    font-size: 12px;
+    font-size: var(--textSize-12);
     font-family: "Source Sans Pro";
     color: #030303;
+}
+.footer .note-action-count{
+  font-size: 12px;
 }
 
 .com-post .com-post-info svg {
@@ -154,6 +158,17 @@
 .com-post .com-post-info-item:not(:first-child) {
     margin-left: 10px;
 }
+
+.com-post .note-action {
+    svg {
+        width: 24px;
+        height: 24px;
+    }
+    &-item:not(:first-child) {
+        margin-left: 10px;
+    }
+}
+
 
 .com-switch {
     display: flex;
@@ -263,18 +278,22 @@
     flex-direction: column;
     gap: 6px;
     border: 1px solid var(--boc-1);
-    border-radius: var(--radius-1);
-    padding: 12px;
+    border-radius: var(--radius-24);
+    padding: 6px;
 
     .header {
         display: flex;
         align-items: center;
         justify-content: space-between;
 
+        .moreStyle{
+          margin-right: 13px;
+          
+        }
         .user {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
 
             .avatar {
                 width: 46px;
@@ -313,10 +332,11 @@
 
         .title {
             width: 46px;
+            padding-left: 12px;
         }
 
         .note {
-            width: calc(100% - 46px);
+            width: calc(100% - 66px);
         }
     }
 
@@ -324,18 +344,30 @@
         padding-left: 46px;
         white-space: pre-wrap;
         word-wrap: break-word;
+        .post-media-wrap{
+          gap: 8px !important;
+          padding-top: 2px;
+          .post-image{
+            border-radius: var(--radius-8);
+          }
+        }
     }
 
     .footer {
-        padding-left: 46px;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 15px;
+        padding: 8px 0;
+        padding-left: 46px;
 
         .info {
             cursor: pointer;
             display: flex;
             align-items: center;
+        }
+        .pullDownStyle{
+          margin-left: auto;
+          margin-right: 18px;
         }
     }
 }
@@ -345,14 +377,14 @@
     display: flex;
     align-items: center;
     border: 1px solid var(--boc-1);
-    border-radius: var(--radius-1);
+    border-radius: var(--radius-24);
     padding: 6px;
 
     .header {
         display: flex;
         align-items: center;
-        gap: 10px;
-        width: 150px;
+        gap: 12px;
+        width: 142px;
 
         .avatar {
             width: 46px;
@@ -370,6 +402,10 @@
             display: flex;
             flex-direction: column;
             justify-content: space-around;
+            padding-right: 4px;
+            width: 83px;
+            border-right: 1px solid #030303;
+            margin-right: 9px;
 
             .nickname {
                 font-size: 16px;
@@ -377,6 +413,7 @@
             }
 
             .created {
+                width: 77px;
                 font-size: 12px;
                 color: var(--txt-3);
             }
@@ -392,5 +429,18 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: pre-wrap;
+    }
+}
+
+.expand-list {
+    height: fit-content;
+    transition: height 0.5s;
+    overflow: hidden;
+    &-open {
+        height: fit-content;
+        margin-top: -34px;
+    }
+    &-close {
+        height: 0;
     }
 }
