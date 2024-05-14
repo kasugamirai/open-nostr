@@ -4,9 +4,9 @@ use dioxus::prelude::*;
 use nostr_sdk::prelude::*;
 
 use crate::{
-    components::{icons::*, Avatar}, utils::format::{format_content, format_create_at, format_public_key}, views::note_list::note::{Note, NoteData}, Route
-    components::icons::*,
-    utils::format::{format_content, format_create_at, format_public_key, splite_by_replys}, Route,
+    components::{icons::*, Avatar},
+    utils::format::{format_content, format_create_at, format_public_key, splite_by_replys}, 
+    views::note_list::note::{Note, NoteData},
 };
 // {
 //     "id": "eb8142a456387a0f593273b808290b29765a1958700f94bcc6c1ff0cef7fa4b0",
@@ -137,39 +137,6 @@ pub fn EventItem(event: nostr_sdk::Event) -> Element {
                     }
                 }
             }
-            div {
-                class: "footer",
-                {note_action_state.iter().map(|_state| {
-                    rsx! {
-                        div {
-                            class: "info",
-                            span {
-                                class: "note-action-icon",
-                                dangerous_inner_html: match _state.action {
-                                    NoteAction::Replay => TURN_LEFT.to_string(),
-                                    NoteAction::Share => TURN_RIGHT.to_string(),
-                                    NoteAction::Qoute => QUTE.to_string(),
-                                    NoteAction::Zap => ZAP.to_string(),
-                                }
-                            }
-                            span {
-                                class: "note-action-count",
-                                {format!("{}", _state.count)}
-                            }
-                        }
-                    }
-                })}
-                span{
-                    style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
-                }
-                Link {
-                    class: "info",
-                    to: Route::NoteDetail { id: event.id().to_hex() },
-                    span {
-                        dangerous_inner_html: "{ADD}",
-                    }
-                }
-            }
         }
     }
 }
@@ -183,98 +150,6 @@ fn EventLess(event: nostr_sdk::Event, content: String) -> Element {
             div {
                 class: "text",
                 dangerous_inner_html: "{event.content.to_string()}",
-            }
-        }
-    }
-}
-
-#[component]
-pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
-    let mut edit = use_signal(|| false);
-
-    // close when click outside
-    let root_click_pos = use_context::<Signal<(f64, f64)>>();
-    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
-    use_effect(use_reactive((&pos,), move |(pos,)| {
-        // The coordinates of root element
-        let root_pos = root_click_pos();
-
-        // The coordinates of current element
-        let current_pos = pos();
-
-        // Determine if two coordinates are the same
-        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
-            edit.set(false);
-        }
-    }));
-
-    rsx! {
-        div {
-            onclick: move |event| {
-                // Save the coordinates of the event relative to the screen
-                pos.set(event.screen_coordinates().to_tuple());
-            },
-            style: "position: relative;",
-            div {
-                class: "more-trigger",
-                div {
-                    onclick: move |_| {
-                        edit.set(!edit());
-                    },
-                    dangerous_inner_html: "{MORE}"
-                }
-            }
-            div {
-                class: "show-{edit}",
-                style: "position: absolute; right: 0; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
-                div {
-                    style: "display: flex; flex-direction: column; gap: 10px; width: 140px;",
-                    div {
-                        style: "display: flex; align-items: center; gap: 13px; cursor: pointer;",
-                        onclick: move |_| {
-                            edit.set(false);
-                        },
-                        div {
-                            dangerous_inner_html: "{SHARE}"
-                        }
-                        "Share"
-                    }
-                    div {
-                        style: "display: flex; align-items: center; gap: 13px; cursor: pointer;",
-                        onclick: move |_| {
-                            edit.set(false);
-                        },
-                        div {
-                            dangerous_inner_html: "{STAR}"
-                        }
-                        "Book Mark"
-                    }
-                    div {
-                        style: "display: flex; align-items: center; gap: 13px; cursor: pointer;",
-                        onclick: move |_| {
-                            edit.set(false);
-                        },
-                        div {
-                            dangerous_inner_html: "{STATION}"
-                        }
-                        "Broadcast"
-                    }
-                    div {
-                        style: "display: flex; align-items: center; gap: 13px; cursor: pointer;",
-                        onclick: move |_| {
-                            on_detail.call(());
-                            edit.set(false);
-                        },
-                        div {
-                            dangerous_inner_html: "{INFO}"
-                        }
-                        "Details"
-                    }
-                }
-            }
-            div {
-                class: "text",
-                dangerous_inner_html: "{content}",
             }
         }
     }
