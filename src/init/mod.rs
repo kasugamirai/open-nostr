@@ -49,7 +49,7 @@ async fn init() {
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
-    let register = use_context_provider(|| Signal::new(Register::new()));
+    let _register = use_context_provider(|| Signal::new(Register::new()));
 
     let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
 

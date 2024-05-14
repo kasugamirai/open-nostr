@@ -75,6 +75,7 @@ pub fn Settings() -> Element {
 pub fn EventItem(event: nostr_sdk::Event) -> Element {
     rsx! {
         Note {
+            sub_name: "".to_string(),
             data: NoteData::from(&event.clone(), 1),
         }
         div {

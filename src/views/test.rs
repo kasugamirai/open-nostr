@@ -120,6 +120,7 @@ pub fn Children(name: String) -> Element {
             div {
                 for (i, note) in events.read().clone().iter().enumerate() {
                     Note {
+                        sub_name: "".to_string(),
                         data: NoteData::from(note, i),
                     }
                 }
@@ -195,6 +196,7 @@ pub fn ChildrenKeep(name: String) -> Element {
             div {
                 for (i, note) in events.read().clone().iter().enumerate() {
                     Note {
+                        sub_name: "".to_string(),
                         data: NoteData::from(note, i),
                     }
                 }

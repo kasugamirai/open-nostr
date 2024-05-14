@@ -39,6 +39,7 @@ impl NoteData {
 
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
+    pub sub_name: String,
     pub data: NoteData,
     pub clsname: Option<String>,
     pub on_detail: Option<EventHandler<()>>,
@@ -175,7 +176,7 @@ pub fn Note(props: NoteProps) -> Element {
                     }
                     Link {
                         class: "note-action-item cursor-pointer",
-                        to: Route::NoteDetail { id: props.data.id.clone() },
+                        to: Route::NoteDetail { sub: props.sub_name, id: props.data.id.clone() },
                         span {
                             dangerous_inner_html: "{ADD}",
                         }

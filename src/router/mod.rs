@@ -53,8 +53,8 @@ pub enum Route {
     #[route("/subscription/:name")]
     NoteList { name: String },
 
-    #[route("/note/:id")]
-    NoteDetail { id: String },
+    #[route("/note/:sub/:id")]
+    NoteDetail { sub: String, id: String },
 
     #[end_layout]
     #[route("/:..route")]

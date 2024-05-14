@@ -1,14 +1,18 @@
 use std::time::Duration;
-use std::cell::RefCell;
 
 use dioxus::prelude::*;
-use nostr_sdk::{hashes::siphash24::State, Client, Event, EventId, Filter, JsonUtil};
+use nostr_sdk::{Alphabet, Event, EventId, Filter, JsonUtil, Kind, SingleLetterTag};
+use serde::Serialize;
 
 use crate::{
-    nostr::note::{DisplayOrder, ReplyTrees, TextNote}, views::note_list::note::{Note, NoteData},
+    nostr::{
+        multiclient::MultiClient,
+        note::{DisplayOrder, ReplyTrees, TextNote},
+    },
+    views::note_list::note::{Note, NoteData},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 struct NoteTree {
     content: String,
     children: Vec<NoteTree>,
@@ -21,68 +25,80 @@ impl PartialEq for NoteTree {
     }
 }
 
+fn get_notetree(id: EventId, reply_tree: &ReplyTrees) -> Vec<NoteTree> {
+    let r_children: Vec<&TextNote> = reply_tree.get_replies(&id, Some(DisplayOrder::NewestFirst));
+    r_children
+        .iter()
+        .map(|n| NoteTree {
+            content: n.inner_ref.content.clone(),
+            children: get_notetree(n.inner_ref.id, reply_tree),
+            event: Event::from(n.inner_ref.clone()),
+        })
+        .collect()
+}
+
 #[component]
-pub fn NoteDetail(id: String) -> Element {
-    let mut data = use_signal(Vec::<Event>::new);
-    let _get_events = move |id: String| {
+pub fn NoteDetail(sub: String, id: String) -> Element {
+    let multiclient = use_context::<Signal<MultiClient>>();
+    let mut data = use_signal(|| vec![]);
+    let mut count = use_signal(|| 0);
+    let get_event = move |event_id: String| {
+        let sub_name = sub.clone();
         spawn(async move {
-            let client = Client::default();
+            let clients = multiclient();
+            let client = clients.get(&sub_name).unwrap();
 
-            client.add_relay("wss://btc.klendazu.com").await.unwrap();
+            let mut reply_filter = Filter::new().kind(Kind::TextNote);
+            reply_filter = reply_filter
+                .custom_tag(SingleLetterTag::lowercase(Alphabet::E), [event_id.clone()]);
+            let reply_events = client
+                .get_events_of(vec![reply_filter], Some(Duration::from_secs(30)))
+                .await
+                .unwrap();
 
-            client.connect().await;
+            let mut note_filter = Filter::new().kind(Kind::TextNote);
+            note_filter =
+                note_filter.ids(reply_events.iter().map(|e| e.id).collect::<Vec<EventId>>());
+            let note_events = client
+                .get_events_of(vec![note_filter], Some(Duration::from_secs(30)))
+                .await
+                .unwrap();
 
             let mut filter: Filter = Filter::new();
             filter = filter.limit(1);
-            filter = filter.id(EventId::from_hex(id).unwrap());
+            filter = filter.id(EventId::from_hex(event_id.clone()).unwrap());
 
-            let events = client
+            let mut events = client
                 .get_events_of(vec![filter], Some(Duration::from_secs(30)))
                 .await
                 .unwrap();
-            data.set(events);
+            events.extend(note_events);
 
-            let _ = client.disconnect().await;
+            let e = r#"{"created_at":1715673885,"content":"R -> A -> 1","tags":[["p","00a1fc288605b95dac49aad52d2031697d6424ee78dabf37414a33ea7e340cee"],["e","f3f00d33096a12cde40c5c30a08d1b52296b51f11ea1e7aa3252495cae4225fb","wss://bostr.nokotaro.com/","root"],["client","Lume"]],"kind":1,"pubkey":"00a1fc288605b95dac49aad52d2031697d6424ee78dabf37414a33ea7e340cee","id":"19df1ebe8d5143c0b8d76a126dcd97327ca3d6ef2a2b0d9e6cf513e2f934eaf8","sig":"9ce3366c13b763b34635b07b01123efb3a05834c3db35557ae7ff0fa12392602c4f26da1ce1894400e44170cede12ff06b4fe0cbaac49dabedd2036b5a33ba8f"}"#;
+            let e = Event::from_json(e).unwrap();
+            events.push(e);
+
+            if events.len() > 0 {
+                count.set(events.len());
+                let event_refs: Vec<&Event> = events.iter().collect();
+                let mut reply_tree = ReplyTrees::default();
+                tracing::info!("==> events json: {:?}", serde_json::to_string(&event_refs));
+                reply_tree.accept(&event_refs);
+                let notetree = vec![NoteTree {
+                    content: "This is the Root!".to_string(),
+                    children: get_notetree(EventId::parse(event_id).unwrap(), &reply_tree),
+                    event: events[0].clone(),
+                }];
+                tracing::info!("==> notetree json: {:?}", serde_json::to_string(&notetree));
+                data.set(notetree);
+            }
         });
     };
 
-    const R: &str = r#"{"content":"This is the Root!","created_at":1713517255,"id":"9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"d082581cb2570adc0b0b124e8b72561b22521d7efc8aca28959e7522a55c78c74420cb57440f07ff8ebe741760c417acd0b489c60ff7e4845ea23a3d98414256","tags":[]}"#;
-    const R_A: &str = r#"{"content":"R -> A","created_at":1713517325,"id":"9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"4a84b9e1a0b2e567f2db542aae076f58de854eca4f88e2f2f8fa9fbc8cbdfa6753e39e04481bb7dd6279d7ec427741c679c51468288b5839c50ab1cfea6eaee3","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","wss://relay.damus.io/","root"],["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","wss://relay.damus.io/","reply"]]}"#;
-    const R_A_B: &str = r#"{"content":"R -> A -> B","created_at":1713517509,"id":"b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"cee8db81d4aba889681f25c5358789f2f37da67a39ca7082cdc62c8cabff439f3a2f0f424e86361960169abf4ddb73ee79c7fd4a203a94dbebd8ce477a323b13","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","wss://relay.damus.io/","root"],["e","9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511","wss://relay.damus.io/","reply"]]}"#;
-    const R_X: &str = r#"{"content":"R -> X","created_at":1713517591,"id":"c1d15b70fb1cb48792cac33949e4daf74148ef58e23a254a947ae11b1a0b89cc","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"8035bb03c41851be82bae370fcdfafd8af666206b8cd3b2e7788a00d1ef4335c14f919ca4eb7fa3ed1e0614f41f15389d0439099e466dbe9bf0d3fe205269ca5","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","reply"]]}"#;
-    const R_Z: &str = r#"{"content":"R -> Z","created_at":1713517740,"id":"e9356a18293d8122c233d19b405ab8523773fa9419db0bd634bd592ebd250a87","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"5a4c8c02a75b2fb9ffb567995366629d28c2d131b0e5359bbdc008211b400c265384a5d743cedb794526f54f6474ac6151ca02a5ca150a464d0b11840e0c2ffe","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","reply"]]}"#;
-    const R_Z_O: &str = r#"{"content":"R -> Z -> O","created_at":1713517783,"id":"b3ec05726a7b456a7a2212981c7278ccb08d366c5caa9d1e29f2b5d652b00cf5","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"63ea4e6e43006c0dc7501a111eebf348006813d9abb359a317214a6941bb6eceb889b57fca2c57b1deef568f10ca9e3f2105b43da814644612466b04185f7033","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","e9356a18293d8122c233d19b405ab8523773fa9419db0bd634bd592ebd250a87","wss://relay.damus.io/","reply"]]}"#;
-    let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z, R_Z_O]
-        .iter()
-        .map(|raw: &&str| Event::from_json(raw).unwrap())
-        .collect();
-    let event_refs: Vec<&Event> = events.iter().collect();
-    let mut reply_tree = ReplyTrees::default();
-    reply_tree.accept(&event_refs);
+    let on_mounted = move |_| {
+        get_event(id.clone());
+    };
 
-    fn get_notetree(id: EventId, reply_tree: &ReplyTrees) -> Vec<NoteTree> {
-        let r_children: Vec<&TextNote> =
-            reply_tree.get_replies(&id, Some(DisplayOrder::NewestFirst));
-        r_children
-            .iter()
-            .map(|n| NoteTree {
-                content: n.inner_ref.content.clone(),
-                children: get_notetree(n.inner_ref.id, reply_tree),
-                event: Event::from(n.inner_ref.clone()),
-            })
-            .collect()
-    }
-
-
-    let notetree = vec![NoteTree {
-        content: "This is the Root!".to_string(),
-        children: get_notetree(
-            EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
-                .unwrap(),
-            &reply_tree,
-        ),
-        event: Event::from_json(R).unwrap(),
-    }];
     let scirpts: &str = r#"
             var expandList = document.querySelectorAll('.note-action-expand');
             expandList.forEach(function(expand) {
@@ -102,14 +118,18 @@ pub fn NoteDetail(id: String) -> Element {
 
     rsx! {
         div {
-            onmounted: move |_cx| {},
-            Layer {
-                notes: notetree,
-                index: events.len() + 1,
-                root: true,
-                events_len: Some(events.len() as u64), // Convert usize to Option<u64>
+            // onmounted: on_mounted,
+            button {
+                onclick: on_mounted,
+                "Get Event"
             }
-            script{
+            Layer {
+                notes: data(),
+                index: count + 1,
+                root: true,
+                events_len: Some(count() as u64), // Convert usize to Option<u64>
+            }
+            script {
                 "{scirpts}"
             }
         }
@@ -124,7 +144,7 @@ pub struct LayerProps {
     #[props(default = false)]
     root: bool,
     events_len: Option<u64>,
-    clsname: Option<&'static str>
+    clsname: Option<&'static str>,
 }
 
 #[component]
@@ -160,13 +180,14 @@ pub struct ItemProps {
     index: usize,
     events_len: Option<u64>,
     clsname: &'static str,
-    is_expand: Option<bool>
+    is_expand: Option<bool>,
 }
 
 #[component]
 fn Item(props: ItemProps) -> Element {
     rsx! {
         Note {
+            sub_name: "".to_string(),
             data: NoteData::from(&props.event, props.index),
             clsname: format!("z-{} mb-20 bgc-0 relative {}", props.index, props.clsname),
             is_expand: props.is_expand

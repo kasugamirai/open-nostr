@@ -168,6 +168,7 @@ pub fn List(props: ListProps) -> Element {
             style: "display: flex; flex-direction: column; gap: 10px; width: 100%;",
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
+                    sub_name: props.subscription.name.clone(),
                     data: NoteData::from(note, i),
                 }
             }
