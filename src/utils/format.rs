@@ -100,7 +100,7 @@ pub fn format_content(content: &str) -> String {
 
 pub fn splite_by_replys(content: &str) -> Vec<String> {
     let content = &format_content(content);
-    let re = Regex::new(r"(nostr:\w+)").unwrap();
+    let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
 
     let mut parts = Vec::new();
     let mut last_end = 0;
