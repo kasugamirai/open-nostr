@@ -1,11 +1,9 @@
-use std::{collections::HashMap, sync::Arc};
-
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{Client, ClientBuilder, RelayMessage, RelayPoolNotification, SubscriptionId};
+use nostr_sdk::{ClientBuilder, RelayMessage, RelayPoolNotification};
 use serde::ser::StdError;
 
-use crate::store::subscription::{self, CustomSub, RelaySet, SubNames};
+use crate::store::subscription::{CustomSub, RelaySet, SubNames};
 use crate::store::CBWebDatabase;
 use crate::{
     nostr::{multiclient::MultiClient, register::*},
@@ -70,20 +68,6 @@ pub fn App() -> Element {
 
             let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
 
-            async fn handler_text_note(
-                notification: RelayPoolNotification,
-            ) -> Result<bool, Box<dyn StdError>> {
-                if let RelayPoolNotification::Message {
-                    message: RelayMessage::Event { event, .. },
-                    ..
-                } = notification
-                {
-                    println!("TextNote: {:?}", event);
-                    tracing::info!("TextNote: {:?}", event);
-                }
-                Ok(false)
-            }
-
             match database.get_all_subs().await {
                 Ok(subs) => {
                     let mut clients = multiclient.write();
@@ -99,49 +83,31 @@ pub fn App() -> Element {
                             let name = i.name.clone();
                             spawn(async move {
                                 tracing::info!("subscribing: {name}");
-                                match c.handle_notifications(|notification| async {
-                                    match notification {
-                                        RelayPoolNotification::Event {
-                                            relay_url,
-                                            subscription_id,
-                                            event,
-                                        } => {
-                                            if subscription_id.to_string() == name {
-                                                c.database().save_event(&event).await.unwrap();
-                                                tracing::info!("{relay_url}: {event:?}");
+                                match c
+                                    .handle_notifications(|notification| async {
+                                        match notification {
+                                            RelayPoolNotification::Event {
+                                                relay_url,
+                                                subscription_id,
+                                                event,
+                                            } => {
+                                                if subscription_id.to_string() == name {
+                                                    c.database().save_event(&event).await.unwrap();
+                                                    tracing::info!("{relay_url}: {event:?}");
+                                                }
                                             }
+                                            _ => {}
                                         }
-                                        _ => {}
-                                    }
-                                    Ok(false) // Set to true to exit from the loop
-                                })
-                                .await{
-                                    Ok(_) => {},
+                                        Ok(false) // Set to true to exit from the loop
+                                    })
+                                    .await
+                                {
+                                    Ok(_) => {}
                                     Err(e) => {
                                         alert(e.to_string()).await;
                                     }
                                 }
                             });
-
-                            // let s = i.clone();
-                            // use_coroutine(|_: UnboundedReceiver<()>| async move {
-                            //     (*register.read())
-                            //         .add_subscription(
-                            //             &c.clone(),
-                            //             SubscriptionId::new(s.name.clone()),
-                            //             s.get_filters(),
-                            //             Arc::new(|notification| {
-                            //                 Box::pin(handler_text_note(notification))
-                            //             }),
-                            //             None,
-                            //         )
-                            //         .await
-                            //         .unwrap();
-                            //     (*register.read())
-                            //         .handle_notifications(&c.clone())
-                            //         .await
-                            //         .unwrap();
-                            // });
                         }
                     }
 
