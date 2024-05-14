@@ -1,12 +1,15 @@
 mod custom_sub;
 pub mod note;
 
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, Event, RelayPoolNotification, SubscriptionId, Timestamp};
+use nostr_sdk::{Event, RelayPoolNotification, SubscriptionId};
 
-use crate::{store::subscription::CustomSub};
+use crate::{
+    nostr::multiclient::MultiClient,
+    store::{subscription::CustomSub, CBWebDatabase},
+};
 
 use custom_sub::CustomSubscription;
 use note::{Note, NoteData};
@@ -34,10 +37,9 @@ pub fn NoteList(name: String) -> Element {
         let mut subs = sub_all.write();
         subs[index] = sub_current.read().clone();
 
-        let s = sub_current();
-
         spawn(async move {
-            //todo
+            let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
+            database.save_custom_sub(sub_current()).await.unwrap();
         });
     };
 
@@ -77,24 +79,17 @@ pub fn List(props: ListProps) -> Element {
 
     let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
 
-    let clients = use_context::<Signal<HashMap<String, Client>>>();
+    let multiclient = use_context::<Signal<MultiClient>>();
 
     // get events from relay && set data to database and notes
     let handle_fetch = move || {
         spawn(async move {
             // TODO: use global client by this subscription
             let sub = sub_current.read().clone();
-            // let client = Client::default();
-            // client
-            //     .add_relays(sub.relay_set.relays.clone())
-            //     .await
-            //     .unwrap();
 
-            // client.connect().await;
+            let clients = multiclient();
 
-            let cs = clients();
-
-            let c = cs.get(&sub.name).unwrap();
+            let c = clients.get(&sub.name).unwrap();
 
             let filters = sub.get_filters();
 
@@ -124,24 +119,14 @@ pub fn List(props: ListProps) -> Element {
         }
     };
 
-    use_effect(use_reactive(
-        (&props.subscription,),
-        move |(subscription,)| {
-            let sub = sub_current();
-            if subscription.name != sub.name {
-                sub_current.set(subscription.clone());
-                notes.clear();
-                handle_load();
-            }
-        },
-    ));
-
     let handle_mounted = move || {
         spawn(async move {
             let sub = sub_current.read().clone();
+            tracing::info!("Subscription: {:?}", sub.clone());
             if sub.live {
-                let cs = clients();
-                let c = cs.get(&sub.name).unwrap();
+                let clients = multiclient();
+
+                let c = clients.get(&sub.name).unwrap();
                 c.handle_notifications(|notification| async {
                     if let RelayPoolNotification::Event {
                         relay_url,
@@ -149,8 +134,9 @@ pub fn List(props: ListProps) -> Element {
                         event,
                     } = notification
                     {
+                        tracing::info!("Subscription: {relay_url}: {event:?}");
                         if subscription_id == SubscriptionId::new(sub.name.clone()) {
-                            tracing::info!("{relay_url}: {event:?}");
+                            tracing::info!("Subscription: {relay_url}: {event:?}");
                         }
                     }
                     Ok(false) // Set to true to exit from the loop
@@ -160,6 +146,19 @@ pub fn List(props: ListProps) -> Element {
             }
         });
     };
+
+    use_effect(use_reactive(
+        (&props.subscription,),
+        move |(subscription,)| {
+            let sub = sub_current();
+            if subscription.name != sub.name {
+                sub_current.set(subscription.clone());
+                notes.clear();
+                handle_load();
+                handle_mounted();
+            }
+        },
+    ));
 
     rsx! {
         div {

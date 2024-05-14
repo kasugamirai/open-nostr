@@ -5,9 +5,13 @@ use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Client, ClientBuilder, RelayMessage, RelayPoolNotification, SubscriptionId};
 use serde::ser::StdError;
 
-use crate::store::subscription::{CustomSub, RelaySet, SubNames};
+use crate::store::subscription::{self, CustomSub, RelaySet, SubNames};
 use crate::store::CBWebDatabase;
-use crate::{nostr::register::*, Route};
+use crate::{
+    nostr::{multiclient::MultiClient, register::*},
+    utils::js::alert,
+    Route,
+};
 
 async fn init() {
     let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
@@ -47,10 +51,9 @@ async fn init() {
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
-    let mut register = use_context_provider(|| Signal::new(Register::new()));
+    let register = use_context_provider(|| Signal::new(Register::new()));
 
-    // todo: there should be a struct to wrap clients, not use a hashmap directly
-    let mut clients = use_context_provider(|| Signal::new(HashMap::<String, Client>::new()));
+    let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
 
     // all custom subscriptions
     let mut all_sub: Signal<Vec<CustomSub>> =
@@ -61,20 +64,11 @@ pub fn App() -> Element {
 
     // hook: on mounted
     let on_mounted = move |_| {
-
         spawn(async move {
-            // TODO: init().await;
+            // TODO: Initialize database, remove it in production
             init().await;
 
             let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
-
-            let name_list = database.get_sub_name_list().await.unwrap();
-
-            let mut subs = vec![];
-            for i in name_list.names.iter() {
-                let sub = database.get_custom_sub(i.to_string()).await.unwrap();
-                subs.push(sub);
-            }
 
             async fn handler_text_note(
                 notification: RelayPoolNotification,
@@ -90,39 +84,73 @@ pub fn App() -> Element {
                 Ok(false)
             }
 
-            let mut cs = clients.write();
-            for i in subs.iter() {
-                let client_builder =
-                    ClientBuilder::new().database(WebDatabase::open("EVENTS_DB").await.unwrap());
-                let c = client_builder.build();
-                c.add_relays(i.relay_set.relays.clone()).await.unwrap();
-                c.connect().await;
-                cs.insert(i.name.clone(), c.clone());
+            match database.get_all_subs().await {
+                Ok(subs) => {
+                    let mut clients = multiclient.write();
+                    for i in subs.clone().iter() {
+                        let client_builder = ClientBuilder::new()
+                            .database(WebDatabase::open(i.name.clone()).await.unwrap());
+                        let c = client_builder.build();
+                        c.add_relays(i.relay_set.relays.clone()).await.unwrap();
+                        c.connect().await;
+                        clients.register(i.name.clone(), c.clone());
 
-                if i.live {
-                    let s = i.clone();
-                    use_coroutine(|_: UnboundedReceiver<()>| async move {
-                        (*register.read())
-                            .add_subscription(
-                                &c.clone(),
-                                SubscriptionId::new(s.name.clone()),
-                                s.get_filters(),
-                                Arc::new(|notification| Box::pin(handler_text_note(notification))),
-                                None,
-                            )
-                            .await
-                            .unwrap();
-                        (*register.read())
-                            .handle_notifications(&c.clone())
-                            .await
-                            .unwrap();
-                    });
+                        if i.live {
+                            let name = i.name.clone();
+                            spawn(async move {
+                                tracing::info!("subscribing: {name}");
+                                match c.handle_notifications(|notification| async {
+                                    match notification {
+                                        RelayPoolNotification::Event {
+                                            relay_url,
+                                            subscription_id,
+                                            event,
+                                        } => {
+                                            if subscription_id.to_string() == name {
+                                                c.database().save_event(&event).await.unwrap();
+                                                tracing::info!("{relay_url}: {event:?}");
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                    Ok(false) // Set to true to exit from the loop
+                                })
+                                .await{
+                                    Ok(_) => {},
+                                    Err(e) => {
+                                        alert(e.to_string()).await;
+                                    }
+                                }
+                            });
+
+                            // let s = i.clone();
+                            // use_coroutine(|_: UnboundedReceiver<()>| async move {
+                            //     (*register.read())
+                            //         .add_subscription(
+                            //             &c.clone(),
+                            //             SubscriptionId::new(s.name.clone()),
+                            //             s.get_filters(),
+                            //             Arc::new(|notification| {
+                            //                 Box::pin(handler_text_note(notification))
+                            //             }),
+                            //             None,
+                            //         )
+                            //         .await
+                            //         .unwrap();
+                            //     (*register.read())
+                            //         .handle_notifications(&c.clone())
+                            //         .await
+                            //         .unwrap();
+                            // });
+                        }
+                    }
+
+                    all_sub.set(subs);
                 }
-            }
-
-            for i in subs.iter() {
-                all_sub.push(i.clone());
-            }
+                Err(e) => {
+                    alert(e.to_string()).await;
+                }
+            };
         });
     };
 

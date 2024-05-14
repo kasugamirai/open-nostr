@@ -172,7 +172,7 @@ pub fn ChildrenKeep(name: String) -> Element {
                             event,
                         } => {
                             if subscription_id == sub_id {
-                                // database.save_event(&event).await.unwrap();
+                                database.save_event(&event).await.unwrap();
                                 tracing::info!("{relay_url}: {event:?}");
                             }
                         }

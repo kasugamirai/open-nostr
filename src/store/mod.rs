@@ -160,7 +160,9 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(RELAY_SET_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(RELAY_SET_CF)?;
-        store.delete(&to_value(&relay_set.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?)?;
+        store.delete(
+            &to_value(&relay_set.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?,
+        )?;
         let value = to_value(&relay_set).map_err(CBwebDatabaseError::DeserializationError)?;
         store.add_val(&value)?;
 
@@ -193,7 +195,9 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(SUB_NAME_LIST, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(SUB_NAME_LIST)?;
-        store.delete(&to_value(&names.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?)?;
+        store.delete(
+            &to_value(&names.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?,
+        )?;
         let value = to_value(&names).map_err(CBwebDatabaseError::DeserializationError)?;
         store.add_val(&value)?;
 
@@ -226,7 +230,10 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(CUSTOM_SUB_CF)?;
-        store.delete(&to_value(&custom_sub.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?)?;
+        store.delete(
+            &to_value(&custom_sub.name.clone())
+                .map_err(CBwebDatabaseError::DeserializationError)?,
+        )?;
         let value = to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
         store.add_val(&value)?;
 
@@ -253,13 +260,42 @@ impl CBWebDatabase {
         }
     }
 
+    pub async fn get_all_subs(&self) -> Result<Vec<CustomSub>, CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readonly)?;
+
+        let store = tx.object_store(CUSTOM_SUB_CF)?;
+        let value = store.get_all()?.await?;
+
+        let mut subs = Vec::new();
+
+        loop {
+            let v = value.shift();
+            if !v.is_object(){
+                break;
+            }
+            match from_value::<CustomSub>(v) {
+                Ok(custom_sub) => subs.push(custom_sub),
+                Err(e) => {
+                    tracing::error!("Error deserializing CustomSub: {:?}", e);
+                    return Err(CBwebDatabaseError::DeserializationError(e));
+                }
+            }
+        }
+
+        Ok(subs)
+    }
+
     pub async fn save_user(&self, user: User) -> Result<(), CBwebDatabaseError> {
         let tx = self
             .db
             .transaction_on_one_with_mode(USER_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(USER_CF)?;
-        store.delete(&to_value(&user.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?)?;
+        store.delete(
+            &to_value(&user.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?,
+        )?;
         let value = to_value(&user).map_err(CBwebDatabaseError::DeserializationError)?;
         store.add_val(&value)?;
 

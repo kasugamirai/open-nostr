@@ -41,3 +41,13 @@ pub async fn import_from_clipboard() -> String {
         "".into()
     }
 }
+
+pub async fn alert(msg: String) {
+    let eval: UseEval = eval(
+        r#"
+        let msg = await dioxus.recv();
+        alert(msg);
+        "#,
+    );
+    eval.send(msg.into()).unwrap();
+}
