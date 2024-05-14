@@ -1,4 +1,7 @@
+use dioxus::dioxus_core::Event;
 use regex::Regex;
+
+use crate::nostr::note::TextNote;
 
 /// format public key
 ///
@@ -95,6 +98,7 @@ pub fn format_content(content: &str) -> String {
     let replaced_text = replace_urls(content);
     let replaced_text = replace_tags(&replaced_text);
     let replaced_text = add_media_wrapper(&replaced_text);
+    let replaced_text = replace_qoutes(&replaced_text);
     replace_newlines(&replaced_text)
 }
 
@@ -166,4 +170,19 @@ fn add_media_wrapper(content: &str) -> String {
         content.insert_str(index, "</div>");
     }
     content
+}
+
+// nostr:note1kwqrjx93xex7rdpqhc6d2ltexrmvt6jm7t7wufq9qvqhka64um0s3yyuxd
+fn replace_qoutes(content: &str) -> String {
+    // 为什么结果是空的呢？
+    let re = Regex::new(r"nostr:note[a-zA-Z0-9]{59}").unwrap();
+    re.replace_all(content, |caps: &regex::Captures| {
+        let note_id = &caps[0];
+        log::info!("note_id: {}", note_id);
+        format!(
+            r#"<a class="post-link" href="javascript:void(0)">{}</a>"#,
+            note_id
+        )
+    })
+    .to_string()
 }

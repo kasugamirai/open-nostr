@@ -10350,6 +10350,11 @@
   --radius-1: 10px;
   --radius-2: 20px;
   --radius-3: 30px;
+  --radius-24: 24px;
+  --radius-8: 8px;
+  --textSize-12: 12px;
+  --textSize-14: 14px;
+  --textSize-16: 16px;
   --radius-circle: 2000px;
   --trans-default: 0.4s;
   --link: rgb(159, 116, 235);
@@ -11160,6 +11165,44 @@ video {
   word-wrap: break-word;
 }
 
+.com-post .com-post-author {
+  display: flex;
+  gap: 10px;
+}
+
+.com-post .com-post-author .com-post-author-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.com-post .com-post-author .com-post-author-avatar img {
+  width: 45px;
+  height: 45px;
+}
+
+.com-post .com-post-author .com-post-author-profile {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+}
+
+.com-post .com-post-author .com-post-author-profile-name {
+  font-size: 16px;
+  color: var(--txt-1);
+}
+
+.com-post .com-post-author .com-post-author-profile-created {
+  font-size: 12px;
+  color: var(--txt-3);
+}
+
+.com-post svg.icon {
+  width: 24px;
+  height: 24px;
+}
+
 .more-trigger svg {
   cursor: pointer;
   width: 24px;
@@ -11205,8 +11248,30 @@ video {
   fill: var(--txt-1);
 }
 
+.com-post .com-post-content {
+  font-size: 16px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
 .com-post .note-action-count {
+  font-size: var(--textSize-12);
   font-family: "Source Sans Pro";
+  color: #030303;
+}
+
+.footer .note-action-count {
+  font-size: 12px;
+}
+
+.com-post .com-post-info svg {
+  display: flex;
+  width: 24px;
+  height: 24px;
+}
+
+.com-post .com-post-info-item:not(:first-child) {
+  margin-left: 10px;
 }
 
 .com-post .note-action svg {
@@ -11325,18 +11390,21 @@ video {
   flex-direction: column;
   gap: 6px;
   border: 1px solid var(--boc-1);
-  border-radius: var(--radius-1);
-  padding: 12px;
+  border-radius: var(--radius-24);
+  padding: 6px;
 }
 .event-note .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
+.event-note .header .moreStyle {
+  margin-right: 13px;
+}
 .event-note .header .user {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .event-note .header .user .avatar {
   width: 46px;
@@ -11369,26 +11437,39 @@ video {
 .event-note .reply .title,
 .event-note .quote .title {
   width: 46px;
+  padding-left: 12px;
 }
 .event-note .reply .note,
 .event-note .quote .note {
-  width: calc(100% - 46px);
+  width: calc(100% - 66px);
 }
 .event-note .content {
   padding-left: 46px;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+.event-note .content .post-media-wrap {
+  gap: 8px !important;
+  padding-top: 2px;
+}
+.event-note .content .post-media-wrap .post-image {
+  border-radius: var(--radius-8);
+}
 .event-note .footer {
-  padding-left: 46px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 15px;
+  padding: 8px 0;
+  padding-left: 46px;
 }
 .event-note .footer .info {
   cursor: pointer;
   display: flex;
   align-items: center;
+}
+.event-note .footer .pullDownStyle {
+  margin-left: auto;
+  margin-right: 18px;
 }
 
 .event-less {
@@ -11396,14 +11477,14 @@ video {
   display: flex;
   align-items: center;
   border: 1px solid var(--boc-1);
-  border-radius: var(--radius-1);
+  border-radius: var(--radius-24);
   padding: 6px;
 }
 .event-less .header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 150px;
+  gap: 12px;
+  width: 142px;
 }
 .event-less .header .avatar {
   width: 46px;
@@ -11419,12 +11500,17 @@ video {
   display: flex;
   flex-direction: column;
   justify-content: space-around;
+  padding-right: 4px;
+  width: 83px;
+  border-right: 1px solid #030303;
+  margin-right: 9px;
 }
 .event-less .header .profile .nickname {
   font-size: 16px;
   color: var(--txt-1);
 }
 .event-less .header .profile .created {
+  width: 77px;
   font-size: 12px;
   color: var(--txt-3);
 }
