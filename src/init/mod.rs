@@ -63,6 +63,7 @@ pub fn App() -> Element {
     let on_mounted = move |_| {
         spawn(async move {
             // TODO: init().await;
+            init().await;
 
             let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
 

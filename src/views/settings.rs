@@ -5,7 +5,7 @@ use nostr_sdk::prelude::*;
 
 use crate::{
     components::icons::*,
-    utils::format::{format_content, format_create_at, format_public_key}, Route,
+    utils::format::{format_content, format_create_at, format_public_key, splite_by_replys}, Route,
 };
 
 enum NoteAction {
@@ -24,6 +24,13 @@ struct NoteActionState {
 pub fn Settings() -> Element {
     let mut data = use_signal(|| vec![]);
     let get_events = move || {
+        let n = r#"
+        qwetgsss http://1/2.jpg #Dog
+        123 nostr:adsg4ea34hasedrf #Car
+        geoamkhhh
+        "#;
+        let res = splite_by_replys(n);
+        tracing::info!("res======>: {:?}", res);
         spawn(async move {
             let client = Client::default();
 
@@ -117,22 +124,27 @@ pub fn EventItem(event: nostr_sdk::Event) -> Element {
                 }
                 div {
                     class: "note",
-                    EventLess { event: event.clone() }
+                    EventLess { event: event.clone(), content: "".to_string() }
                 }
             }
-            div {
-                class: "content",
-                dangerous_inner_html: "{format_content(&event.content.to_string())}",
-            }
-            div {
-                class: "quote",
-                div {
-                    class: "title",
-                    "Qt:"
-                }
-                div {
-                    class: "note",
-                    EventLess { event: event.clone() }
+            for i in splite_by_replys(&event.content.to_string()) {
+                if i.starts_with("nostr:") {
+                    div {
+                        class: "quote",
+                        div {
+                            class: "title",
+                            "Qt:"
+                        }
+                        div {
+                            class: "note",
+                            EventLess { event: event.clone(), content: i }
+                        }
+                    }
+                } else {
+                    div {
+                        class: "content",
+                        dangerous_inner_html: "{i}"
+                    }
                 }
             }
             div {
@@ -173,7 +185,7 @@ pub fn EventItem(event: nostr_sdk::Event) -> Element {
 }
 
 #[component]
-fn EventLess(event: nostr_sdk::Event) -> Element {
+fn EventLess(event: nostr_sdk::Event, content: String) -> Element {
     rsx! {
         div {
             class: "event-less",
@@ -200,7 +212,7 @@ fn EventLess(event: nostr_sdk::Event) -> Element {
             }
             div {
                 class: "text",
-                dangerous_inner_html: "{event.content.to_string()}",
+                dangerous_inner_html: "{content}",
             }
         }
     }

@@ -98,6 +98,27 @@ pub fn format_content(content: &str) -> String {
     replace_newlines(&replaced_text)
 }
 
+pub fn splite_by_replys(content: &str) -> Vec<String> {
+    let content = &format_content(content);
+    let re = Regex::new(r"(nostr:\w+)").unwrap();
+
+    let mut parts = Vec::new();
+    let mut last_end = 0;
+
+    for mat in re.find_iter(content) {
+        if mat.start() > last_end {
+            parts.push(&content[last_end..mat.start()]);
+        }
+        parts.push(mat.as_str());
+        last_end = mat.end();
+    }
+
+    if last_end < content.len() {
+        parts.push(&content[last_end..]);
+    }
+    parts.iter().map(|part| part.to_string()).collect()
+}
+
 fn replace_urls(content: &str) -> String {
     let re = Regex::new(r"(?P<url>https?://\S+)").unwrap();
     re.replace_all(content, |caps: &regex::Captures| {
