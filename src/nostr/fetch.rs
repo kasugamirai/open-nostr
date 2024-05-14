@@ -1,11 +1,13 @@
 use std::collections::HashMap;
+use std::f64::consts::E;
 use std::time::Duration;
 
+use super::note::ReplyTrees;
 use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{
-    client, Alphabet, Client, Event, EventId, Filter, FilterOptions, JsonUtil, Kind, Metadata,
-    PublicKey, SingleLetterTag,
+    client, event, Alphabet, Client, Event, EventId, Filter, FilterOptions, JsonUtil, Kind, Marker,
+    Metadata, PublicKey, SingleLetterTag, Tag,
 };
 use nostr_sdk::{NostrDatabase, Timestamp};
 use web_sys::console;
@@ -67,6 +69,59 @@ impl Fetcher {
     pub fn new() -> Self {
         Self {}
     }
+    pub async fn fetch_note_and_replies(
+        &self,
+        client: Client,
+        event_id: EventId,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<ReplyTrees<'static>, Error> {
+        // Fetch the main note
+        let main_note = self
+            .get_single_event(client.clone(), event_id, timeout)
+            .await?;
+        // Fetch replies
+        let replies = self.get_replies(client, event_id, timeout).await?;
+
+        // Combine the main note and replies into one vector
+        let mut events = Vec::new();
+        if let Some(note) = main_note {
+            events.push(note);
+        }
+        events.extend(replies);
+
+        // Create reply trees
+        let mut reply_trees = ReplyTrees::default();
+        //reply_trees.accept(&events.iter().cloned().collect::<Vec<_>>());
+        Ok(reply_trees)
+    }
+
+    // Fetches a single event by its ID
+    async fn get_single_event(
+        &self,
+        client: Client,
+        event_id: EventId,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Option<Event>, Error> {
+        let filter = Filter::new().id(event_id);
+        let events = client.get_events_of(vec![filter], timeout).await?;
+        Ok(events.into_iter().next())
+    }
+
+    // Fetches all replies to a given event ID
+    pub async fn get_replies(
+        &self,
+        client: Client,
+        event_id: EventId,
+        timeout: Option<std::time::Duration>,
+    ) -> Result<Vec<Event>, Error> {
+        let filter = Filter::new().kind(Kind::TextNote).custom_tag(
+            SingleLetterTag::lowercase(Alphabet::E),
+            vec![event_id.to_hex()],
+        );
+        let events = client.get_events_of(vec![filter], timeout).await?;
+        let ret = filter_root_replies(&events);
+        Ok(ret)
+    }
 
     /// Fetches the metadata of a user with the given public key.
     pub async fn get_metadata(
@@ -101,21 +156,6 @@ impl Fetcher {
 
         let ret = count_events(&events)?;
         Ok(ret)
-    }
-
-    /// Fetches the replies of an event with the given event ID.
-    pub async fn get_reply(
-        &self,
-        client: Client,
-        event_id: EventId,
-        timeout: Option<std::time::Duration>,
-    ) -> Result<Vec<Event>, Error> {
-        let filter = Filter::new().kind(Kind::TextNote).custom_tag(
-            SingleLetterTag::lowercase(Alphabet::E),
-            vec![event_id.to_hex()],
-        );
-        let events = client.get_events_of(vec![filter], timeout).await?;
-        Ok(events)
     }
 
     /// Fetches the reposts of an event with the given event ID.
@@ -318,6 +358,36 @@ async fn save_all_events(events: &[Event], db: &WebDatabase) -> Result<(), Error
         db.save_event(event).await?;
     }
     Ok(())
+}
+
+fn filter_root_replies(events: &[Event]) -> Vec<Event> {
+    let mut ret = Vec::new();
+    for event in events.iter() {
+        event.iter_tags().for_each(|t| {
+            if let Tag::Event { marker, .. } = t {
+                match marker {
+                    Some(Marker::Root) => ret.push(event.clone()),
+                    _ => (),
+                }
+            }
+        });
+    }
+    ret
+}
+
+fn filter_reply_replies(events: &[Event]) -> Vec<Event> {
+    let mut ret = Vec::new();
+    for event in events.iter() {
+        event.iter_tags().for_each(|t| {
+            if let Tag::Event { marker, .. } = t {
+                match marker {
+                    Some(Marker::Reply) => ret.push(event.clone()),
+                    _ => (),
+                }
+            }
+        });
+    }
+    ret
 }
 
 /// Counts the number of occurrences of each event content.
@@ -597,9 +667,13 @@ mod tests {
                 .unwrap();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
         let fetcher = Fetcher::new();
-        let replies = fetcher.get_reply(client, event_id, timeout).await.unwrap();
+        let replies = fetcher
+            .get_replies(client, event_id, timeout)
+            .await
+            .unwrap();
         let length = replies.len();
         console_log!("Replies: {:?}", replies);
         assert_eq!(replies.len(), length);
