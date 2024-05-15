@@ -75,7 +75,12 @@ pub fn format_create_at(timestamp: u64) -> String {
     } else if current - ts < 60 * 60 {
         format!("{} minutes ago", (current - ts) / 60)
     } else if current - ts < 60 * 60 * 24 {
-        format!("{} hours ago", (current - ts) / 60 / 60)
+        let t = (current - ts) / 60 / 60;
+        if  t == 1 {
+            format!("{} hour ago", t)
+        } else {
+            format!("{} hours ago", t)
+        }
     } else if current - ts < 60 * 60 * 24 * 30 {
         format!("{} days ago", (current - ts) / 60 / 60 / 24)
     } else {

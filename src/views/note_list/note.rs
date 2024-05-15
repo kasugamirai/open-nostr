@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, EventId, Filter, JsonUtil};
+use nostr_sdk::{Alphabet, Client, EventId, Filter, JsonUtil, Kind, SingleLetterTag};
+use regex::Regex;
 
 use crate::{
-    components::icons::*,
-    components::Avatar,
-    utils::format::{format_content, format_create_at, format_public_key},
+    components::{icons::*, Avatar},
+    nostr::multiclient::MultiClient,
+    utils::format::{format_content, format_create_at, format_public_key, splite_by_replys},
     Route,
 };
 
@@ -44,7 +45,7 @@ pub struct NoteProps {
     pub clsname: Option<String>,
     pub on_detail: Option<EventHandler<()>>,
     //pub metadata: nostr_sdk::Metadata,
-    pub is_expand: Option<bool>
+    pub is_expand: Option<bool>,
 }
 enum NoteAction {
     Replay,
@@ -54,14 +55,14 @@ enum NoteAction {
 }
 struct NoteActionState {
     action: NoteAction,
-    count: u64,
+    count: usize,
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
     let author = props.data.author.clone();
     let e = EventId::from_hex(author).unwrap();
 
-    let future = use_resource(move || async move {
+    let _future = use_resource(move || async move {
         let client = Client::default();
         // TODO: get metadata
         let filter = Filter::new().event(e);
@@ -80,31 +81,155 @@ pub fn Note(props: NoteProps) -> Element {
         }
     });
 
+    let mut note_action_state = use_signal(|| {
+        vec![
+            NoteActionState {
+                action: NoteAction::Replay,
+                count: 0,
+            },
+            NoteActionState {
+                action: NoteAction::Share,
+                count: 0,
+            },
+            NoteActionState {
+                action: NoteAction::Qoute,
+                count: 0,
+            },
+            NoteActionState {
+                action: NoteAction::Zap,
+                count: 0,
+            },
+        ]
+    });
+
+    let multiclient = use_context::<Signal<MultiClient>>();
+    let sub_name = props.sub_name.clone();
+    let event_id = props.data.id.clone();
+    let fetch_data = move |_| {
+        let sub_name = sub_name.clone();
+        let event_id = event_id.clone();
+        spawn(async move {
+            let clients = multiclient();
+            let client = clients.get(&sub_name).unwrap();
+
+            let mut reply_filter = Filter::new().kind(Kind::TextNote);
+            reply_filter =
+                reply_filter.custom_tag(SingleLetterTag::lowercase(Alphabet::E), [event_id]);
+            let reply_events = client
+                .get_events_of(vec![reply_filter], Some(Duration::from_secs(30)))
+                .await
+                .unwrap();
+
+            let mut action_state = note_action_state.write();
+            action_state[1].count = reply_events.len();
+        });
+    };
+
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
-    let note_action_state = vec![
-        NoteActionState {
-            action: NoteAction::Replay,
-            count: 100,
-        },
-        NoteActionState {
-            action: NoteAction::Share,
-            count: 10,
-        },
-        NoteActionState {
-            action: NoteAction::Qoute,
-            count: 10,
-        },
-        NoteActionState {
-            action: NoteAction::Zap,
-            count: 20,
-        },
-    ];
 
+    let mut element = use_signal(|| rsx! { div { "Loading..." } });
+    let notetext = use_signal(|| props.data.content.clone());
+    let sub_name = use_signal(|| props.sub_name.clone());
+    let _future = use_resource(move || async move {
+        let clients = multiclient();
+        let client = clients.get(&sub_name.read()).unwrap();
 
-    // let 
+        let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{64})").unwrap();
+
+        let data = &notetext();
+
+        let mut parts = Vec::new();
+        let mut last_end = 0;
+
+        for mat in re.find_iter(data) {
+            if mat.start() > last_end {
+                parts.push(&data[last_end..mat.start()]);
+            }
+            parts.push(mat.as_str());
+            last_end = mat.end();
+        }
+
+        if last_end < data.len() {
+            parts.push(&data[last_end..]);
+        }
+
+        let mut elements = vec![];
+        for i in parts {
+            if i.starts_with("nostr:note") {
+                let id = i.strip_prefix("nostr:note").unwrap();
+
+                let filter = Filter::new().id(EventId::from_hex(id).unwrap());
+                let events = client.get_events_of(vec![filter], None).await.unwrap();
+
+                if events.len() > 0 {
+                    let mut action_state = note_action_state.write();
+                    action_state[2].count += 1;
+                    let pk = events[0].author();
+                    let content = events[0].content.to_string();
+                    let timestamp = events[0].created_at.as_u64();
+                    let filter = Filter::new().kind(Kind::Metadata).author(pk);
+                    let events = client.get_events_of(vec![filter], None).await.unwrap();
+                    tracing::info!("metadata: {events:?}");
+
+                    elements.push(rsx! {
+                        div {
+                            class: "quote",
+                            style: "display: flex; align-items: center;",
+                            div {
+                                style: "font-weight: bold; width: 52px; display: flex; align-items: center; justify-content: center;",
+                                "Qt:"
+                            }
+                            div {
+                                style: "flex: 1; border: 1px solid #333; border-radius: 20px; overflow: hidden; padding: 4px; display: flex; gap: 12px; background: #fff; height: 50px;",
+                                div {
+                                    style: "width: 140px; display: flex; align-items: center; gap: 12px;",
+                                    img {
+                                        class: "square-40 radius-20 mr-12",
+                                        src: "https://avatars.githubusercontent.com/u/1024025?v=4",
+                                        alt: "avatar",
+                                    }
+                                    div {
+                                        class: "profile flex flex-col",
+                                        span {
+                                            class: "nickname font-size-16 txt-1",
+                                            "dioxus"
+                                        }
+                                        span {
+                                            class: "created txt-3 font-size-12",
+                                            {format_create_at(timestamp)}
+                                        }
+                                    }
+                                }
+                                div {
+                                    style: "flex: 1; font-size: 14px; line-height: 20px; border-left: 2px solid #b4b4b4; padding: 0 12px;",
+                                    dangerous_inner_html: "{content}"
+                                }
+                            }
+                        }
+                    });
+                }
+            } else {
+                elements.push(rsx! {
+                    div {
+                        class: "text pl-52",
+                        dangerous_inner_html: "{format_content(i)}"
+                    }
+                });
+            }
+        }
+
+        element.set(rsx! {
+            for element in elements {
+                {element}
+            }
+        });
+    });
+
+    // let
     rsx! {
         div {
+            onmounted: fetch_data,
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
             id: format!("note-{}", props.data.id),
             // detail modal
@@ -143,10 +268,11 @@ pub fn Note(props: NoteProps) -> Element {
                 }
             }
             div {
-                class: "note-content font-size-16 word-wrap lh-26 pl-52",
-                dangerous_inner_html: "{format_content(&props.data.content)}",
+                class: "note-content font-size-16 word-wrap lh-26",
+                // dangerous_inner_html: "{format_content(&props.data.content)}",
+                {element}
             }
-            
+
             div {
                 class: "note-action-wrapper flex items-center justify-between pl-52 pr-12",
                 div {
@@ -182,7 +308,7 @@ pub fn Note(props: NoteProps) -> Element {
                         }
                     }
                     // emojis
-                    
+
                 }
 
                 if props.is_expand.unwrap_or(false) {
@@ -194,7 +320,7 @@ pub fn Note(props: NoteProps) -> Element {
                         }
                     }
                 }
-                
+
             }
         }
     }
@@ -284,6 +410,60 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                     }
                 }
             }
+        }
+    }
+}
+
+fn generate_element(data: &str) -> Element {
+    let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{64})").unwrap();
+
+    let mut parts = Vec::new();
+    let mut last_end = 0;
+
+    for mat in re.find_iter(data) {
+        if mat.start() > last_end {
+            parts.push(&data[last_end..mat.start()]);
+        }
+        parts.push(mat.as_str());
+        last_end = mat.end();
+    }
+
+    if last_end < data.len() {
+        parts.push(&data[last_end..]);
+    }
+
+    let mut elements = vec![];
+
+    for i in parts {
+        if i.starts_with("nostr:note") {
+            let id = i.strip_prefix("nostr:note").unwrap();
+            elements.push(rsx! {
+                div {
+                    class: "quote",
+                    style: "display: flex; gap: 10px; align-items: center; border: 1px solid #333;",
+                    div {
+                        style: "font-weight: bold; width: 52px;",
+                        "Qt:"
+                    }
+                    div {
+                        style: "flex: 1;",
+                        dangerous_inner_html: "{id}"
+                    }
+                }
+            });
+        } else {
+            elements.push(rsx! {
+                div {
+                    class: "text pl-52",
+                    dangerous_inner_html: "{format_content(i)}"
+                }
+            });
+        }
+    }
+
+    rsx! {
+        for element in elements {
+            {element}
         }
     }
 }
