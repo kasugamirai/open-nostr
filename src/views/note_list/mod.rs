@@ -42,9 +42,12 @@ pub fn NoteList(name: String) -> Element {
             database.save_custom_sub(sub_current()).await.unwrap();
         });
     };
+    let mut index = use_signal(|| 0);
 
-    let handle_reload = move |_value: CustomSub| {
+    let handle_reload = move |value: CustomSub| {
         //todo
+        index += 1;
+        sub_current.set(value);
     };
 
     rsx! {
@@ -53,6 +56,7 @@ pub fn NoteList(name: String) -> Element {
             div {
                 class:"flexBoxLeft",
                 List {
+                    index: index(),
                     subscription: sub_current.read().clone(),
                 }
             }
@@ -70,6 +74,7 @@ pub fn NoteList(name: String) -> Element {
 
 #[derive(PartialEq, Clone, Props)]
 pub struct ListProps {
+    index: i32,
     subscription: CustomSub,
 }
 
@@ -78,8 +83,9 @@ pub fn List(props: ListProps) -> Element {
     let mut sub_current = use_signal(|| props.subscription.clone());
 
     let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
+    let mut index = use_signal(|| 1);
 
-    let multiclient = use_context::<Signal<MultiClient>>();
+    // let multiclient = use_context::<Signal<MultiClient>>();
 
     // get events from relay && set data to database and notes
     let handle_fetch = move || {
@@ -87,8 +93,10 @@ pub fn List(props: ListProps) -> Element {
             // TODO: use global client by this subscription
             let sub = sub_current.read().clone();
 
+            let multiclient = use_context::<Signal<MultiClient>>();
             let clients = multiclient();
 
+            tracing::info!("Subscription xxxxxxxxxxx: {:?}", sub.clone());
             let c = clients.get(&sub.name).unwrap();
 
             let filters = sub.get_filters();
@@ -119,52 +127,21 @@ pub fn List(props: ListProps) -> Element {
         }
     };
 
-    let handle_mounted = move || {
-        spawn(async move {
-            let sub = sub_current.read().clone();
-            tracing::info!("Subscription: {:?}", sub.clone());
-            if sub.live {
-                let clients = multiclient();
-
-                let c = clients.get(&sub.name).unwrap();
-                c.handle_notifications(|notification| async {
-                    if let RelayPoolNotification::Event {
-                        relay_url,
-                        subscription_id,
-                        event,
-                    } = notification
-                    {
-                        tracing::info!("Subscription: {relay_url}: {event:?}");
-                        if subscription_id == SubscriptionId::new(sub.name.clone()) {
-                            tracing::info!("Subscription: {relay_url}: {event:?}");
-                        }
-                    }
-                    Ok(false) // Set to true to exit from the loop
-                })
-                .await
-                .unwrap();
-            }
-        });
-    };
-
     use_effect(use_reactive(
-        (&props.subscription,),
-        move |(subscription,)| {
-            let sub = sub_current();
-            if subscription.name != sub.name {
-                sub_current.set(subscription.clone());
+        (&props.index, &props.subscription),
+        move |(i, sub)| {
+            if i != index() {
+                tracing::info!("Subscription changed: {:?}", index());
+                sub_current.set(sub);
+                index.set(i);
                 notes.clear();
                 handle_load();
-                handle_mounted();
             }
         },
     ));
 
     rsx! {
         div {
-            onmounted: move |_| {
-                handle_mounted();
-            },
             style: "display: flex; flex-direction: column; gap: 10px; width: 100%;",
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
