@@ -16,7 +16,7 @@ pub use channel::Channel;
 pub use group::Group;
 pub use home::Home;
 pub use message::Message;
-pub use note_detail::NoteDetail;
+// pub use note_detail::NoteDetail;
 pub use note_list::NoteList;
 pub use profile::Profile;
 pub use relay::Relay;

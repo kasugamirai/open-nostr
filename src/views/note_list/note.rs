@@ -300,13 +300,13 @@ pub fn Note(props: NoteProps) -> Element {
                     span{
                         style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
                     }
-                    Link {
-                        class: "note-action-item cursor-pointer",
-                        to: Route::NoteDetail { sub: props.sub_name, id: props.data.id.clone() },
-                        span {
-                            dangerous_inner_html: "{ADD}",
-                        }
-                    }
+                    // Link {
+                    //     class: "note-action-item cursor-pointer",
+                    //     to: Route::NoteDetail { sub: props.sub_name, id: props.data.id.clone() },
+                    //     span {
+                    //         dangerous_inner_html: "{ADD}",
+                    //     }
+                    // }
                     // emojis
 
                 }

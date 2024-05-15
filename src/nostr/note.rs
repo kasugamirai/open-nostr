@@ -22,28 +22,16 @@ impl fmt::Display for Error {
 }
 
 #[derive(Debug, Clone)]
-pub struct TextNote<'a> {
-    pub inner_ref: &'a Event,
-    root: Option<&'a EventId>,
-    reply_to: Option<&'a EventId>,
+pub struct TextNote {
+    pub inner: Event,
+    root: Option<EventId>,
+    reply_to: Option<EventId>,
 }
 
-/*
-impl<'a> Clone for TextNote<'a> {
-    fn clone(&self) -> Self {
+impl TextNote {
+    pub fn new(event: Event) -> Self {
         TextNote {
-            inner_ref: self.inner_ref, // This just copies the reference
-            root: self.root,           // This just copies the reference
-            reply_to: self.reply_to,   // This just copies the reference
-        }
-    }
-}
-*/
-
-impl<'a> TextNote<'a> {
-    pub fn new(event: &'a Event) -> Self {
-        TextNote {
-            inner_ref: event,
+            inner: event,
             root: None,
             reply_to: None,
         }
@@ -53,8 +41,8 @@ impl<'a> TextNote<'a> {
         matches!((&self.root, &self.reply_to), (None, None))
     }
 
-    fn parse_event_tags(event: &'a Event, text_note: &mut Self) -> Result<(), Error> {
-        let mut no_marker_array: Vec<&EventId> = vec![];
+    fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
+        let mut no_marker_array: Vec<EventId> = vec![];
 
         event.iter_tags().for_each(|t| {
             if let Tag::Event {
@@ -62,9 +50,9 @@ impl<'a> TextNote<'a> {
             } = t
             {
                 match marker {
-                    Some(Marker::Root) => text_note.root = Some(event_id),
-                    Some(Marker::Reply) => text_note.reply_to = Some(event_id),
-                    None => no_marker_array.push(event_id),
+                    Some(Marker::Root) => text_note.root = Some(*event_id),
+                    Some(Marker::Reply) => text_note.reply_to = Some(*event_id),
+                    None => no_marker_array.push(*event_id),
                     _ => {} //do nothing
                 }
             }
@@ -72,17 +60,17 @@ impl<'a> TextNote<'a> {
 
         // a reply for root
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
-            text_note.root = Some(reply);
+            text_note.root = Some(*reply);
         } // no marker at all
         if text_note.reply_to.is_none() {
             match no_marker_array.len() {
                 1 => {
-                    text_note.root = no_marker_array.first().copied();
-                    text_note.reply_to = no_marker_array.first().copied();
+                    text_note.root = no_marker_array.first().cloned();
+                    text_note.reply_to = no_marker_array.first().cloned();
                 }
                 n if n >= 2 => {
-                    text_note.root = no_marker_array.first().copied();
-                    text_note.reply_to = no_marker_array.get(1).copied();
+                    text_note.root = no_marker_array.first().cloned();
+                    text_note.reply_to = no_marker_array.get(1).cloned();
                 }
                 _ => {
                     return Err(Error::NotEnoughElements);
@@ -94,13 +82,13 @@ impl<'a> TextNote<'a> {
     }
 }
 
-impl<'a> TryFrom<&'a Event> for TextNote<'a> {
+impl TryFrom<Event> for TextNote {
     type Error = Error;
 
-    fn try_from(event: &'a Event) -> Result<Self, Self::Error> {
+    fn try_from(event: Event) -> Result<Self, Self::Error> {
         if event.kind == Kind::TextNote {
-            let mut text_note = TextNote::new(event);
-            let _ = TextNote::parse_event_tags(event, &mut text_note);
+            let mut text_note = TextNote::new(event.clone());
+            let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
             Ok(text_note)
         } else {
             Err(Error::KindNotMatch)
@@ -108,10 +96,12 @@ impl<'a> TryFrom<&'a Event> for TextNote<'a> {
     }
 }
 
+
 #[derive(Debug)]
-pub struct ReplyTrees<'a> {
-    id2id: HashMap<&'a EventId, NodeId>,
-    arena: Arena<TextNote<'a>>,
+pub struct ReplyTrees {
+    id2id: HashMap<EventId, NodeId>,
+    arena: Arena<TextNote>,
+    notes: Vec<TextNote>,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -120,56 +110,51 @@ pub enum DisplayOrder {
     DeepestFirst,
 }
 
-impl PartialEq for ReplyTrees<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        false
-    }
-}
-
-impl<'a> Default for ReplyTrees<'a> {
+impl Default for ReplyTrees {
     fn default() -> Self {
         Self {
             id2id: HashMap::new(),
             arena: Arena::new(),
+            notes: Vec::new(),
         }
     }
 }
 
-impl<'a> ReplyTrees<'a> {
-    //todo
-    pub fn accept(&mut self, events: &[&'a Event]) {
-        let text_notes: Vec<TextNote<'_>> = events
-            .iter()
-            .filter_map(|e| TextNote::try_from(*e).ok())
+impl ReplyTrees {
+    pub fn accept(&mut self, events: Vec<Event>) {
+        let text_notes: Vec<TextNote> = events
+            .into_iter()
+            .filter_map(|e| TextNote::try_from(e).ok())
             .collect();
 
-        for event in &text_notes {
+        for event in text_notes.into_iter() {
             let node_id = self.arena.new_node(event.clone());
-            self.id2id.insert(&event.inner_ref.id, node_id);
+            self.id2id.insert(event.inner.id, node_id);
+            self.notes.push(event);
         }
 
-        for tn in &text_notes {
-            let node_id = self.id2id.get(&tn.inner_ref.id).unwrap(); //can't fail
-            if let Some(replay_to) = tn.reply_to {
-                if let Some(p_node_id) = self.id2id.get(&replay_to) {
+        for tn in &self.notes {
+            let node_id = self.id2id.get(&tn.inner.id).unwrap(); // can't fail
+            if let Some(reply_to) = &tn.reply_to {
+                if let Some(p_node_id) = self.id2id.get(reply_to) {
                     p_node_id.append(*node_id, &mut self.arena);
                 }
             }
         }
     }
 
-    pub fn get_note_by_id(&self, id: &EventId) -> Option<&'a TextNote> {
+    pub fn get_note_by_id(&self, id: &EventId) -> Option<&TextNote> {
         self.id2id
             .get(id)
             .and_then(|node_id| self.arena.get(*node_id).map(|node| node.get()))
     }
 
-    pub fn get_replies(&self, id: &EventId, order: Option<DisplayOrder>) -> Vec<&'a TextNote> {
+    pub fn get_replies(&self, id: &EventId, order: Option<DisplayOrder>) -> Vec<&TextNote> {
         if let Some(node_id) = self.id2id.get(id) {
             let mut results = get_children(&self.arena, *node_id);
             match order {
                 Some(DisplayOrder::NewestFirst) => {
-                    results.sort_by(|b, a| a.inner_ref.created_at.cmp(&b.inner_ref.created_at));
+                    results.sort_by(|b, a| a.inner.created_at.cmp(&b.inner.created_at));
                     results
                 }
                 _ => results,
@@ -179,7 +164,7 @@ impl<'a> ReplyTrees<'a> {
         }
     }
 
-    pub fn get_ancestors(&self, id: &EventId) -> Vec<&'a TextNote> {
+    pub fn get_ancestors(&self, id: &EventId) -> Vec<&TextNote> {
         if let Some(node_id) = self.id2id.get(id) {
             utils::get_ancestors(&self.arena, *node_id)
         } else {
@@ -191,9 +176,9 @@ impl<'a> ReplyTrees<'a> {
 #[cfg(test)]
 mod tests {
 
-    //use std::borrow::Borrow;
-
     use super::*;
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     const NOT_NOTE: &str = r#"{"pubkey":"e1ff3bfdd4e40315959b08b4fcc8245eaa514637e1d4ec2ae166b743341be1af","sig":"53087c94115efb071632abc8d514b1f09b20eb8377d2854fa51ab76c4ac0aa6c5766c9af45ded4e2789098bad73117e02d0bdcb96c34866bec1898753a80465a","created_at":1713418044,"id":"0076792624df92e4b0892722c282fdeddd5912e89d61af843e180f2dc02a5530","content":"Pornalreadyfillsthedemandforaigirlfriends.Theaipartonlyaddssomeonetotalkto,whichboysdon'treallycrave.Theaiboyfriendwillbeabiggerdeal,womengetsomeonetotalktoalldaywithoutanythingelse.","kind":6,"tags":[["e","1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"],["p","0018b7ee33fb253843639c62e292fec700a69a93b08ee374c5bda971c9b39564"]]}"#;
     const REPLY_WITH_MARKER: &str = r#"{"id":"e36817d0509cdd99d854391027bef6f3a0af1d87bdbdb1d9eb73201ff1719e09","kind":1,"pubkey":"77953b3a63bcf1c748dbdeef109bd56de48c30edcd27d2092440c3adca31c975","tags":[["e","39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935","","root"],["e","3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345","","reply"],["p","58ead82fa15b550094f7f5fe4804e0fe75b779dbef2e9b20511eccd69e6d08f9"],["p","460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c"],["p","6e468422dfb74a5738702a8823b9b28168abab8655faacb6853cd0ee15deee93"],["p","77953b3a63bcf1c748dbdeef109bd56de48c30edcd27d2092440c3adca31c975"]],"created_at":1713443749,"content":"Isee.Thanks!","sig":"7b6f820665a7e52b6b655985fbe1287cbd57304b06af68f9d410d0c89e60a69b9c71698fccca7ebeb192d3d004bdb2e1f3eb1fe5352c68a0021cd8d56c1a4218"}"#;
@@ -213,19 +198,19 @@ mod tests {
         Event::from_json(raw).unwrap()
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_no_note() {
         let event = event_from(NOT_NOTE);
         assert!(
-            TextNote::try_from(&event).is_err(),
+            TextNote::try_from(event).is_err(),
             "Expect an event with kind 1"
         );
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_reply_with_marker() {
         let event = event_from(REPLY_WITH_MARKER);
-        let text_note = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(event).unwrap();
         assert!(
             text_note.root.unwrap().to_hex()
                 == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"
@@ -236,10 +221,10 @@ mod tests {
         );
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_reply_with_no_marker() {
         let event = event_from(REPLY_WITH_NO_MARKER);
-        let text_note = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(event).unwrap();
         assert!(
             text_note.root.unwrap().to_hex()
                 == *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc"
@@ -250,10 +235,10 @@ mod tests {
         );
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_reply_to_root_no_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_NO_MARKER);
-        let text_note = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(event).unwrap();
         assert!(
             text_note.root.unwrap().to_hex()
                 == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
@@ -264,42 +249,41 @@ mod tests {
         );
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_is_root() {
         let event = event_from(ROOT_NOTE);
-        let text_note = TextNote::try_from(&event).unwrap();
+        let text_note = TextNote::try_from(event).unwrap();
         assert!(text_note.is_root());
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_get_note() {
         let event = event_from(ROOT_NOTE);
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(&[&event]);
+        reply_tree.accept(vec![event]);
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
                 .unwrap();
-        assert!(event.id == event_id);
-        assert!(event.content == *"If i do createElement and rhen appendChild for a lot of number of time, It took a lot of RAM compared to writting the entire HTML manually.");
+        assert!(reply_tree.get_note_by_id(&event_id).unwrap().inner.id == event_id);
+        assert!(reply_tree.get_note_by_id(&event_id).unwrap().inner.content == *"If i do createElement and rhen appendChild for a lot of number of time, It took a lot of RAM compared to writting the entire HTML manually.");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_get_replies_ordered() {
         let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z, R_Z_O]
             .iter()
             .map(|raw: &&str| event_from(raw))
             .collect();
-        let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(&event_refs);
+        reply_tree.accept(events);
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
         assert!(r_children.len() == 3);
-        assert!(r_children.first().unwrap().inner_ref.content == "R -> Z");
-        assert!(r_children.last().unwrap().inner_ref.content == "R -> A");
+        assert!(r_children.first().unwrap().inner.content == "R -> Z");
+        assert!(r_children.last().unwrap().inner.content == "R -> A");
         //pick a child
         let r_a_children = reply_tree.get_replies(
             &EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511")
@@ -307,41 +291,70 @@ mod tests {
             Some(DisplayOrder::NewestFirst),
         );
         assert!(r_a_children.len() == 1);
-        assert!(r_a_children.first().unwrap().inner_ref.content == "R -> A -> B");
+        assert!(r_a_children.first().unwrap().inner.content == "R -> A -> B");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_get_replies_with_orphan() {
         let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z_O]
             .iter()
             .map(|raw: &&str| event_from(raw))
             .collect();
-        let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(&event_refs);
+        reply_tree.accept(events);
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
         assert!(r_children.len() == 2);
-        assert!(r_children.last().unwrap().inner_ref.content == "R -> A");
+        assert!(r_children.last().unwrap().inner.content == "R -> A");
     }
 
-    #[test]
+    #[wasm_bindgen_test]
     fn test_get_ancestors() {
         let events: Vec<Event> = [R, R_A, R_A_B, R_X, R_Z, R_Z_O]
             .iter()
             .map(|raw: &&str| event_from(raw))
             .collect();
-        let event_refs: Vec<&Event> = events.iter().collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(&event_refs);
+        reply_tree.accept(events);
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
         );
-        assert!(ancestors.first().unwrap().inner_ref.content == "R -> A");
-        assert!(ancestors.last().unwrap().inner_ref.content == "This is the Root!");
+        assert!(ancestors.first().unwrap().inner.content == "R -> A");
+        assert!(ancestors.last().unwrap().inner.content == "This is the Root!");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_get_in_batch() {
+        //assume we already have root
+        let root: Vec<Event> = [R]
+            .iter()
+            .map(|raw: &&str| event_from(raw))
+            .collect();
+        //assume the following data is fetched by get_replies
+        let replies: Vec<Event> = [R_A, R_A_B, R_X, R_Z, R_Z_O]
+            .iter()
+            .map(|raw: &&str| event_from(raw))
+            .collect();
+        let mut reply_tree = ReplyTrees::default();
+        reply_tree.accept(root);
+        reply_tree.accept(replies);
+        let ancestors = reply_tree.get_ancestors(
+            &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
+                .unwrap(),
+        );
+        assert!(ancestors.first().unwrap().inner.content == "R -> A");
+        assert!(ancestors.last().unwrap().inner.content == "This is the Root!");
+        //pick a child
+        let r_a_children = reply_tree.get_replies(
+            &EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511")
+                .unwrap(),
+            Some(DisplayOrder::NewestFirst),
+        );
+        assert!(r_a_children.len() == 1);
+        assert!(r_a_children.first().unwrap().inner.content == "R -> A -> B");
     }
 }
