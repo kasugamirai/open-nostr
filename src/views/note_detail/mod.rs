@@ -23,20 +23,6 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
         let clients = multiclient();
         let client = clients.get(&sub_name.read()).unwrap();
 
-        // async fn fetch_events(client: &Client, id: EventId, replytree: &Write<_, UnsyncStorage>) {
-        //     match get_replies(&client, id, None).await {
-        //         Ok(replies) => {
-        //             replytree.accept(replies);
-        //             for event in replies {
-        //                 fetch_events(client, event.id, replytree).await;
-        //             }
-        //         }
-        //         Err(e) => {
-        //             tracing::error!("error: {:?}", e);
-        //         }
-        //     }
-        // }
-
         match get_event_by_id(&client, &EventId::from_hex(&event_id()).unwrap(), None).await {
             Ok(Some(event)) => {
                 let mut rt: Write<_, UnsyncStorage> = replytree.write();
@@ -44,16 +30,6 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
                 match get_replies(&client, EventId::from_hex(&event_id()).unwrap(), None).await {
                     Ok(replies) => {
                         rt.accept(replies.clone());
-                        for event in replies {
-                            match get_replies(&client, event.id, None).await {
-                                Ok(replies) => {
-                                    rt.accept(replies);
-                                }
-                                Err(e) => {
-                                    tracing::error!("error: {:?}", e);
-                                }
-                            }
-                        }
                     }
                     Err(e) => {
                         tracing::error!("error: {:?}", e);

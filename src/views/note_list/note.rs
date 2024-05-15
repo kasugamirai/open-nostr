@@ -310,15 +310,35 @@ pub fn Note(props: NoteProps) -> Element {
                     span{
                         style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
                     }
-                    // Link {
-                    //     class: "note-action-item cursor-pointer",
-                    //     to: Route::NoteDetail { sub: props.sub_name, id: props.data.id.clone() },
-                    //     span {
-                    //         dangerous_inner_html: "{ADD}",
-                    //     }
-                    // }
-                    // emojis
-
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            dangerous_inner_html: "{ADD}"
+                        }
+                    }
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            "😄"
+                        }
+                        span {
+                            class: "note-action-count font-size-12 txt-1",
+                            "120"
+                        }
+                    }
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            "😭"
+                        }
+                        span {
+                            class: "note-action-count font-size-12 txt-1",
+                            "12"
+                        }
+                    }
                 }
 
                 if props.is_expand.unwrap_or(false) {
