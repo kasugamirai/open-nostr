@@ -12189,7 +12189,9 @@ video {
 .post-image {
   display: block;
   height: 160px;
-  max-width: 100%;
+  height: 150px;
+  flex-grow: 1;
+  object-fit: cover;
 }
 
 .post-video {
