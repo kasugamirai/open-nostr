@@ -59,7 +59,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
             div {
                 style: "position: relative;",
                 div {
-                    style: "background-color: var(--bgc-3); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
+                    class:"subInput",
                     onclick: move |_| {
                         edit.set(!edit());
                         props.on_change.call(value.read().clone());
@@ -67,8 +67,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     " {props.relay_set.name} "
                 }
                 div {
-                    class: "show-{edit}",
-                    style: "position: absolute; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                    class: "show-{edit} relays-popUp",
                     div {
                         style: "display: flex; gap: 10px; align-items: center;",
                         "Name:"

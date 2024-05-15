@@ -76,7 +76,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
             div {
                 class: "custom-sub-header",
                 div {
-                    style: "display: flex; align-items: center; gap: 10px;",
+                    class: "sub-header",
                     h2 { "Custom Sub" }
                     button {
                         class: "btn-icon purple small",
@@ -85,7 +85,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                 }
                 div {
-                    class: "custom-sub-header-more",
+                    class: "custom-sub-header-more btnSvg",
                     Dropdown {
                         pos: "right".to_string(),
                         mode: "active".to_string(),
@@ -101,28 +101,43 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                 button {
                                     class: "content-btn",
                                     onclick: move |_| handle_import(),
+                                    span{
+                                      dangerous_inner_html: "{IMPORTICON}",
+                                    }
                                     "Import"
                                 }
                                 button {
                                     class: "content-btn",
                                     onclick: move |_| handle_export(),
+                                    span{
+                                      dangerous_inner_html: "{EXPORTICON}",
+                                    }
                                     "Export"
                                 }
                                 if edit() {
                                     button {
                                         class: "content-btn",
                                         onclick: handle_save,
+                                        span{
+                                          dangerous_inner_html: "{SAVEICON}",
+                                        }
                                         "Save"
                                     }
                                     button {
                                         class: "content-btn",
                                         onclick: handle_reset,
+                                        span{
+                                          dangerous_inner_html: "{RESTART}",
+                                        }
                                         "Reset"
                                     }
                                 } else {
                                     button {
                                         class: "content-btn",
                                         onclick: move |_| edit.set(true),
+                                        span{
+                                          dangerous_inner_html: "{EDITICON}",
+                                        }
                                         "Edit"
                                     }
                                 }
@@ -136,7 +151,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 div {
                     class: "custom-sub-name",
                     div {
-                        style: "width: 70px;",
+                        class: "width-80-fontSize-16",
                         "Name:"
                     }
                     Input {
@@ -151,7 +166,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 div {
                     class: "custom-sub-relays",
                     div {
-                        style: "width: 80px;",
+                        class: "width-80-fontSize-16",
                         "Relays:"
                     }
                     div {
@@ -168,7 +183,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 div {
                     class: "custom-sub-live",
                     div {
-                        style: "width: 80px;",
+                        class: "width-80-fontSize-16",
                         "Live:"
                     }
                     div {
@@ -195,7 +210,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     class: "custom-sub-time",
                     style: format!("display: {}; align-items: center; gap: 10px;", if sub_current().live { "flex" } else { "none" }),
                     div {
-                        style: "width: 90px;",
+                        class: "width-80-fontSize-16",
                         "Window:"
                     }
                     div {
@@ -252,7 +267,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                         }
                                     }
                                     div {
-                                        class: "btn-add {edit}",
+                                        class: "{edit}",
                                         HashTagAdd {
                                             on_change: move |v| {
                                                 let mut sub = sub_current.write();

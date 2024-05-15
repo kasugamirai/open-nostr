@@ -179,27 +179,30 @@
 .com-switch-label {
     cursor: pointer;
     position: relative;
-    background-color: var(--bgc-2);
+    background-color: var(--bgc-4);
     border-radius: var(--radius-circle);
-    width: 80px;
-    height: 40px;
+    width: 40px;
+    height: 20px;
+    border-radius: 40px;
+    box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.08);
     display: inline-block;
 }
 
 .com-switch .com-switch-slider {
     position: absolute;
-    height: calc(100% - 10px);
+    height: calc(100% - 5px);
     padding-left: calc(50% - 5px);
-    background: greenyellow;
+    background: #ffffff;
     border-radius: var(--radius-circle);
     transition: var(--trans-default);
-    top: 5px;
-    left: 5px;
+    top: 2.5px;
+    left: 3px;
 }
 
 .com-switch input:checked+.com-switch-slider {
-    left: 40px;
+    left: 23px;
 }
+
 
 .com-input_card {
     display: inline-flex;
@@ -267,10 +270,37 @@
 .com-input_card-input .btn-false {
     background-color: var(--col-error);
 }
-
+.relays-popUp{
+  width: 414px;
+  position: absolute; 
+  background-color: var(--bgc-0); 
+  border-radius: var(--radius-1); 
+  display: flex;
+  flex-direction: column; 
+  gap: 19px; 
+  padding: 20px 25px 36px 27px; 
+  border: 1px solid var(--boc-1); 
+  z-index: 100;
+  right: -180px;
+}
 .com-dtpicker {
     display: flex;
     gap: 10px;
+    font-size: var(--textSize-14);
+    input{
+      padding: 0;
+      letter-spacing: -1px;
+      box-shadow: 2px 2px 4px rgba(3,3,3,0.1);
+      background-color: #ffffff;
+      padding-left: 12px;
+      height: 34px;
+    
+    }
+    /* 隐藏所有<input>元素的向下箭头 */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      display: none;
+      -webkit-appearance: none;
+    }
 }
 
 .event-note {
@@ -294,6 +324,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            position: relative;
 
             .avatar {
                 width: 46px;
@@ -306,7 +337,17 @@
                     height: 100%;
                 }
             }
-
+            .avatarLeft{
+              position: relative;
+              z-index: 2;
+            }
+            .avatarRight{
+              position: absolute;
+              left: 29px;
+            }
+            .placeholder{
+              margin-right: 12px;
+            }
             .profile {
                 display: flex;
                 flex-direction: column;
@@ -351,8 +392,9 @@
             border-radius: var(--radius-8);
           }
         }
+        
     }
-
+    
     .footer {
         display: flex;
         align-items: center;
@@ -371,7 +413,11 @@
         }
     }
 }
-
+.note-content{
+  .post-image{
+    border-radius: var(--radius-8);
+  }
+}
 .event-less {
     width: 100%;
     display: flex;
