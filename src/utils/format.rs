@@ -1,7 +1,4 @@
-use dioxus::dioxus_core::Event;
 use regex::Regex;
-
-use crate::nostr::note::TextNote;
 
 /// format public key
 ///

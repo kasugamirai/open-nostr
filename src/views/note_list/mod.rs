@@ -43,7 +43,7 @@ pub fn NoteList(name: String) -> Element {
         });
     };
 
-    let handle_reload = move |value: CustomSub| {
+    let handle_reload = move |_value: CustomSub| {
         //todo
     };
 

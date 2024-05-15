@@ -1,7 +1,6 @@
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder, RelayMessage, RelayPoolNotification};
-use serde::ser::StdError;
+use nostr_sdk::{ClientBuilder, RelayPoolNotification};
 
 use crate::store::subscription::{CustomSub, RelaySet, SubNames};
 use crate::store::CBWebDatabase;
@@ -60,6 +59,7 @@ pub fn App() -> Element {
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
 
+    let mut router = use_signal(|| rsx! {div{}});
     // hook: on mounted
     let on_mounted = move |_| {
         spawn(async move {
@@ -117,6 +117,7 @@ pub fn App() -> Element {
                     alert(e.to_string()).await;
                 }
             };
+            router.set(rsx! {Router::<Route> {}});
         });
     };
 
@@ -133,7 +134,7 @@ pub fn App() -> Element {
             },
             id: "app",
             class: "{theme}",
-            Router::<Route> {}
+            {router}
         }
     }
 }

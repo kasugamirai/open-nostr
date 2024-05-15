@@ -4,8 +4,8 @@ use dioxus::prelude::*;
 use nostr_sdk::prelude::*;
 
 use crate::{
-    components::{icons::*, Avatar},
-    utils::format::{format_content, format_create_at, format_public_key, splite_by_replys}, 
+    components::Avatar,
+    utils::format::{format_create_at, format_public_key, splite_by_replys},
     views::note_list::note::{Note, NoteData},
 };
 // {
@@ -41,10 +41,11 @@ pub fn Settings() -> Element {
 
             client.connect().await;
 
-            let mut filter: Filter = Filter::new(); 
+            let mut filter: Filter = Filter::new();
             let public_key = PublicKey::from_str(
                 "fcab5a7bee61b9d16f36ef9c5801227cdc500c746b9ab501e808685e0eddb9f7",
-            ).unwrap();
+            )
+            .unwrap();
             filter = filter.kind(Kind::TextNote).limit(100).author(public_key);
 
             let events = client

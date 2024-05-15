@@ -137,7 +137,7 @@ pub fn Children(name: String) -> Element {
 pub fn ChildrenKeep(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(|| vec![]);
+    let events = use_signal(|| vec![]);
 
     let n = name.clone();
 

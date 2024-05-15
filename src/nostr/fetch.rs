@@ -2,8 +2,6 @@ use nostr_sdk::prelude::*;
 use nostr_sdk::{client, Metadata};
 use std::collections::HashMap;
 
-use super::note::{ReplyTrees, TextNote, DisplayOrder};
-
 /// Error enum to represent possible errors in the application.
 #[derive(Debug)]
 pub enum Error {

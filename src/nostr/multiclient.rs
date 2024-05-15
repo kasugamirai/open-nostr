@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use crate::store::AccountType;
-use nostr_sdk::{bitcoin::key, Keys};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
@@ -28,7 +27,7 @@ impl MultiClient {
         self.clients.get(name)
     }
 
-    pub fn apply_account_all(&self, account: AccountType) {
+    pub fn apply_account_all(&self, _account: AccountType) {
 
         //todo
 

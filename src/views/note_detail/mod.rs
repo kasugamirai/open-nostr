@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use nostr_sdk::{Client, EventId};
+use nostr_sdk::EventId;
 
 use crate::{
     nostr::{
@@ -18,102 +18,47 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
     let event_id = use_signal(|| id.clone());
 
     let mut replytree = use_signal(|| ReplyTrees::default());
-    let _ = use_resource(move || async move {
-        spawn(async move {
-            let clients = multiclient();
-            let client = clients.get(&sub_name.read()).unwrap();
-
-            // async fn fetch_events(client: &Client, id: EventId, replytree: &Write<_, UnsyncStorage>) {
-            //     match get_replies(&client, id, None).await {
-            //         Ok(replies) => {
-            //             replytree.accept(replies);
-            //             for event in replies {
-            //                 fetch_events(client, event.id, replytree).await;
-            //             }
-            //         }
-            //         Err(e) => {
-            //             tracing::error!("error: {:?}", e);
-            //         }
-            //     }
-            // }
-
-            match get_event_by_id(&client, &EventId::from_hex(&event_id()).unwrap(), None).await {
-                Ok(Some(event)) => {
-                    let mut replytree: Write<_, UnsyncStorage> = replytree.write();
-                    replytree.accept(vec![event]);
-                    match get_replies(&client, EventId::from_hex(&event_id()).unwrap(), None).await
-                    {
-                        Ok(replies) => {
-                            replytree.accept(replies);
-                        }
-                        Err(e) => {
-                            tracing::error!("error: {:?}", e);
-                        }
-                    }
-                }
-                Ok(None) => {
-                    tracing::error!("event not found");
-                }
-                Err(e) => {
-                    tracing::error!("error: {:?}", e);
-                }
-            }
-        });
-    });
-
-    rsx! {
-        div {
-            style: "width: 100%; height: 100%; display: flex; gap: 20px;",
-            div {
-                style: "flex: 1; height: 100%; overflow-y: scroll;",
-                Layer {
-                    sub_name: sub,
-                    event_id: id,
-                }
-            }
-            div {
-                style: "width: 500px;",
-            }
-        }
-    }
-}
-
-#[component]
-fn Layer(sub_name: String, event_id: String) -> Element {
-    let multiclient = use_context::<Signal<MultiClient>>();
     let mut element = use_signal(|| rsx! { div { "Loading..." } });
-    let sub_name = use_signal(|| sub_name.clone());
-    let event_id = use_signal(|| event_id.clone());
     let _ = use_resource(move || async move {
         let clients = multiclient();
-        let client = clients.get(&sub_name()).unwrap();
+        let client = clients.get(&sub_name.read()).unwrap();
+
+        // async fn fetch_events(client: &Client, id: EventId, replytree: &Write<_, UnsyncStorage>) {
+        //     match get_replies(&client, id, None).await {
+        //         Ok(replies) => {
+        //             replytree.accept(replies);
+        //             for event in replies {
+        //                 fetch_events(client, event.id, replytree).await;
+        //             }
+        //         }
+        //         Err(e) => {
+        //             tracing::error!("error: {:?}", e);
+        //         }
+        //     }
+        // }
+
         match get_event_by_id(&client, &EventId::from_hex(&event_id()).unwrap(), None).await {
             Ok(Some(event)) => {
-                let replies =
-                    match get_replies(&client, EventId::from_hex(&event_id()).unwrap(), None).await
-                    {
-                        Ok(replies) => replies,
-                        Err(e) => {
-                            tracing::error!("error: {:?}", e);
-                            vec![]
-                        }
-                    };
-                element.set(rsx! {
-                    div {
-                        Note {
-                            sub_name: sub_name.read().clone(),
-                            data: NoteData::from(&event.clone(), 0),
-                        }
-                    }
-                    div {
-                        for e in replies {
-                            Layer {
-                                sub_name: sub_name.read().clone(),
-                                event_id: e.id.to_string(),
+                let mut rt: Write<_, UnsyncStorage> = replytree.write();
+                rt.accept(vec![event]);
+                match get_replies(&client, EventId::from_hex(&event_id()).unwrap(), None).await {
+                    Ok(replies) => {
+                        rt.accept(replies.clone());
+                        for event in replies {
+                            match get_replies(&client, event.id, None).await {
+                                Ok(replies) => {
+                                    rt.accept(replies);
+                                }
+                                Err(e) => {
+                                    tracing::error!("error: {:?}", e);
+                                }
                             }
                         }
                     }
-                });
+                    Err(e) => {
+                        tracing::error!("error: {:?}", e);
+                    }
+                }
             }
             Ok(None) => {
                 tracing::error!("event not found");
@@ -122,9 +67,53 @@ fn Layer(sub_name: String, event_id: String) -> Element {
                 tracing::error!("error: {:?}", e);
             }
         }
+        element.set(rsx! {
+            div {
+                style: "width: 100%; height: 100%; display: flex; gap: 20px;",
+                div {
+                    style: "flex: 1; height: 100%; overflow-y: scroll;",
+                    Layer {
+                        replytree: replytree,
+                        sub_name: sub_name.read(),
+                        event_id: event_id.read(),
+                    }
+                }
+                div {
+                    style: "width: 500px;",
+                }
+            }
+        })
     });
 
     rsx! {
         {element}
+    }
+}
+
+#[component]
+fn Layer(replytree: Signal<ReplyTrees>, sub_name: String, event_id: String) -> Element {
+    let e_id = EventId::from_hex(&event_id.clone()).unwrap();
+    let rt = replytree.read();
+    tracing::info!("replytree: {:?}", rt);
+    let event = rt.get_note_by_id(&e_id).unwrap();
+    let replies = rt.get_replies(&e_id, None);
+    tracing::info!("event: {:?}", event);
+    tracing::info!("replies: {:?}", replies);
+    rsx! {
+        div {
+            Note {
+                sub_name: sub_name.clone(),
+                data: NoteData::from(&event.inner.clone(), 0),
+            }
+        }
+        div {
+            for e in replies {
+                Layer {
+                    replytree: replytree,
+                    sub_name: sub_name.clone(),
+                    event_id: e.inner.id.to_string(),
+                }
+            }
+        }
     }
 }

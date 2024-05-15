@@ -50,7 +50,6 @@ impl Default for CustomSub {
 
 impl CustomSub {
     pub fn default_with_opt(name: String, relay: String, tags: Vec<String>, live: bool) -> Self {
-        let now = Timestamp::now().as_i64();
         Self {
             name: name.clone(),
             relay_set: RelaySet {
@@ -84,7 +83,6 @@ impl CustomSub {
     }
 
     pub fn empty() -> Self {
-        let now = Timestamp::now().as_i64();
         Self {
             name: String::new(),
             relay_set: RelaySet {

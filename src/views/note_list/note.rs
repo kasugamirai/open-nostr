@@ -1,13 +1,13 @@
 use std::time::Duration;
 
-use dioxus::{prelude::*, router::navigation};
-use nostr_sdk::{Alphabet, Client, EventId, Filter, JsonUtil, Kind, SingleLetterTag};
+use dioxus::prelude::*;
+use nostr_sdk::{Client, EventId, Filter, JsonUtil};
 use regex::Regex;
 
 use crate::{
     components::{icons::*, Avatar},
     nostr::{fetch::get_metadata, multiclient::MultiClient},
-    utils::format::{format_content, format_create_at, format_public_key, splite_by_replys},
+    utils::format::{format_content, format_create_at},
     Route,
 };
 
@@ -43,8 +43,6 @@ pub struct NoteProps {
     pub sub_name: String,
     pub data: NoteData,
     pub clsname: Option<String>,
-    pub on_detail: Option<EventHandler>,
-    //pub metadata: nostr_sdk::Metadata,
     pub is_expand: Option<bool>,
 }
 enum NoteAction {
@@ -107,7 +105,14 @@ pub fn Note(props: NoteProps) -> Element {
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
 
-    let mut element = use_signal(|| rsx! { div { "Loading..." } });
+    let mut element = use_signal(|| {
+        rsx! {
+            div {
+                class: "pl-52",
+               "Loading..."
+            } 
+        }
+    });
     let notetext = use_signal(|| props.data.content.clone());
     let sub_name = use_signal(|| props.sub_name.clone());
     let _future = use_resource(move || async move {
@@ -415,60 +420,6 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                     }
                 }
             }
-        }
-    }
-}
-
-fn generate_element(data: &str) -> Element {
-    let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{64})").unwrap();
-
-    let mut parts = Vec::new();
-    let mut last_end = 0;
-
-    for mat in re.find_iter(data) {
-        if mat.start() > last_end {
-            parts.push(&data[last_end..mat.start()]);
-        }
-        parts.push(mat.as_str());
-        last_end = mat.end();
-    }
-
-    if last_end < data.len() {
-        parts.push(&data[last_end..]);
-    }
-
-    let mut elements = vec![];
-
-    for i in parts {
-        if i.starts_with("nostr:note") {
-            let id = i.strip_prefix("nostr:note").unwrap();
-            elements.push(rsx! {
-                div {
-                    class: "quote",
-                    style: "display: flex; gap: 10px; align-items: center; border: 1px solid #333;",
-                    div {
-                        style: "font-weight: bold; width: 52px;",
-                        "Qt:"
-                    }
-                    div {
-                        style: "flex: 1;",
-                        dangerous_inner_html: "{id}"
-                    }
-                }
-            });
-        } else {
-            elements.push(rsx! {
-                div {
-                    class: "text pl-52",
-                    dangerous_inner_html: "{format_content(i)}"
-                }
-            });
-        }
-    }
-
-    rsx! {
-        for element in elements {
-            {element}
         }
     }
 }
