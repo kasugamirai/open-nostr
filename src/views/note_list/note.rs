@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use dioxus::prelude::*;
+use dioxus::{prelude::*, router::navigation};
 use nostr_sdk::{Alphabet, Client, EventId, Filter, JsonUtil, Kind, SingleLetterTag};
 use regex::Regex;
 
@@ -103,27 +103,6 @@ pub fn Note(props: NoteProps) -> Element {
     });
 
     let multiclient = use_context::<Signal<MultiClient>>();
-    let sub_name = props.sub_name.clone();
-    let event_id = props.data.id.clone();
-    let fetch_data = move |_| {
-        let sub_name = sub_name.clone();
-        let event_id = event_id.clone();
-        spawn(async move {
-            let clients = multiclient();
-            let client = clients.get(&sub_name).unwrap();
-
-            let mut reply_filter = Filter::new().kind(Kind::TextNote);
-            reply_filter =
-                reply_filter.custom_tag(SingleLetterTag::lowercase(Alphabet::E), [event_id]);
-            let reply_events = client
-                .get_events_of(vec![reply_filter], Some(Duration::from_secs(30)))
-                .await
-                .unwrap();
-
-            let mut action_state = note_action_state.write();
-            action_state[1].count = reply_events.len();
-        });
-    };
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
@@ -247,10 +226,13 @@ pub fn Note(props: NoteProps) -> Element {
         });
     });
 
-    // let
+    let nav = navigator();
+    let handle_nav = move |route: Route| {
+        nav.push(route);
+    };
+
     rsx! {
         div {
-            onmounted: fetch_data,
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
             id: format!("note-{}", props.data.id),
             // detail modal
@@ -290,7 +272,9 @@ pub fn Note(props: NoteProps) -> Element {
             }
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
-                // dangerous_inner_html: "{format_content(&props.data.content)}",
+                onclick: move |_| {
+                    handle_nav(Route::NoteDetail { sub: props.sub_name.clone(), id: props.data.id.clone() });
+                },
                 {element}
             }
 

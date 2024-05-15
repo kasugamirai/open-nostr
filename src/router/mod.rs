@@ -2,9 +2,9 @@ use dioxus::prelude::*;
 
 use crate::components::icons::*;
 use crate::views::{
-        Bookmark, Channel, Group, Home, Message,  NoteList, Profile, Relay, Search,
-        Settings, Test,
-    };
+    Bookmark, Channel, Group, Home, Message, NoteDetail, NoteList, Profile, Relay, Search,
+    Settings, Test,
+};
 mod layout;
 mod page_not_found;
 pub use layout::Layout;
@@ -15,7 +15,6 @@ pub struct RouterItem {
     icon: &'static str,
     name: &'static str,
 }
-
 
 #[derive(Clone, Routable, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum Route {
@@ -53,14 +52,13 @@ pub enum Route {
     #[route("/subscription/:name")]
     NoteList { name: String },
 
-    // #[route("/note/:sub/:id")]
-    // NoteDetail { sub: String, id: String },
+    #[route("/note/:sub/:id")]
+    NoteDetail { sub: String, id: String },
 
     #[end_layout]
     #[route("/:..route")]
     PageNotFound { route: Vec<String> },
 }
-
 
 pub static ROUTERS: &[RouterItem] = &[
     RouterItem {
