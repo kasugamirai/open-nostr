@@ -43,7 +43,7 @@ pub struct NoteProps {
     pub sub_name: String,
     pub data: NoteData,
     pub clsname: Option<String>,
-    pub on_detail: Option<EventHandler<()>>,
+    pub on_detail: Option<EventHandler>,
     //pub metadata: nostr_sdk::Metadata,
     pub is_expand: Option<bool>,
 }
