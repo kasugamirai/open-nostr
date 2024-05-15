@@ -18,11 +18,13 @@
     --radius-1: 10px;
     --radius-2: 20px;
     --radius-3: 30px;
-    --radius-24: 24px;
     --radius-8: 8px;
+    --radius-16: 16px;
+    --radius-24: 24px;
     --textSize-12: 12px;
     --textSize-14: 14px;
     --textSize-16: 16px;
+    --textSize-18: 18px;
     --radius-circle: 2000px;
     --trans-default: 0.4s;
     --link: rgb(159, 116, 235);
@@ -35,6 +37,7 @@
     --bgc-1: #9f74eb;
     --bgc-2: #f6f2ff;
     --bgc-3: #f5f5f5;
+    --bgc-4: #e8e8e8;
     --boc-1: #030303;
     --boc-2: #e7e7e7;
     --txt-1: #030303;
@@ -46,6 +49,7 @@
     --bgc-0: #000000;
     --bgc-1: #121212;
     --bgc-2: #242424;
+    --bgc-4: #e8e8e8;
     --bgc-3: #2b2b2b;
     --boc-1: #BFBFBF;
     --boc-2: #FFFFFF;
@@ -157,7 +161,10 @@ svg path {
     fill: var(--bgc-1);
 }
 
-
+.custom-sub-live .btn-icon{
+  height: 24px;
+  margin-left: 18px;
+}
 
 /* common css */
 .items-center {
@@ -201,4 +208,14 @@ svg path {
     font-family: "Raleway";
     font-weight: 800;
 }
-
+.flexBox{
+  display: flex; 
+  width: 100%; 
+  height: 100%; 
+  gap: 20px;
+}
+.flexBoxLeft{
+  flex: 1; 
+  overflow-y: scroll; 
+  width: 100%;
+}

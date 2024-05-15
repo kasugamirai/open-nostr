@@ -68,7 +68,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
             class: "{cn}",
             style: "position: relative;",
             div {
-                style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
+                class: "sub-shadow",
                 onclick: move |_| {
                     edit.set(!edit());
                     props.on_change.call(value.read().clone());
@@ -76,8 +76,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
                 r#"{value().iter().map(|v| kind_to_text(*v)).collect::<Vec<String>>().join(" & ")}"#
             }
             div {
-                class: "show-{edit}",
-                style: "position: absolute; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                class: "show-{edit} addRadiusStyle",
                 label {
                     style: "display: flex; align-items: center; gap: 10px;",
                     span {

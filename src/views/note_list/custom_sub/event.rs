@@ -26,7 +26,7 @@ pub fn EventInput(props: EventInputProps) -> Element {
         div {
             style: "position: relative;",
             div {
-                style: "background-color: var(--bgc-0); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
+                class:"sub-shadow",
                 onclick: move |_| {
                     edit.set(!edit());
                     props.on_change.call(value.read().clone());
@@ -38,13 +38,12 @@ pub fn EventInput(props: EventInputProps) -> Element {
                 }
             }
             div {
-                class: "show-{edit}",
-                style: "position: absolute; bottom: 42px; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                class: "show-{edit} addPopUpStyle",
                 label {
                     style: "display: flex; align-items: center; gap: 10px;",
                     input {
                         r#type: "text",
-                        style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px;",
+                        class:"addInput",
                         placeholder: "id/nevent",
                         value: "{value().nevent}",
                         oninput: move |event| {
@@ -53,7 +52,7 @@ pub fn EventInput(props: EventInputProps) -> Element {
                     }
                     input {
                         r#type: "text",
-                        style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px; width: 160px;",
+                        class:"addInput",
                         placeholder: "alt name",
                         value: "{value().alt_name}",
                         oninput: move |event| {

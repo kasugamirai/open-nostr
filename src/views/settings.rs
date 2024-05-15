@@ -84,12 +84,32 @@ pub fn EventItem(event: nostr_sdk::Event) -> Element {
                 class: "header",
                 div {
                     class: "user",
-                    div {
-                        class: "avatar",
-                        img {
-                            class: "image",
-                            src: "https://is.gd/hidYxs"
-                        }
+                    if  event.kind == Kind::Repost {
+                      div {
+                        class: "avatar avatarLeft",
+                          img {
+                              class: "image",
+                              src: "https://avatars.githubusercontent.com/u/1024025?v=4"
+                          }
+                      }
+                    } else {
+                      div {
+                        class: "avatar avatarLeft",
+                          img {
+                              class: "image",
+                              src: "https://avatars.githubusercontent.com/u/1024025?v=4"
+                          }
+                      }
+                      div{
+                        class:"placeholder",
+                      }
+                      div {
+                        class: "avatar avatarRight",
+                          img {
+                              class: "image",
+                              src: "https://avatars.githubusercontent.com/u/1024025?v=4"
+                          }
+                      }
                     }
                     div {
                         class: "profile",

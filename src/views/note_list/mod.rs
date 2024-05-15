@@ -49,15 +49,15 @@ pub fn NoteList(name: String) -> Element {
 
     rsx! {
         div {
-            style: "display: flex; width: 100%; height: 100%; gap: 20px;",
+            class:"flexBox",
             div {
-                style: "flex: 1; overflow-y: scroll; width: 100%;",
+                class:"flexBoxLeft",
                 List {
                     subscription: sub_current.read().clone(),
                 }
             }
             div {
-                style: "width: 600px; height: 100%; position: relative; display: flex; flex-direction: column; gap: 10px;",
+                class: "subStyle",
                 CustomSubscription {
                     on_save: handle_save,
                     on_reload: handle_reload,

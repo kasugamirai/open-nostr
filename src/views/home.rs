@@ -4,7 +4,16 @@ use crate::components::CustomSub;
 #[component]
 pub fn Home() -> Element {
     rsx! {
-       h1 { "Home" }
-       CustomSub {}
+      div{
+        class:"flexBox",
+        div{
+          class:"flexBoxLeft",
+          h1 { "Home" }
+        }
+        div{
+          CustomSub {}
+        }
+      }
+        
     }
 }

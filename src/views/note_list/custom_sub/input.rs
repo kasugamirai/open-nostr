@@ -48,7 +48,7 @@ pub fn Input(props: InputProps) -> Element {
             div {
                 style: "position: relative;",
                 div {
-                    style: "background-color: var(--bgc-3); height: 42px; padding: 10px 20px; border-radius: var(--radius-circle); cursor: pointer; display: flex; align-items: center; justify-content: center; white-space: nowrap;",
+                    class:"subInput",
                     onclick: move |_| {
                         if allow_edit() {
                             edit.set(true);
@@ -57,13 +57,12 @@ pub fn Input(props: InputProps) -> Element {
                     " {bak} "
                 }
                 div {
-                    class: "show-{edit}",
-                    style: "position: absolute; left: 50%; transform: translateX(-50%); background-color: var(--bgc-0); border-radius: var(--radius-circle); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                    class: "show-{edit} addPopUpStyle",
                     label {
                         style: "display: flex; align-items: center; gap: 10px;",
                         input {
                             r#type: "text",
-                            style: "border: none; border-bottom: 2px solid var(--boc-1); font-size: 16px;",
+                            class:"addInput",
                             placeholder: "Please input",
                             value: "{value}",
                             oninput: move |event| {

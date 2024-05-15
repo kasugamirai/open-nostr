@@ -30,6 +30,14 @@ pub const QUTE: &str = include_str!("../../public/svgs/quote.svg");
 pub const TURN_LEFT: &str = include_str!("../../public/svgs/turnLeft.svg");
 pub const TURN_RIGHT: &str = include_str!("../../public/svgs/turnRight.svg");
 pub const ZAP: &str = include_str!("../../public/svgs/zap.svg");
+
+pub const EDITICON: &str = include_str!("../../public/svgs/editIcon.svg");
+pub const EXPORTICON: &str = include_str!("../../public/svgs/exportIcon.svg");
+pub const IMPORTICON: &str = include_str!("../../public/svgs/importIcon.svg");
+pub const RESTART: &str = include_str!("../../public/svgs/restart.svg");
+pub const SAVEICON: &str = include_str!("../../public/svgs/saveIcon.svg");
+
+
 pub const LAUGH: &str = include_str!("../../public/svgs/laugh.svg");
 pub const CRY: &str = include_str!("../../public/svgs/cry.svg");
 pub const PULLDOWN: &str = include_str!("../../public/svgs/pullDown.svg");
