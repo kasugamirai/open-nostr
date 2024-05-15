@@ -102,7 +102,7 @@ pub async fn get_reactions(
 
 pub async fn get_replies(
     client: &Client,
-    event_id: EventId,
+    event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>, Error> {
     let filter = Filter::new().kind(Kind::TextNote).custom_tag(
@@ -112,4 +112,89 @@ pub async fn get_replies(
     let events = client.get_events_of(vec![filter], timeout).await?;
     //todo filter out the mentions
     Ok(events)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nostr::note::{DisplayOrder, ReplyTrees};
+
+    use super::*;
+    use wasm_bindgen_test::*;
+    use nostr_sdk::prelude::*;
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
+
+    #[wasm_bindgen_test]
+    async fn test_get_event_by_id() {
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let event_id =
+            EventId::from_hex("ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let event = 
+            get_event_by_id(&client, &event_id, timeout)
+            .await
+            .unwrap();
+        assert_eq!(event.is_some(), true);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_replies() {
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let event_id =
+            EventId::from_hex("ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let replies = 
+            get_replies(&client, &event_id, timeout)
+            .await
+            .unwrap();
+        assert_eq!(replies.len(), 4);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_replies_into_tree() {
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let event_id =
+            EventId::from_hex("ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let root = get_event_by_id(&client, &event_id, timeout).await.unwrap().unwrap();
+        let replies = 
+            get_replies(&client, &event_id, timeout)
+            .await
+            .unwrap();
+        assert_eq!(replies.len(), 4);
+        let mut tree = ReplyTrees::default();
+        tree.accept(vec![root]);
+        tree.accept(replies);
+        let lv1_replies = tree.get_replies(&event_id, Some(DisplayOrder::NewestFirst));
+        console_log!("lv1_replies {:?}", lv1_replies);
+        assert!(lv1_replies.len() == 2);
+    }
+
+
+    #[wasm_bindgen_test]
+    async fn test_get_reactions() {
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let event_id =
+            EventId::from_bech32("note1yht55eufy56v6twj4jzvs4kmplm6k3yayj3yyjzfs9mjhu2vlnms7x3x4h")
+                .unwrap();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let reactions = 
+            get_reactions(&client, &event_id, timeout)
+            .await
+            .unwrap();
+        let length = reactions.len();
+        console_log!("Reactions: {:?}", reactions);
+        assert_eq!(reactions.len(), length);
+    }
 }

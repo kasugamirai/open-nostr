@@ -27,7 +27,7 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
             Ok(Some(event)) => {
                 let mut rt: Write<_, UnsyncStorage> = replytree.write();
                 rt.accept(vec![event]);
-                match get_replies(&client, EventId::from_hex(&event_id()).unwrap(), None).await {
+                match get_replies(&client, &EventId::from_hex(&event_id()).unwrap(), None).await {
                     Ok(replies) => {
                         rt.accept(replies.clone());
                     }
