@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 
 use crate::components::icons::*;
 use crate::views::{
-        Bookmark, Channel, Group, Home, Message, NoteDetail, NoteList, Profile, Relay, Search,
+        Bookmark, Channel, Group, Home, Message,  NoteList, Profile, Relay, Search,
         Settings, Test,
     };
 mod layout;
@@ -53,8 +53,8 @@ pub enum Route {
     #[route("/subscription/:name")]
     NoteList { name: String },
 
-    #[route("/note/:sub/:id")]
-    NoteDetail { sub: String, id: String },
+    // #[route("/note/:sub/:id")]
+    // NoteDetail { sub: String, id: String },
 
     #[end_layout]
     #[route("/:..route")]
