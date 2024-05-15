@@ -6,7 +6,7 @@ use regex::Regex;
 
 use crate::{
     components::{icons::*, Avatar},
-    nostr::multiclient::MultiClient,
+    nostr::{fetch::get_metadata, multiclient::MultiClient},
     utils::format::{format_content, format_create_at, format_public_key, splite_by_replys},
     Route,
 };
@@ -168,9 +168,30 @@ pub fn Note(props: NoteProps) -> Element {
                     let pk = events[0].author();
                     let content = events[0].content.to_string();
                     let timestamp = events[0].created_at.as_u64();
-                    let filter = Filter::new().kind(Kind::Metadata).author(pk);
-                    let events = client.get_events_of(vec![filter], None).await.unwrap();
-                    tracing::info!("metadata: {events:?}");
+
+                    let mut nickname = "".to_string();
+                    let mut avatar = "".to_string();
+
+                    match get_metadata(&client, &pk, None).await {
+                        Ok(metadata) => {
+                            nickname = metadata.name.unwrap_or("Default".to_string());
+                            avatar = match metadata.picture {
+                                Some(picture) => {
+                                    if picture.is_empty() {
+                                        "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                            .to_string()
+                                    } else {
+                                        picture
+                                    }
+                                }
+                                None => "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                    .to_string(),
+                            }
+                        }
+                        Err(_) => {
+                            tracing::info!("metadata not found");
+                        }
+                    }
 
                     elements.push(rsx! {
                         div {
@@ -186,14 +207,14 @@ pub fn Note(props: NoteProps) -> Element {
                                     style: "width: 140px; display: flex; align-items: center; gap: 12px;",
                                     img {
                                         class: "square-40 radius-20 mr-12",
-                                        src: "https://avatars.githubusercontent.com/u/1024025?v=4",
+                                        src: avatar,
                                         alt: "avatar",
                                     }
                                     div {
                                         class: "profile flex flex-col",
                                         span {
                                             class: "nickname font-size-16 txt-1",
-                                            "dioxus"
+                                            {nickname}
                                         }
                                         span {
                                             class: "created txt-3 font-size-12",
