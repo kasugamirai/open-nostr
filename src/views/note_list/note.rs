@@ -43,6 +43,8 @@ pub struct NoteProps {
     pub sub_name: String,
     pub data: NoteData,
     pub clsname: Option<String>,
+    #[props(default = EventHandler::default())]
+    pub on_expand: EventHandler<()>,
     pub is_expand: Option<bool>,
 }
 enum NoteAction {
@@ -345,6 +347,9 @@ pub fn Note(props: NoteProps) -> Element {
                     div {
                         "data-expand": props.data.id.clone(),
                         class: "note-action-expand cursor-pointer",
+                        onclick: move |_| {
+                            props.on_expand.call(());
+                        },
                         span {
                             dangerous_inner_html: "{DOWN}",
                         }

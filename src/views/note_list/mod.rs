@@ -4,7 +4,7 @@ pub mod note;
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Event, RelayPoolNotification, SubscriptionId};
+use nostr_sdk::Event;
 
 use crate::{
     nostr::multiclient::MultiClient,
