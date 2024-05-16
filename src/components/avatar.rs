@@ -19,14 +19,14 @@ pub fn Avatar(props: AvatarProps) -> Element {
             class: "post-avatar flex items-center",
             img {
                 class: "square-40 radius-20 mr-12",
-                src: "https://avatars.githubusercontent.com/u/1024025?v=4",
+                src: props.avatar.unwrap_or("https://avatars.githubusercontent.com/u/1024025?v=4".to_string()),
                 alt: "avatar",
             }
             div {
                 class: "profile flex flex-col",
                 span {
                     class: "nickname font-size-16 txt-1",
-                    "dioxus"
+                    {props.nickname.unwrap_or("Default".to_string())}
                 }
                 span {
                     class: "created txt-3 font-size-12",
