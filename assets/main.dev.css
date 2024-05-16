@@ -11430,12 +11430,8 @@ video {
   letter-spacing: -1px;
   box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
   background-color: #ffffff;
-  padding-left: 12px;
+  padding: 0 12px;
   height: 34px;
-}
-.com-dtpicker input[type=datetime-local]::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
 }
 
 .event-note {
@@ -11792,7 +11788,7 @@ video {
 }
 
 .subStyle {
-  width: 370px;
+  width: 460px;
   height: 100%;
   position: relative;
   display: flex;
