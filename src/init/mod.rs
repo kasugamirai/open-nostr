@@ -10,11 +10,10 @@ use crate::{
     Route,
 };
 
+pub const NOSTR_DB: &str = "nostr-idb";
+
 async fn init() {
     let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
-
-    let name_list = SubNames::new(vec!["Dog".to_string(), "Car".to_string()]);
-    database.save_sub_name_list(name_list).await.unwrap();
 
     let sub = CustomSub::default_with_opt(
         "Dog".to_string(),
@@ -80,7 +79,7 @@ pub fn App() -> Element {
                     let mut clients = multiclient.write();
                     for i in subs.clone().iter() {
                         let client_builder = ClientBuilder::new()
-                            .database(WebDatabase::open(i.name.clone()).await.unwrap());
+                            .database(WebDatabase::open(NOSTR_DB).await.unwrap());
                         let c = client_builder.build();
                         c.add_relays(i.relay_set.relays.clone()).await.unwrap();
                         c.connect().await;

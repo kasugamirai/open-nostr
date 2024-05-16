@@ -7,6 +7,7 @@ use indexed_db_futures::idb_object_store::IdbObjectStoreParameters;
 use indexed_db_futures::request::{IdbOpenDbRequestLike, OpenDbRequest};
 use indexed_db_futures::web_sys::IdbTransactionMode;
 use indexed_db_futures::{IdbDatabase, IdbKeyPath, IdbQuerySource, IdbVersionChangeEvent};
+use nostr::key;
 use serde_wasm_bindgen::{from_value, to_value};
 use std::future::IntoFuture;
 use std::sync::Arc;
@@ -15,11 +16,15 @@ pub use user::{AccountType, User};
 use wasm_bindgen::JsValue;
 use web_sys::IdbIndexParameters;
 
-const CURRENT_DB_VERSION: u32 = 2;
+const CURRENT_DB_VERSION: u32 = 3;
 const RELAY_SET_CF: &str = "relay-set";
-const SUB_NAME_LIST: &str = "sub-name-list";
 const CUSTOM_SUB_CF: &str = "custom-sub";
 const USER_CF: &str = "user";
+const MISC_CF: &str = "misc";
+
+//some entries keys & values
+pub const LAST_LOGINED_KEY: &str = "last_logined";
+pub const NOT_LOGGED_IN_VALUE: &str = "NOT_LOGGED_IN";
 
 #[derive(Clone)]
 pub struct CBWebDatabase {
@@ -36,7 +41,7 @@ impl CBWebDatabase {
         db_req.set_on_upgrade_needed(Some(
             move |evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
                 //apply migration 1->2
-                if old_version == 1 {
+                if old_version <= 1 {
                     {
                         //init user store
                         let mut create_store_params = IdbObjectStoreParameters::new();
@@ -56,7 +61,7 @@ impl CBWebDatabase {
 
                         //insert default user
                         let value = to_value(&User {
-                            name: "NOT_LOGGED_IN".to_string(),
+                            name: NOT_LOGGED_IN_VALUE.to_string(),
                             inner: AccountType::NotLoggedIn,
                         })
                         .unwrap();
@@ -71,24 +76,6 @@ impl CBWebDatabase {
                         let relay_set_store = evt
                             .db()
                             .create_object_store_with_params(RELAY_SET_CF, &create_store_params)
-                            .unwrap();
-                        relay_set_store
-                            .create_index_with_params(
-                                "name",
-                                &key_path,
-                                IdbIndexParameters::new().unique(true),
-                            )
-                            .unwrap();
-                    }
-
-                    {
-                        //init sub-name-list names store
-                        let mut create_store_params = IdbObjectStoreParameters::new();
-                        let key_path = IdbKeyPath::str("name");
-                        create_store_params.key_path(Some(&key_path));
-                        let relay_set_store = evt
-                            .db()
-                            .create_object_store_with_params(SUB_NAME_LIST, &create_store_params)
                             .unwrap();
                         relay_set_store
                             .create_index_with_params(
@@ -115,6 +102,20 @@ impl CBWebDatabase {
                                 IdbIndexParameters::new().unique(true),
                             )
                             .unwrap();
+                    }
+                }
+                //apply migration 2->3
+                if old_version <= 2 {
+                    {
+                        let misc_store = evt
+                            .db()
+                            .create_object_store(MISC_CF)
+                            .unwrap();
+
+                        //insert last logined
+                        let key = to_value(LAST_LOGINED_KEY).unwrap();
+                        let val = to_value(NOT_LOGGED_IN_VALUE).unwrap();
+                        let _ = misc_store.add_key_val(&key, &val);
                     }
                 }
                 Ok(())
@@ -182,41 +183,6 @@ impl CBWebDatabase {
                 Ok(relay_set) => Ok(relay_set),
                 Err(e) => {
                     tracing::error!("Error deserializing RelaySet: {:?}", e);
-                    Err(CBwebDatabaseError::DeserializationError(e))
-                }
-            },
-            None => Err(CBwebDatabaseError::NotFound),
-        }
-    }
-
-    pub async fn save_sub_name_list(&self, names: SubNames) -> Result<(), CBwebDatabaseError> {
-        let tx = self
-            .db
-            .transaction_on_one_with_mode(SUB_NAME_LIST, IdbTransactionMode::Readwrite)?;
-
-        let store = tx.object_store(SUB_NAME_LIST)?;
-        store.delete(
-            &to_value(&names.name.clone()).map_err(CBwebDatabaseError::DeserializationError)?,
-        )?;
-        let value = to_value(&names).map_err(CBwebDatabaseError::DeserializationError)?;
-        store.add_val(&value)?;
-
-        tx.await.into_result()?;
-        Ok(())
-    }
-
-    pub async fn get_sub_name_list(&self) -> Result<SubNames, CBwebDatabaseError> {
-        let tx = self
-            .db
-            .transaction_on_one_with_mode(SUB_NAME_LIST, IdbTransactionMode::Readonly)?;
-
-        let store = tx.object_store(SUB_NAME_LIST)?;
-        let key = JsValue::from_str("SUBSCRIPTION_LIST");
-        match store.get(&key)?.await? {
-            Some(value) => match from_value::<SubNames>(value.clone()) {
-                Ok(name_list) => Ok(name_list),
-                Err(e) => {
-                    tracing::error!("Error deserializing Vec<String>: {:?}", e);
                     Err(CBwebDatabaseError::DeserializationError(e))
                 }
             },
@@ -320,5 +286,38 @@ impl CBWebDatabase {
             },
             None => Err(CBwebDatabaseError::NotFound),
         }
+    }
+
+    pub async fn get_misc(&self, key: String) -> Result<Option<String>, CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readonly)?;
+
+        let store = tx.object_store(MISC_CF)?;
+        let key = JsValue::from_str(&key);
+        match store.get(&key)?.await? {
+            Some(value) => match from_value::<String>(value.clone()) {
+                Ok(s) => Ok(Some(s)),
+                Err(e) => {
+                    tracing::error!("Error deserializing String: {:?}", e);
+                    Err(CBwebDatabaseError::DeserializationError(e))
+                }
+            },
+            None => Ok(None),
+        }
+    }
+
+    pub async fn save_misc(&self, key: String, value: String) -> Result<(), CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
+
+        let store = tx.object_store(MISC_CF)?;
+        store.delete(&JsValue::from_str(&key))?;
+        let value = to_value(&value).map_err(CBwebDatabaseError::DeserializationError)?;
+        store.add_val(&value)?;
+
+        tx.await.into_result()?;
+        Ok(())
     }
 }
