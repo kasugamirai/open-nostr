@@ -199,7 +199,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             }
                             button {
                                 class: "btn-icon purple small",
-                                style: format!("display: {};", if sub_current().live { "inline-block" } else { "none" }),
+                                style: format!("display: {};", if sub_current().live { "none" } else { "inline-block" }),
                                 onclick: handle_reload,
                                 dangerous_inner_html: "{RELOAD}",
                             }
@@ -208,7 +208,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 }
                 div {
                     class: "custom-sub-time",
-                    style: format!("display: {}; align-items: center; gap: 10px;", if sub_current().live { "flex" } else { "none" }),
+                    style: format!("display: {}; align-items: center; gap: 10px;", if sub_current().live { "none" } else { "flex" }),
                     div {
                         class: "width-80-fontSize-16",
                         "Window:"

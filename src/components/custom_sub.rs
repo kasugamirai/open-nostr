@@ -1,8 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::{
-  components::{icons::*, Avatar}
-};
+use crate::components::icons::*;
 
 #[component]
 pub fn CustomSub() -> Element {
@@ -93,7 +91,7 @@ pub fn CustomSub() -> Element {
                   class:"content",
                   "If there are conflicts between the branches, Git willpause the merge and ask you to resolve them. Conflictsoccur when changes in the two branc... show more"
                 }
-  
+
               }
             }
         }

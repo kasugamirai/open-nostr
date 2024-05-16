@@ -7,11 +7,10 @@ use indexed_db_futures::idb_object_store::IdbObjectStoreParameters;
 use indexed_db_futures::request::{IdbOpenDbRequestLike, OpenDbRequest};
 use indexed_db_futures::web_sys::IdbTransactionMode;
 use indexed_db_futures::{IdbDatabase, IdbKeyPath, IdbQuerySource, IdbVersionChangeEvent};
-use nostr::key;
 use serde_wasm_bindgen::{from_value, to_value};
 use std::future::IntoFuture;
 use std::sync::Arc;
-use subscription::{CustomSub, RelaySet, SubNames};
+use subscription::{CustomSub, RelaySet};
 pub use user::{AccountType, User};
 use wasm_bindgen::JsValue;
 use web_sys::IdbIndexParameters;
@@ -110,7 +109,7 @@ impl CBWebDatabase {
                             .db()
                             .create_object_store(MISC_CF)
                             .unwrap();
-
+                        
                         //insert last logined
                         let key = to_value(LAST_LOGINED_KEY).unwrap();
                         let val = to_value(NOT_LOGGED_IN_VALUE).unwrap();
@@ -237,7 +236,7 @@ impl CBWebDatabase {
 
         loop {
             let v = value.shift();
-            if !v.is_object(){
+            if !v.is_object() {
                 break;
             }
             match from_value::<CustomSub>(v) {
