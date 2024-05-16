@@ -24,7 +24,7 @@ pub fn Switch(props: SwitchProps) -> Element {
                 { close }
             }
             label {
-                class: "com-switch-label",
+                class: "com-switch-label com-switch-{value()}",
                 input {
                     hidden: true,
                     r#type: "checkbox",
