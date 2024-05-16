@@ -363,21 +363,6 @@ impl Tag {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct SubNames {
-    pub name: String,
-    pub names: Vec<String>,
-}
-
-impl SubNames {
-    pub fn new(names: Vec<String>) -> Self {
-        Self {
-            name: String::from("SUBSCRIPTION_LIST"),
-            names,
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use nostr_sdk::EventId;

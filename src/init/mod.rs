@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, RelayPoolNotification};
 
-use crate::store::subscription::{CustomSub, RelaySet, SubNames};
+use crate::store::subscription::{CustomSub, RelaySet};
 use crate::store::CBWebDatabase;
 use crate::{
     nostr::{multiclient::MultiClient, register::*},
