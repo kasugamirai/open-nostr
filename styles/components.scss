@@ -292,15 +292,15 @@
       letter-spacing: -1px;
       box-shadow: 2px 2px 4px rgba(3,3,3,0.1);
       background-color: #ffffff;
-      padding-left: 12px;
+      padding: 0 12px;
       height: 34px;
     
     }
     /* 隐藏所有<input>元素的向下箭头 */
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-      display: none;
-      -webkit-appearance: none;
-    }
+    // input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    //   display: none;
+    //   -webkit-appearance: none;
+    // }
 }
 
 .event-note {
@@ -490,3 +490,7 @@
         height: 0;
     }
 }
+
+.com-switch-true{
+    background-color: rgba(159, 116, 235, 1);
+  }

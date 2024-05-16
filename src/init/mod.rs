@@ -63,10 +63,17 @@ pub fn App() -> Element {
     // hook: on mounted
     let on_mounted = move |_| {
         spawn(async move {
-            // TODO: Initialize database, remove it in production
-            init().await;
-
             let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
+
+            match database.get_all_subs().await {
+                Ok(subs) => {
+                    if subs.len() == 0 {
+                        // TODO: Initialize database, remove it in production
+                        init().await;
+                    }
+                }
+                Err(_) => {}
+            }
 
             match database.get_all_subs().await {
                 Ok(subs) => {

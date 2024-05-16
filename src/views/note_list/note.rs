@@ -112,14 +112,27 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "pl-52",
                "Loading..."
-            } 
+            }
         }
     });
     let notetext = use_signal(|| props.data.content.clone());
     let sub_name = use_signal(|| props.sub_name.clone());
+    let pk = use_signal(|| props.data.event.author().clone());
+    let mut root_avatar = use_signal(|| None);
+    let mut root_nickname = use_signal(|| None);
     let _future = use_resource(move || async move {
         let clients = multiclient();
         let client = clients.get(&sub_name.read()).unwrap();
+
+        match get_metadata(&client, &pk(), None).await {
+            Ok(metadata) => {
+                root_nickname.set(metadata.name);
+                root_avatar.set(metadata.picture);
+            }
+            Err(_) => {
+                tracing::info!("metadata not found");
+            }
+        }
 
         let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{64})").unwrap();
 
@@ -266,7 +279,8 @@ pub fn Note(props: NoteProps) -> Element {
                 Avatar {
                     pubkey: props.data.author.clone(),
                     timestamp: props.data.created_at,
-                    nickname: None,
+                    avatar: root_avatar(),
+                    nickname: root_nickname(),
                 }
                 MoreInfo {
                     on_detail: move |_| {
