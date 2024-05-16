@@ -74,6 +74,7 @@ pub fn App() -> Element {
                 Err(_) => {}
             }
 
+            //this logic is wrong
             match database.get_all_subs().await {
                 Ok(subs) => {
                     let mut clients = multiclient.write();
@@ -84,6 +85,7 @@ pub fn App() -> Element {
                         c.add_relays(i.relay_set.relays.clone()).await.unwrap();
                         c.connect().await;
                         clients.register(i.name.clone(), c.clone());
+                        
 
                         if i.live {
                             let name = i.name.clone();

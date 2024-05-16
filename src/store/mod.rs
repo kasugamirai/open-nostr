@@ -16,7 +16,7 @@ pub use user::{AccountType, User};
 use wasm_bindgen::JsValue;
 use web_sys::IdbIndexParameters;
 
-const CURRENT_DB_VERSION: u32 = 3;
+const CURRENT_DB_VERSION: u32 = 2;
 const RELAY_SET_CF: &str = "relay-set";
 const CUSTOM_SUB_CF: &str = "custom-sub";
 const USER_CF: &str = "user";
@@ -103,10 +103,9 @@ impl CBWebDatabase {
                             )
                             .unwrap();
                     }
-                }
-                //apply migration 2->3
-                if old_version <= 2 {
+
                     {
+                        //init misc store
                         let misc_store = evt
                             .db()
                             .create_object_store(MISC_CF)
