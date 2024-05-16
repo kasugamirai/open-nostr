@@ -39,7 +39,7 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
         .to_string();
     rsx! {
         div {
-            class: "com-dtpicker",
+            class: "com-dtpicker2",
             input {
                 r#type: "datetime-local",
                 value: "{start_value}",
