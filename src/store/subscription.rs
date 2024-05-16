@@ -50,6 +50,7 @@ impl Default for CustomSub {
 
 impl CustomSub {
     pub fn default_with_opt(name: String, relay: String, tags: Vec<String>, live: bool) -> Self {
+        let now = Timestamp::now().as_u64();
         Self {
             name: name.clone(),
             relay_set: RelaySet {
@@ -57,8 +58,8 @@ impl CustomSub {
                 relays: vec![relay],
             },
             live: live,
-            since: 0,
-            until: 0,
+            since: now - 86400,
+            until: now,
             filters: vec![FilterTemp::HashTag(CustomHashTag {
                 r#type: String::from("hashtag"),
                 tags,
@@ -78,7 +79,7 @@ impl CustomSub {
     pub fn get_filters(&self) -> Vec<Filter> {
         self.filters
             .iter()
-            .map(|x| x.to_filter())
+            .map(|x| x.to_filter(self.since, self.until))
             .collect::<Vec<Filter>>()
     }
 
@@ -123,7 +124,7 @@ pub enum FilterTemp {
 }
 
 impl FilterTemp {
-    pub fn to_filter(&self) -> Filter {
+    pub fn to_filter(&self, since: u64, until: u64) -> Filter {
         let mut filter = Filter::new();
         match self {
             FilterTemp::HashTag(hashtag) => {
@@ -195,6 +196,9 @@ impl FilterTemp {
                 }
             }
         }
+        filter = filter
+            .since(Timestamp::from(since))
+            .until(Timestamp::from(until));
         filter
     }
 }
@@ -417,7 +421,7 @@ mod test {
             })],
             keep_alive: true,
         };
-        let custom_filter = custom_sub.filters[0].to_filter();
+        let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
 
         let filter = Filter::new()
             .author(PublicKey::from_str(public_key).unwrap())
@@ -465,7 +469,7 @@ mod test {
             })],
             keep_alive: true,
         };
-        let custom_filter = custom_sub.filters[0].to_filter();
+        let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
 
         let filter = Filter::new()
             .author(PublicKey::from_str(public_key).unwrap())
@@ -499,7 +503,7 @@ mod test {
             })],
             keep_alive: true,
         };
-        let custom_filter = custom_sub.filters[0].to_filter();
+        let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
 
         let filter = Filter::new().event(event_id);
         println!("filter: {:?}", filter);

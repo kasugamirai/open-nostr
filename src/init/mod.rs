@@ -64,7 +64,7 @@ pub fn App() -> Element {
     let on_mounted = move |_| {
         spawn(async move {
             // TODO: Initialize database, remove it in production
-            // init().await;
+            init().await;
 
             let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
 
