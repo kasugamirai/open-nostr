@@ -44,31 +44,48 @@ impl TextNote {
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-
+    
         event.iter_tags().for_each(|t| {
-            if let Tag::Event {
+            let normalized_tag = match t {
+                Tag::Event { .. } => Some(t.clone()),
+                Tag::Generic(TagKind::SingleLetter(SingleLetterTag {
+                    character: Alphabet::E,
+                    uppercase: false,
+                }), _strings) => {
+                    let t_vec = t.as_vec();
+                    let at_most_4 = &t_vec[..std::cmp::min(4, t_vec.len())];
+                    let normalized_t = at_most_4.to_vec();
+                    match Tag::parse(&normalized_t) {
+                        Ok(tag) => Some(tag),
+                        Err(_) => None,
+                    }
+                }
+                _ => None,
+            };
+    
+            if let Some(Tag::Event {
                 event_id, marker, ..
-            } = t
+            }) = normalized_tag
             {
                 match marker {
-                    Some(Marker::Root) => text_note.root = Some(*event_id),
-                    Some(Marker::Reply) => text_note.reply_to = Some(*event_id),
-                    None => no_marker_array.push(*event_id),
-                    _ => {} //do nothing
+                    Some(Marker::Root) => text_note.root = Some(event_id),
+                    Some(Marker::Reply) => text_note.reply_to = Some(event_id),
+                    None => no_marker_array.push(event_id),
+                    _ => {} // do nothing
                 }
             }
         });
-
-        // fix condition that root is None but reply_to is Some
+    
+        // Fix condition that root is None but reply_to is Some
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
             text_note.root = Some(*reply);
-        } 
-        // assgin root to reply_to if is a reply to root
+        }
+        // Assign root to reply_to if it is a reply to root
         if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
             text_note.reply_to = Some(*root);
-        } 
-
-        // no marker at all
+        }
+    
+        // Handle case where no marker is present
         if text_note.reply_to.is_none() {
             match no_marker_array.len() {
                 1 => {
@@ -84,9 +101,10 @@ impl TextNote {
                 }
             }
         }
-
+    
         Ok(())
     }
+
 }
 
 impl TryFrom<Event> for TextNote {

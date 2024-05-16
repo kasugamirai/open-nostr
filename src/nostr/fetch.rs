@@ -117,10 +117,8 @@ pub async fn get_replies(
 #[cfg(test)]
 mod tests {
     use crate::nostr::note::{DisplayOrder, ReplyTrees};
-
     use super::*;
     use wasm_bindgen_test::*;
-    use nostr_sdk::prelude::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
 
@@ -137,7 +135,7 @@ mod tests {
             get_event_by_id(&client, &event_id, timeout)
             .await
             .unwrap();
-        assert_eq!(event.is_some(), true);
+        assert!(event.is_some());
     }
 
     #[wasm_bindgen_test]
@@ -160,23 +158,23 @@ mod tests {
     async fn test_get_replies_into_tree() {
         let timeout = Some(std::time::Duration::from_secs(5));
         let event_id =
-            EventId::from_hex("ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b")
+            EventId::from_hex("57938b39678af44bc3ae76cf4b815bcdb65ffe71bb84ce35706f0c6fca4ed394")
                 .unwrap();
         let client = Client::default();
-        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
         let root = get_event_by_id(&client, &event_id, timeout).await.unwrap().unwrap();
         let replies = 
             get_replies(&client, &event_id, timeout)
             .await
             .unwrap();
-        assert_eq!(replies.len(), 4);
+        assert_eq!(replies.len(), 3);
         let mut tree = ReplyTrees::default();
         tree.accept(vec![root]);
         tree.accept(replies);
         let lv1_replies = tree.get_replies(&event_id, Some(DisplayOrder::NewestFirst));
         console_log!("lv1_replies {:?}", lv1_replies);
-        assert!(lv1_replies.len() == 2);
+        assert!(lv1_replies.len() == 3);
     }
 
 
