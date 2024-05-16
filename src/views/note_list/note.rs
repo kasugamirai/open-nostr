@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use nostr_sdk::{EventId, JsonUtil};
+use nostr_sdk::{EventId, FromBech32, JsonUtil};
 use regex::Regex;
 
 use crate::{
@@ -136,7 +136,7 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
 
-        let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{64})").unwrap();
+        let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
 
         let data = &notetext();
 
@@ -158,9 +158,9 @@ pub fn Note(props: NoteProps) -> Element {
         let mut elements = vec![];
         for i in parts {
             if i.starts_with("nostr:note") {
-                let id = i.strip_prefix("nostr:note").unwrap();
+                let id = i.strip_prefix("nostr:").unwrap();
 
-                match get_event_by_id(&client, &EventId::from_hex(id).unwrap(), None).await {
+                match get_event_by_id(&client, &EventId::from_bech32(id).unwrap(), None).await {
                     Ok(Some(event)) => {
                         let mut action_state = note_action_state.write();
                         action_state[2].count += 1;
