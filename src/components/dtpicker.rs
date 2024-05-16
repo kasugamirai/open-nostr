@@ -44,20 +44,32 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
                 r#type: "datetime-local",
                 value: "{start_value}",
                 oninput: move |event| {
-                    let parsed_datetime = NaiveDateTime::parse_from_str(&event.value(), "%Y-%m-%dT%H:%M").unwrap();
-                    let timestamp = parsed_datetime.and_utc().timestamp() as u64;
-                    value.set(timestamp);
-                    props.on_change.call((value(), end()));
+                    let v = event.value();
+                    if v.len() == 0 {
+                        value.set(0);
+                        props.on_change.call((value(), end()));
+                    } else {
+                        let parsed_datetime = NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").unwrap();
+                        let timestamp = parsed_datetime.and_utc().timestamp() as u64;
+                        value.set(timestamp);
+                        props.on_change.call((value(), end()));
+                    }
                 }
             }
             input {
                 r#type: "datetime-local",
                 value: "{end_value}",
                 oninput: move |event| {
-                    let parsed_datetime = NaiveDateTime::parse_from_str(&event.value(), "%Y-%m-%dT%H:%M").unwrap();
-                    let timestamp = parsed_datetime.and_utc().timestamp() as u64;
-                    end.set(timestamp);
-                    props.on_change.call((value(), end()));
+                    let v = event.value();
+                    if v.len() == 0 {
+                        end.set(0);
+                        props.on_change.call((value(), end()));
+                    } else {
+                        let parsed_datetime = NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").unwrap();
+                        let timestamp = parsed_datetime.and_utc().timestamp() as u64;
+                        end.set(timestamp);
+                        props.on_change.call((value(), end()));
+                    }
                 }
             }
         }

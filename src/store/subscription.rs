@@ -237,7 +237,7 @@ impl<'de> Deserialize<'de> for FilterTemp {
                 let events = serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                 Ok(FilterTemp::Events(events))
             }
-            Some("custom") => {
+            Some("customized") => {
                 let custom = serde_json::from_value(value).map_err(serde::de::Error::custom)?;
                 Ok(FilterTemp::Customize(custom))
             }
