@@ -1,12 +1,15 @@
-use std::time::Duration;
+use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Client, EventId, Filter, JsonUtil};
+use nostr_sdk::{EventId, JsonUtil};
 use regex::Regex;
 
 use crate::{
     components::{icons::*, Avatar},
-    nostr::{fetch::get_metadata, multiclient::MultiClient},
+    nostr::{
+        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies},
+        multiclient::MultiClient,
+    },
     utils::format::{format_content, format_create_at},
     Route,
 };
@@ -59,28 +62,6 @@ struct NoteActionState {
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    let author = props.data.author.clone();
-    let e = EventId::from_hex(author).unwrap();
-
-    let _future = use_resource(move || async move {
-        let client = Client::default();
-        // TODO: get metadata
-        let filter = Filter::new().event(e);
-        match client
-            .get_events_of(vec![filter], Some(Duration::from_secs(30)))
-            .await
-        {
-            Ok(events) => {
-                if events.is_empty() {
-                    Some("https://is.gd/hidYxs")
-                } else {
-                    None
-                }
-            }
-            Err(_) => None,
-        }
-    });
-
     let mut note_action_state = use_signal(|| {
         vec![
             NoteActionState {
@@ -118,16 +99,37 @@ pub fn Note(props: NoteProps) -> Element {
     let notetext = use_signal(|| props.data.content.clone());
     let sub_name = use_signal(|| props.sub_name.clone());
     let pk = use_signal(|| props.data.event.author().clone());
+    let eid = use_signal(|| props.data.event.id().clone());
     let mut root_avatar = use_signal(|| None);
     let mut root_nickname = use_signal(|| None);
+    let mut emoji = use_signal(|| HashMap::new());
     let _future = use_resource(move || async move {
         let clients = multiclient();
         let client = clients.get(&sub_name.read()).unwrap();
 
+        match get_reactions(&client, &eid(), None).await {
+            Ok(emojis) => {
+                emoji.set(emojis);
+            }
+            Err(_) => {
+                tracing::info!("metadata not found");
+            }
+        }
+
+        match get_replies(&client, &eid(), None).await {
+            Ok(replies) => {
+                let mut action_state = note_action_state.write();
+                action_state[0].count = replies.len();
+            }
+            Err(e) => {
+                tracing::error!("replies not found: {:?}", e);
+            }
+        }
+
         match get_metadata(&client, &pk(), None).await {
             Ok(metadata) => {
-                root_nickname.set(metadata.name);
                 root_avatar.set(metadata.picture);
+                root_nickname.set(metadata.name);
             }
             Err(_) => {
                 tracing::info!("metadata not found");
@@ -158,41 +160,39 @@ pub fn Note(props: NoteProps) -> Element {
             if i.starts_with("nostr:note") {
                 let id = i.strip_prefix("nostr:note").unwrap();
 
-                let filter = Filter::new().id(EventId::from_hex(id).unwrap());
-                let events = client.get_events_of(vec![filter], None).await.unwrap();
+                match get_event_by_id(&client, &EventId::from_hex(id).unwrap(), None).await {
+                    Ok(Some(event)) => {
+                        let mut action_state = note_action_state.write();
+                        action_state[2].count += 1;
+                        let pk = event.author();
+                        let content = event.content.to_string();
+                        let timestamp = event.created_at.as_u64();
 
-                if events.len() > 0 {
-                    let mut action_state = note_action_state.write();
-                    action_state[2].count += 1;
-                    let pk = events[0].author();
-                    let content = events[0].content.to_string();
-                    let timestamp = events[0].created_at.as_u64();
+                        let mut nickname = "".to_string();
+                        let mut avatar = "".to_string();
 
-                    let mut nickname = "".to_string();
-                    let mut avatar = "".to_string();
-
-                    match get_metadata(&client, &pk, None).await {
-                        Ok(metadata) => {
-                            nickname = metadata.name.unwrap_or("Default".to_string());
-                            avatar = match metadata.picture {
-                                Some(picture) => {
-                                    if picture.is_empty() {
-                                        "https://avatars.githubusercontent.com/u/1024025?v=4"
-                                            .to_string()
-                                    } else {
-                                        picture
+                        match get_metadata(&client, &pk, None).await {
+                            Ok(metadata) => {
+                                nickname = metadata.name.unwrap_or("Default".to_string());
+                                avatar = match metadata.picture {
+                                    Some(picture) => {
+                                        if picture.is_empty() {
+                                            "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                                .to_string()
+                                        } else {
+                                            picture
+                                        }
                                     }
+                                    None => "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                        .to_string(),
                                 }
-                                None => "https://avatars.githubusercontent.com/u/1024025?v=4"
-                                    .to_string(),
+                            }
+                            Err(_) => {
+                                tracing::info!("metadata not found");
                             }
                         }
-                        Err(_) => {
-                            tracing::info!("metadata not found");
-                        }
-                    }
 
-                    elements.push(rsx! {
+                        elements.push(rsx! {
                         div {
                             class: "quote",
                             style: "display: flex; align-items: center;",
@@ -228,6 +228,13 @@ pub fn Note(props: NoteProps) -> Element {
                             }
                         }
                     });
+                    }
+                    Ok(None) => {
+                        tracing::info!("event not found");
+                    }
+                    Err(e) => {
+                        tracing::error!("{:?}", e);
+                    }
                 }
             } else {
                 elements.push(rsx! {
@@ -333,26 +340,17 @@ pub fn Note(props: NoteProps) -> Element {
                             dangerous_inner_html: "{ADD}"
                         }
                     }
-                    div {
-                        class: "note-action-item cursor-pointer flex items-center",
-                        span {
-                            class: "note-action-icon",
-                            "😄"
-                        }
-                        span {
-                            class: "note-action-count font-size-12 txt-1",
-                            "120"
-                        }
-                    }
-                    div {
-                        class: "note-action-item cursor-pointer flex items-center",
-                        span {
-                            class: "note-action-icon",
-                            "😭"
-                        }
-                        span {
-                            class: "note-action-count font-size-12 txt-1",
-                            "12"
+                    for (k, v) in emoji().iter() {
+                        div {
+                            class: "note-action-item cursor-pointer flex items-center",
+                            span {
+                                class: "note-action-icon",
+                                "{k}"
+                            }
+                            span {
+                                class: "note-action-count font-size-12 txt-1",
+                                "{v}"
+                            }
                         }
                     }
                 }
