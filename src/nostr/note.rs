@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use indextree::{Arena, NodeId};
-use nostr_sdk::prelude::*;
+use nostr::nips::nip10::Marker;
+use nostr_sdk::TagStandard;
+use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
 use std::fmt;
-use wasm_bindgen_test::console_log;
 
 use super::utils::{self, get_children};
 
@@ -41,7 +42,7 @@ impl TextNote {
     pub fn is_root(&self) -> bool {
         matches!((&self.root, &self.reply_to), (None, None))
     }
-
+    /*
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
 
@@ -107,6 +108,60 @@ impl TextNote {
 
         Ok(())
     }
+    */
+
+    fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
+        let mut no_marker_array: Vec<EventId> = vec![];
+        for tag in event.iter_tags() {
+            let tag_standard = tag.as_standardized();
+            if let Some(tag_standard_value) = tag_standard {
+                if tag_standard_value.is_reply() {
+                    text_note.reply_to = Some(event.id);
+                }
+                if is_root_tag(tag_standard_value) {
+                    text_note.root = Some(event.id);
+                } else {
+                    no_marker_array.push(event.id);
+                }
+            }
+        }
+        // Fix condition that root is None but reply_to is Some
+        if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
+            text_note.root = Some(*reply);
+        }
+        // Assign root to reply_to if it is a reply to root
+        if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
+            text_note.reply_to = Some(*root);
+        }
+
+        // Handle case where no marker is present
+        if text_note.reply_to.is_none() {
+            match no_marker_array.len() {
+                1 => {
+                    text_note.root = no_marker_array.first().cloned();
+                    text_note.reply_to = no_marker_array.first().cloned();
+                }
+                n if n >= 2 => {
+                    text_note.root = no_marker_array.first().cloned();
+                    text_note.reply_to = no_marker_array.get(1).cloned();
+                }
+                _ => {
+                    return Err(Error::NotEnoughElements);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn is_root_tag(t: &TagStandard) -> bool {
+    matches!(
+        t,
+        TagStandard::Event {
+            marker: Some(Marker::Reply),
+            ..
+        }
+    )
 }
 
 impl TryFrom<Event> for TextNote {
@@ -206,6 +261,7 @@ impl ReplyTrees {
 mod tests {
 
     use super::*;
+    use nostr_sdk::JsonUtil;
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 

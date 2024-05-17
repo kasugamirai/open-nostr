@@ -103,7 +103,7 @@ impl FilterTemp {
                     accounts
                         .kinds
                         .iter()
-                        .map(|&x| Kind::from(x))
+                        .map(|&x| Kind::from(x as u16))
                         .collect::<Vec<Kind>>(),
                 );
                 filter = filter.authors(
@@ -132,7 +132,7 @@ impl FilterTemp {
                         customize
                             .kinds
                             .iter()
-                            .map(|&x| Kind::from(x))
+                            .map(|&x| Kind::from(x as u16))
                             .collect::<Vec<Kind>>(),
                     );
                 }
