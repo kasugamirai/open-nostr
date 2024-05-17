@@ -1,31 +1,34 @@
-use dioxus::prelude::*;
-use nostr_indexeddb::WebDatabase;
-use nostr_sdk::ClientBuilder;
-use crate::store::subscription::{CustomSub, RelaySet};
-use crate::store::CBWebDatabase;
-use crate::utils::contants::{CAPYBASTR_DBNAME, DEFAULT_CUSTOM_SUBS, DEFAULT_RELAY_SET_NAMES};
+use crate::store::subscription::{CustomHashTag, FilterTemp};
+use crate::store::user::NoLogin;
+use crate::store::{
+    subscription::CustomSub, subscription::RelaySet, AccountType, CBWebDatabase, User,
+    CAPYBASTR_DBNAME,
+};
+use crate::store::{CBwebDatabaseError, DEFAULT_RELAY_SET_KEY};
 use crate::{
     nostr::{multiclient::MultiClient, register::*},
     Route,
 };
-use serde::Deserialize;
+use dioxus::prelude::*;
+use nostr_indexeddb::WebDatabase;
+use nostr_sdk::{ClientBuilder, Filter, Kind};
+use wasm_bindgen_test::console_log;
 
-#[derive(Deserialize)]
-struct DefaultCustomSub {
-    name: String,
-    relay_set_name: String,
-    tags: Vec<String>,
-}
+pub const EXAMPLE_SUB_KEY: &str = "#nostr";
+pub const EXAMPLE_SUB_TAG: &str = "nostr";
+pub const NOSTR_DB_NAME: &str = "nostr-db";
+pub const LAST_LOGINED_KEY: &str = "last_logined";
+pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
+
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
     let _register = use_context_provider(|| Signal::new(Register::new()));
 
     let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
-
-    // all custom subscriptions
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
+    let mut all_users: Signal<Vec<User>> = use_context_provider(|| Signal::new(Vec::<User>::new()));
 
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
@@ -42,50 +45,95 @@ pub fn App() -> Element {
 
             let db = cb_database_db.read();
 
-            let default_custom_subs: Vec<DefaultCustomSub> =
-                serde_json::from_str(DEFAULT_CUSTOM_SUBS).expect("Failed to parse custom subs");
-            let default_relay_sets: Vec<RelaySet> =
-                serde_json::from_str(&DEFAULT_RELAY_SET_NAMES).expect("Failed to parse relay sets");
-            for rs in default_relay_sets {
-                match db.get_relay_set(rs.name.clone()).await {
-                    NotFound => {
-                        db.save_relay_set(rs).await.unwrap();
-                    }
-                }
+            // check if there is default relay sets
+            if let Err(CBwebDatabaseError::NotFound) =
+                db.get_relay_set(DEFAULT_RELAY_SET_KEY.to_string()).await
+            {
+                db.save_relay_set(RelaySet {
+                    name: DEFAULT_RELAY_SET_KEY.to_string(),
+                    relays: vec![
+                        "wss://relay.damus.io".to_string(),
+                        "wss://nos.lol".to_string(),
+                        "wss://nostr.wine".to_string(),
+                    ],
+                })
+                .await
+                .unwrap();
             }
 
-            // subs
-            match db.get_all_subs().await {
-                Ok(subs) => {
-                    if subs.len() == 0 {
-                        for custom_sub in default_custom_subs {
-                            let sub = CustomSub::default_with_opt(
-                                custom_sub.name,
-                                custom_sub.relay_set_name,
-                                custom_sub.tags.to_vec(),
-                                false,
-                            );
-                            db.save_custom_sub(sub).await.unwrap();
-                        }
-                    }
-                }
-                Err(_) => {
-                    tracing::error!("Failed to get all subs");
-                }
-            }
+            //init nostr db
+            let nostr_db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
+
+            //init multiclient
             let relay_sets: Vec<RelaySet> = db.get_all_relay_sets().await.unwrap();
             if !relay_sets.is_empty() {
                 let mut _multiclient = multiclient.write();
                 for rs in relay_sets {
                     let client = _multiclient.get(&rs.name);
                     if client.is_none() {
-                        let client_builder = ClientBuilder::new()
-                            .database(WebDatabase::open(rs.name.clone()).await.unwrap());
+                        let client_builder = ClientBuilder::new().database(nostr_db.clone());
                         let c: nostr_sdk::Client = client_builder.build();
                         c.add_relays(rs.relays).await.unwrap();
                         c.connect().await;
                         _multiclient.register(rs.name, c);
                     }
+                }
+            }
+
+            //init custom sub
+            match db.get_all_subs().await {
+                Ok(subs) => {
+                    if subs.is_empty() {
+                        let custom_sub = CustomSub {
+                            name: EXAMPLE_SUB_KEY.to_string(),
+                            relay_set: DEFAULT_RELAY_SET_KEY.to_string(),
+                            live: false,
+                            since: 0,
+                            until: 0,
+                            filters: vec![FilterTemp::HashTag(CustomHashTag {
+                                r#type: String::from("hashtag"),
+                                tags: vec![EXAMPLE_SUB_TAG.to_string()],
+                            })],
+                            keep_alive: true,
+                        };
+                        db.save_custom_sub(custom_sub.clone()).await.unwrap();
+                        all_sub.push(custom_sub);
+                    } else {
+                        for sub in subs {
+                            all_sub.push(sub);
+                        }
+                    }
+                }
+                Err(e) => {
+                    //todo
+                }
+            }
+
+            //init users
+            match db.get_all_users().await {
+                Ok(users) => {
+                    if users.is_empty() {
+                        let user = User {
+                            name: NOT_LOGGED_IN_USER_NAME.to_string(),
+                            inner: AccountType::NotLoggedIn(NoLogin::empty()),
+                        };
+                        db.save_user(user).await.unwrap();
+
+                        //and record a last login user
+                        db.save_misc(
+                            LAST_LOGINED_KEY.to_string(),
+                            NOT_LOGGED_IN_USER_NAME.to_string(),
+                        )
+                        .await
+                        .unwrap();
+                    } else {
+                        for user in users {
+                            all_users.push(user);
+                        }
+                    }
+                }
+                Err(e) => {
+                    //todo
                 }
             }
 

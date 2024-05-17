@@ -15,6 +15,8 @@ pub use user::{AccountType, User};
 use wasm_bindgen::JsValue;
 use web_sys::IdbIndexParameters;
 
+pub const CAPYBASTR_DBNAME: &str = "capybastr-db";
+
 const CURRENT_DB_VERSION: u32 = 2;
 const RELAY_SET_CF: &str = "relay-set";
 const CUSTOM_SUB_CF: &str = "custom-sub";
@@ -22,9 +24,7 @@ const USER_CF: &str = "user";
 const MISC_CF: &str = "misc";
 
 // Some entries keys & values
-pub const LAST_LOGINED_KEY: &str = "last_logined";
 pub const DEFAULT_RELAY_SET_KEY: &str = "default"; // This record cannot be removed
-pub const NOT_LOGGED_IN_VALUE: &str = "NOT_LOGGED_IN";
 
 #[derive(Clone)]
 pub struct CBWebDatabase {
@@ -58,14 +58,6 @@ impl CBWebDatabase {
                                 IdbIndexParameters::new().unique(true),
                             )
                             .unwrap();
-
-                        // Insert default user
-                        let value = to_value(&User {
-                            name: NOT_LOGGED_IN_VALUE.to_string(),
-                            inner: AccountType::NotLoggedIn,
-                        })
-                        .unwrap();
-                        user_store.add_val(&value).unwrap();
                     }
 
                     {
@@ -84,18 +76,6 @@ impl CBWebDatabase {
                                 IdbIndexParameters::new().unique(true),
                             )
                             .unwrap();
-
-                        // Insert default relay-set
-                        let value = to_value(&RelaySet {
-                            name: DEFAULT_RELAY_SET_KEY.to_string(),
-                            relays: vec![
-                                "wss://relay.damus.io".to_string(),
-                                "wss://nos.lol".to_string(),
-                                "wss://nostr.wine".to_string(),
-                                "wss://nostr.purplerelay".to_string(),
-                            ],
-                        }).unwrap();
-                        relay_set_store.add_val(&value).unwrap();
                     }
 
                     {
@@ -118,15 +98,10 @@ impl CBWebDatabase {
 
                     {
                         // Init misc store
-                        let misc_store = evt
+                        let _misc_store = evt
                             .db()
                             .create_object_store(MISC_CF)
                             .unwrap();
-
-                        // Insert last logined
-                        let key = to_value(LAST_LOGINED_KEY).unwrap();
-                        let val = to_value(NOT_LOGGED_IN_VALUE).unwrap();
-                        let _ = misc_store.add_key_val(&key, &val);
                     }
                 }
                 Ok(())
@@ -422,6 +397,29 @@ impl CBWebDatabase {
         }
     }
 
+    pub async fn get_all_users(&self) -> Result<Vec<User>, CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(USER_CF, IdbTransactionMode::Readonly)?;
+
+        let store = tx.object_store(USER_CF)?;
+        let value = store.get_all()?.await?;
+
+        let mut users = Vec::new();
+
+        for v in value.iter() {
+            match from_value::<User>(v.clone()) {
+                Ok(user) => users.push(user),
+                Err(e) => {
+                    tracing::error!("Error deserializing User: {:?}", e);
+                    return Err(CBwebDatabaseError::DeserializationError(e));
+                }
+            }
+        }
+
+        Ok(users)
+    }
+
     pub async fn get_misc(&self, key: String) -> Result<Option<String>, CBwebDatabaseError> {
         let tx = self
             .db
@@ -459,9 +457,9 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(MISC_CF)?;
+        let key =  to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
         let value = to_value(&value).map_err(CBwebDatabaseError::DeserializationError)?;
-        store.put_val(&value)?;
-
+        store.put_key_val(&key, &value)?;
         tx.await.into_result()?;
         Ok(())
     }

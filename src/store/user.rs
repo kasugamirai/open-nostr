@@ -10,11 +10,11 @@ pub struct User {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum AccountType {
-    NotLoggedIn,
-    Local(LocalSavedKey),
+    NotLoggedIn(NoLogin),
     Pub(OnlyPubkey),
 }
 
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct NoLogin {
     pub r#type: String,
 }
@@ -26,14 +26,7 @@ impl NoLogin {
         }
     }
 }
-
-#[derive(Debug, PartialEq, Clone, Deserialize)]
-pub struct LocalSavedKey {
-    pub r#type: String,
-    pub sk: SecretKey,
-}
-
-#[derive(Debug, PartialEq, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct OnlyPubkey {
     pub r#type: String,
     pub pk: PublicKey,
@@ -47,9 +40,8 @@ impl Serialize for AccountType {
         S: serde::Serializer,
     {
         match self {
-            AccountType::NotLoggedIn => serializer.serialize_unit_variant("AccountType", 0, "NoLogin"),
-            AccountType::Local(lk) => lk.sk.serialize(serializer),
-            AccountType::Pub(pk) => pk.pk.serialize(serializer),
+            AccountType::NotLoggedIn(nl) => nl.serialize(serializer),
+            AccountType::Pub(pk) => pk.serialize(serializer),
         }
     }
 }
@@ -61,12 +53,7 @@ impl<'de> Deserialize<'de> for AccountType {
     {
         let value = Value::deserialize(deserializer)?;
         match value.get("type").and_then(Value::as_str) {
-            Some("NoLogin") => Ok(AccountType::NotLoggedIn),
-            Some("Local") => Ok(AccountType::Local(LocalSavedKey {
-                r#type: "Local".to_string(),
-                sk: SecretKey::deserialize(value).unwrap(),
-            }),
-            ),
+            Some("NoLogin") => Ok(AccountType::NotLoggedIn(NoLogin::empty())),
             Some("Pub") => Ok(AccountType::Pub(OnlyPubkey {
                 r#type: "Pub".to_string(),
                 pk: PublicKey::deserialize(value).unwrap(),

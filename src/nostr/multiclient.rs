@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::utils::contants::CAPYBASTR_DBNAME;
+use crate::store::CAPYBASTR_DBNAME;
 use crate::store::CBWebDatabase;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder};

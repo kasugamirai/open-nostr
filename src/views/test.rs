@@ -144,45 +144,45 @@ pub fn ChildrenKeep(name: String) -> Element {
     let on_mounted = move |_| {
         let name = name.clone();
         spawn(async move {
-            let database = WebDatabase::open("EVENTS_DB").await.unwrap();
-            let clients = clients();
-            let client = clients.get(&name).unwrap();
+            // let database = WebDatabase::open("EVENTS_DB").await.unwrap();
+            // let clients = clients();
+            // let client = clients.get(&name).unwrap();
 
-            // let filter = Filter::new().hashtag(name).kind(Kind::TextNote).limit(2);
+            // // let filter = Filter::new().hashtag(name).kind(Kind::TextNote).limit(2);
 
-            // let data = client.subscribe(sub_id_1.clone(), vec![filter], None).await;
+            // // let data = client.subscribe(sub_id_1.clone(), vec![filter], None).await;
 
-            // events.set(data);
+            // // events.set(data);
 
-            let subscription = Filter::new()
-                .hashtag(name)
-                .kind(Kind::TextNote)
-                .since(Timestamp::now());
+            // let subscription = Filter::new()
+            //     .hashtag(name)
+            //     .kind(Kind::TextNote)
+            //     .since(Timestamp::now());
 
-            // Subscribe
-            let sub_id = client.subscribe(vec![subscription], None).await;
+            // // Subscribe
+            // let sub_id = client.subscribe(vec![subscription], None).await;
 
-            tracing::info!("client: {client:?}");
+            // tracing::info!("client: {client:?}");
 
-            client
-                .handle_notifications(|notification| async {
-                    match notification {
-                        RelayPoolNotification::Event {
-                            relay_url,
-                            subscription_id,
-                            event,
-                        } => {
-                            if subscription_id == sub_id {
-                                database.save_event(&event).await.unwrap();
-                                tracing::info!("{relay_url}: {event:?}");
-                            }
-                        }
-                        _ => {}
-                    }
-                    Ok(false) // Set to true to exit from the loop
-                })
-                .await
-                .unwrap();
+            // client
+            //     .handle_notifications(|notification| async {
+            //         match notification {
+            //             RelayPoolNotification::Event {
+            //                 relay_url,
+            //                 subscription_id,
+            //                 event,
+            //             } => {
+            //                 if subscription_id == sub_id {
+            //                     database.save_event(&event).await.unwrap();
+            //                     tracing::info!("{relay_url}: {event:?}");
+            //                 }
+            //             }
+            //             _ => {}
+            //         }
+            //         Ok(false) // Set to true to exit from the loop
+            //     })
+            //     .await
+            //     .unwrap();
         });
     };
 

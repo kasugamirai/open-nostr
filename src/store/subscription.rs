@@ -3,17 +3,6 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use crate::store::DEFAULT_RELAY_SET_KEY;
 
-/// CustomSub
-///
-/// name: name of the subscription
-/// relay_set: relay set
-/// filters: list of filters
-///
-/// # Example:
-///
-/// ```
-/// let custom_sub = CustomSub::default();
-/// ```
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
     pub name: String,
@@ -25,30 +14,13 @@ pub struct CustomSub {
     pub keep_alive: bool,
 }
 
-impl Default for CustomSub {
-    fn default() -> Self {
-        Self {
-            name: String::from("#steakstr"),
-            relay_set: DEFAULT_RELAY_SET_KEY.to_string(),
-            live: false,
-            since: 0,
-            until: 0,
-            filters: vec![FilterTemp::HashTag(CustomHashTag {
-                r#type: String::from("hashtag"),
-                tags: vec![String::from("dog")],
-            })],
-            keep_alive: true,
-        }
-    }
-}
-
 impl CustomSub {
     pub fn default_with_opt(name: String, relay_set_name: String, tags: Vec<String>, live: bool) -> Self {
         let now = Timestamp::now().as_u64();
         Self {
             name: name.clone(),
             relay_set: relay_set_name,
-            live: live,
+            live,
             since: now - 86400,
             until: now,
             filters: vec![FilterTemp::HashTag(CustomHashTag {
