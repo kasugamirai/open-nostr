@@ -112,7 +112,7 @@ impl TextNote {
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-        for tag in event.iter_tags() {
+        event.iter_tags().for_each(|tag| {
             let tag_standard = tag.as_standardized();
             if let Some(tag_standard_value) = tag_standard {
                 if tag_standard_value.is_reply() {
@@ -124,8 +124,7 @@ impl TextNote {
                     no_marker_array.push(event.id);
                 }
             }
-        }
-        // Fix condition that root is None but reply_to is Some
+        });
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
             text_note.root = Some(*reply);
         }
