@@ -1,5 +1,9 @@
 use crate::store::AccountType;
 use std::collections::HashMap;
+use crate::utils::contants::CAPYBASTR_DBNAME;
+use crate::store::CBWebDatabase;
+use nostr_indexeddb::WebDatabase;
+use nostr_sdk::{ClientBuilder};
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
@@ -26,7 +30,16 @@ impl MultiClient {
     pub fn get(&self, name: &str) -> Option<&nostr_sdk::Client> {
         self.clients.get(name)
     }
-
+    pub async fn get_or_create(&mut self, name: &str) -> &nostr_sdk::Client {
+        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let db = WebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let client_builder = ClientBuilder::new().database(db);
+        let client = client_builder.build();
+        let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
+        client.add_relays(relay_set_info.relays).await.unwrap();
+        self.register(name.to_string(), client);
+        self.get(name).unwrap()
+    }
     pub fn apply_account_all(&self, _account: AccountType) {
 
         //todo

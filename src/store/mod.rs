@@ -81,23 +81,23 @@ impl CBWebDatabase {
                             .unwrap();
                     }
 
-                    {
-                        //init sub-name-list names store
-                        let mut create_store_params = IdbObjectStoreParameters::new();
-                        let key_path = IdbKeyPath::str("name");
-                        create_store_params.key_path(Some(&key_path));
-                        let relay_set_store = evt
-                            .db()
-                            .create_object_store_with_params(SUB_NAME_LIST, &create_store_params)
-                            .unwrap();
-                        relay_set_store
-                            .create_index_with_params(
-                                "name",
-                                &key_path,
-                                IdbIndexParameters::new().unique(true),
-                            )
-                            .unwrap();
-                    }
+                    // {
+                    //     //init sub-name-list names store
+                    //     let mut create_store_params = IdbObjectStoreParameters::new();
+                    //     let key_path = IdbKeyPath::str("name");
+                    //     create_store_params.key_path(Some(&key_path));
+                    //     let relay_set_store = evt
+                    //         .db()
+                    //         .create_object_store_with_params(SUB_NAME_LIST, &create_store_params)
+                    //         .unwrap();
+                    //     relay_set_store
+                    //         .create_index_with_params(
+                    //             "name",
+                    //             &key_path,
+                    //             IdbIndexParameters::new().unique(true),
+                    //         )
+                    //         .unwrap();
+                    // }
 
                     {
                         //init custom-sub store
@@ -187,6 +187,34 @@ impl CBWebDatabase {
             },
             None => Err(CBwebDatabaseError::NotFound),
         }
+    }
+
+
+    pub async fn get_all_relay_sets(&self) -> Result<Vec<RelaySet>, CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(RELAY_SET_CF, IdbTransactionMode::Readonly)?;
+
+        let store = tx.object_store(RELAY_SET_CF)?;
+        let value = store.get_all()?.await?;
+
+        let mut relay_sets = Vec::new();
+
+        loop {
+            let v = value.shift();
+            if !v.is_object(){
+                break;
+            }
+            match from_value::<RelaySet>(v) {
+                Ok(relay_set) => relay_sets.push(relay_set),
+                Err(e) => {
+                    tracing::error!("Error deserializing RelaySets: {:?}", e);
+                    return Err(CBwebDatabaseError::DeserializationError(e));
+                }
+            }
+        }
+
+        Ok(relay_sets)
     }
 
     pub async fn save_sub_name_list(&self, names: SubNames) -> Result<(), CBwebDatabaseError> {

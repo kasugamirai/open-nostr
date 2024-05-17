@@ -1,6 +1,9 @@
+use dioxus::{hooks::use_context, signals::{Readable, Signal}};
 use nostr_sdk::{EventId, Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
+
+use super::CBWebDatabase;
 
 /// CustomSub
 ///
@@ -16,7 +19,7 @@ use serde_json::Value;
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
     pub name: String,
-    pub relay_set: RelaySet,
+    pub relay_set_name: String, // relay set name
     pub live: bool,
     pub since: u64,
     pub until: u64,
@@ -28,14 +31,7 @@ impl Default for CustomSub {
     fn default() -> Self {
         Self {
             name: String::from("#steakstr"),
-            relay_set: RelaySet {
-                name: String::from("Default"),
-                relays: vec![
-                    String::from("wss://btc.klendazu.com"),
-                    // String::from("wss://relay.damus.io"),
-                    // String::from("wss://nostr.pjv.me"),
-                ],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
@@ -49,14 +45,11 @@ impl Default for CustomSub {
 }
 
 impl CustomSub {
-    pub fn default_with_opt(name: String, relay: String, tags: Vec<String>, live: bool) -> Self {
+    pub fn default_with_opt(name: String, relay_set_name: String, tags: Vec<String>, live: bool) -> Self {
         let now = Timestamp::now().as_u64();
         Self {
             name: name.clone(),
-            relay_set: RelaySet {
-                name: format!("{} - relays", name),
-                relays: vec![relay],
-            },
+            relay_set_name: relay_set_name,
             live: live,
             since: now - 86400,
             until: now,
@@ -86,16 +79,18 @@ impl CustomSub {
     pub fn empty() -> Self {
         Self {
             name: String::new(),
-            relay_set: RelaySet {
-                name: String::new(),
-                relays: vec![],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
             filters: vec![],
             keep_alive: true,
         }
+    }
+    pub async fn get_relay_set(&self) -> RelaySet {
+        let cb_database_db = use_context::<Signal<CBWebDatabase>>();
+        let database = cb_database_db.read();
+        database.get_relay_set(self.relay_set_name.clone()).await.unwrap()
     }
 }
 
@@ -404,10 +399,7 @@ mod test {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
             name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
@@ -448,10 +440,7 @@ mod test {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
             name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
@@ -485,10 +474,7 @@ mod test {
                 .unwrap();
         let custom_sub = CustomSub {
             name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
@@ -517,10 +503,7 @@ mod test {
         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
         let custom_sub = CustomSub {
             name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
@@ -557,10 +540,7 @@ mod test {
     fn test_empty_filters() {
         let custom_sub = CustomSub {
             name: String::from("EmptyTest"),
-            relay_set: RelaySet {
-                name: String::from("EmptyRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
+            relay_set_name: String::from("Damus"),
             live: false,
             since: 0,
             until: 0,
