@@ -177,7 +177,7 @@ mod tests {
             )
             .await
             .unwrap();
-        
+
         let r1 = register.clone();
         spawn_local(async move {
             r1.handle_notifications(&client1).await.unwrap();

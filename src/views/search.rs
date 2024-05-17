@@ -3,15 +3,11 @@ use dioxus::prelude::*;
 #[component]
 pub fn Search() -> Element {
     let add_data = move || {
-        spawn(async move {
-            
-        });
+        spawn(async move {});
     };
 
     let delete_data = move || {
-        spawn(async move {
-            
-        });
+        spawn(async move {});
     };
 
     rsx! {

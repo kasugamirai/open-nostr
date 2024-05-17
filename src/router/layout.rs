@@ -1,13 +1,13 @@
-use dioxus::prelude::*;
 use crate::store::subscription::CustomSub;
+use dioxus::prelude::*;
 struct UserItem {
     avatar: &'static str,
     username: &'static str,
 }
 
 use crate::components::icons::*;
-use crate::router::*;
 use crate::components::Button;
+use crate::router::*;
 #[component]
 pub fn Layout() -> Element {
     let subs = use_context::<Signal<Vec<CustomSub>>>();
@@ -20,8 +20,7 @@ pub fn Layout() -> Element {
         }
     };
 
-    let users = vec![
-        UserItem{
+    let users = [UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
             username: "James LisaLisaLisaLisaLisaLisaLisa"
         },
@@ -32,8 +31,7 @@ pub fn Layout() -> Element {
         UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
             username: "Lisa"
-        },
-    ];
+        }];
     let mut show = use_signal(|| false);
     rsx! {
         div{

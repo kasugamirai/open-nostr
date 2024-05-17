@@ -98,8 +98,6 @@ pub async fn get_reactions(
     Ok(reaction_counts)
 }
 
-
-
 pub async fn get_replies(
     client: &Client,
     event_id: &EventId,
@@ -116,11 +114,10 @@ pub async fn get_replies(
 
 #[cfg(test)]
 mod tests {
-    use crate::nostr::note::{DisplayOrder, ReplyTrees};
     use super::*;
+    use crate::nostr::note::{DisplayOrder, ReplyTrees};
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
 
     #[wasm_bindgen_test]
     async fn test_get_event_by_id() {
@@ -131,10 +128,7 @@ mod tests {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let event = 
-            get_event_by_id(&client, &event_id, timeout)
-            .await
-            .unwrap();
+        let event = get_event_by_id(&client, &event_id, timeout).await.unwrap();
         assert!(event.is_some());
     }
 
@@ -147,10 +141,7 @@ mod tests {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let replies = 
-            get_replies(&client, &event_id, timeout)
-            .await
-            .unwrap();
+        let replies = get_replies(&client, &event_id, timeout).await.unwrap();
         assert_eq!(replies.len(), 4);
     }
 
@@ -163,11 +154,11 @@ mod tests {
         let client = Client::default();
         client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
-        let root = get_event_by_id(&client, &event_id, timeout).await.unwrap().unwrap();
-        let replies = 
-            get_replies(&client, &event_id, timeout)
+        let root = get_event_by_id(&client, &event_id, timeout)
             .await
+            .unwrap()
             .unwrap();
+        let replies = get_replies(&client, &event_id, timeout).await.unwrap();
         assert_eq!(replies.len(), 3);
         let mut tree = ReplyTrees::default();
         tree.accept(vec![root]);
@@ -176,7 +167,6 @@ mod tests {
         console_log!("lv1_replies {:?}", lv1_replies);
         assert!(lv1_replies.len() == 3);
     }
-
 
     #[wasm_bindgen_test]
     async fn test_get_reactions() {
@@ -187,10 +177,7 @@ mod tests {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let reactions = 
-            get_reactions(&client, &event_id, timeout)
-            .await
-            .unwrap();
+        let reactions = get_reactions(&client, &event_id, timeout).await.unwrap();
         let length = reactions.len();
         console_log!("Reactions: {:?}", reactions);
         assert_eq!(reactions.len(), length);

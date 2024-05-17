@@ -17,7 +17,9 @@ impl fmt::Display for CBwebDatabaseError {
             CBwebDatabaseError::Dom(e) => write!(f, "DOM Exception: {}", e.message().as_str()),
             CBwebDatabaseError::DomError(msg) => write!(f, "DOM Error: {}", msg),
             CBwebDatabaseError::SerializationError(e) => write!(f, "Serialization Error: {}", e),
-            CBwebDatabaseError::DeserializationError(e) => write!(f, "Deserialization Error: {}", e),
+            CBwebDatabaseError::DeserializationError(e) => {
+                write!(f, "Deserialization Error: {}", e)
+            }
             CBwebDatabaseError::NotFound => write!(f, "No record found"),
             CBwebDatabaseError::InvalidOperation(e) => write!(f, "Invalid operation Error: {}", e),
         }

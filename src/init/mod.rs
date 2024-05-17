@@ -1,6 +1,3 @@
-use dioxus::prelude::*;
-use nostr_indexeddb::WebDatabase;
-use nostr_sdk::ClientBuilder;
 use crate::store::subscription::{CustomSub, RelaySet};
 use crate::store::CBWebDatabase;
 use crate::utils::contants::{CAPYBASTR_DBNAME, DEFAULT_CUSTOM_SUBS, DEFAULT_RELAY_SET_NAMES};
@@ -8,6 +5,9 @@ use crate::{
     nostr::{multiclient::MultiClient, register::*},
     Route,
 };
+use dioxus::prelude::*;
+use nostr_indexeddb::WebDatabase;
+use nostr_sdk::ClientBuilder;
 use serde::Deserialize;
 
 #[derive(Deserialize)]

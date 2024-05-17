@@ -39,15 +39,15 @@ pub struct OnlyPubkey {
     pub pk: PublicKey,
 }
 
-
-
 impl Serialize for AccountType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         match self {
-            AccountType::NotLoggedIn => serializer.serialize_unit_variant("AccountType", 0, "NoLogin"),
+            AccountType::NotLoggedIn => {
+                serializer.serialize_unit_variant("AccountType", 0, "NoLogin")
+            }
             AccountType::Local(lk) => lk.sk.serialize(serializer),
             AccountType::Pub(pk) => pk.pk.serialize(serializer),
         }
@@ -65,8 +65,7 @@ impl<'de> Deserialize<'de> for AccountType {
             Some("Local") => Ok(AccountType::Local(LocalSavedKey {
                 r#type: "Local".to_string(),
                 sk: SecretKey::deserialize(value).unwrap(),
-            }),
-            ),
+            })),
             Some("Pub") => Ok(AccountType::Pub(OnlyPubkey {
                 r#type: "Pub".to_string(),
                 pk: PublicKey::deserialize(value).unwrap(),

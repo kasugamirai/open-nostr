@@ -94,7 +94,8 @@ impl CBWebDatabase {
                                 "wss://nostr.wine".to_string(),
                                 "wss://nostr.purplerelay".to_string(),
                             ],
-                        }).unwrap();
+                        })
+                        .unwrap();
                         relay_set_store.add_val(&value).unwrap();
                     }
 
@@ -118,10 +119,7 @@ impl CBWebDatabase {
 
                     {
                         // Init misc store
-                        let misc_store = evt
-                            .db()
-                            .create_object_store(MISC_CF)
-                            .unwrap();
+                        let misc_store = evt.db().create_object_store(MISC_CF).unwrap();
 
                         // Insert last logined
                         let key = to_value(LAST_LOGINED_KEY).unwrap();
@@ -181,13 +179,15 @@ impl CBWebDatabase {
 
     pub async fn remove_relay_set(&self, name: String) -> Result<(), CBwebDatabaseError> {
         if name == DEFAULT_RELAY_SET_KEY {
-            return Err(CBwebDatabaseError::InvalidOperation("Cannot remove the default relay set".to_string()));
+            return Err(CBwebDatabaseError::InvalidOperation(
+                "Cannot remove the default relay set".to_string(),
+            ));
         }
 
         // Start a transaction for both stores
         let tx = self.db.transaction_on_multi_with_mode(
-            &[RELAY_SET_CF, CUSTOM_SUB_CF], 
-            IdbTransactionMode::Readwrite
+            &[RELAY_SET_CF, CUSTOM_SUB_CF],
+            IdbTransactionMode::Readwrite,
         )?;
 
         // Remove the relay set from the relay set store
@@ -199,13 +199,13 @@ impl CBWebDatabase {
         let custom_subs = custom_sub_store.get_all()?.await?;
 
         for sub_value in custom_subs.iter() {
-            let mut custom_sub: CustomSub = from_value(sub_value.clone())
-                .map_err(CBwebDatabaseError::DeserializationError)?;
+            let mut custom_sub: CustomSub =
+                from_value(sub_value.clone()).map_err(CBwebDatabaseError::DeserializationError)?;
 
             if custom_sub.relay_set == name {
                 custom_sub.relay_set = DEFAULT_RELAY_SET_KEY.to_string();
-                let updated_sub_value = to_value(&custom_sub)
-                    .map_err(CBwebDatabaseError::DeserializationError)?;
+                let updated_sub_value =
+                    to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
 
                 custom_sub_store.put_val(&updated_sub_value)?;
             }
@@ -216,15 +216,21 @@ impl CBWebDatabase {
         Ok(())
     }
 
-    pub async fn relay_set_change_name(&self, old_name: String, new_name: String) -> Result<(), CBwebDatabaseError> {
+    pub async fn relay_set_change_name(
+        &self,
+        old_name: String,
+        new_name: String,
+    ) -> Result<(), CBwebDatabaseError> {
         if old_name == DEFAULT_RELAY_SET_KEY {
-            return Err(CBwebDatabaseError::InvalidOperation("Cannot rename the default relay set".to_string()));
+            return Err(CBwebDatabaseError::InvalidOperation(
+                "Cannot rename the default relay set".to_string(),
+            ));
         }
 
         // Start a transaction for both stores
         let tx = self.db.transaction_on_multi_with_mode(
-            &[RELAY_SET_CF, CUSTOM_SUB_CF], 
-            IdbTransactionMode::Readwrite
+            &[RELAY_SET_CF, CUSTOM_SUB_CF],
+            IdbTransactionMode::Readwrite,
         )?;
 
         // Update the name in the relay set store
@@ -234,11 +240,11 @@ impl CBWebDatabase {
             // Deserialize the RelaySet
             let mut relay_set: RelaySet = from_value(relay_set_value.clone())
                 .map_err(CBwebDatabaseError::DeserializationError)?;
-            
+
             // Update the name
             relay_set.name = new_name.clone();
-            relay_set_value = to_value(&relay_set)
-                .map_err(CBwebDatabaseError::DeserializationError)?;
+            relay_set_value =
+                to_value(&relay_set).map_err(CBwebDatabaseError::DeserializationError)?;
 
             // Put the updated entry
             relay_set_store.put_val(&relay_set_value)?;
@@ -251,14 +257,14 @@ impl CBWebDatabase {
         let custom_subs = custom_sub_store.get_all()?.await?;
 
         for sub_value in custom_subs.iter() {
-            let mut custom_sub: CustomSub = from_value(sub_value.clone())
-                .map_err(CBwebDatabaseError::DeserializationError)?;
-            
+            let mut custom_sub: CustomSub =
+                from_value(sub_value.clone()).map_err(CBwebDatabaseError::DeserializationError)?;
+
             if custom_sub.relay_set == old_name {
                 custom_sub.relay_set = new_name.clone();
-                let updated_sub_value = to_value(&custom_sub)
-                    .map_err(CBwebDatabaseError::DeserializationError)?;
-                
+                let updated_sub_value =
+                    to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
+
                 // Put the updated entry
                 custom_sub_store.put_val(&updated_sub_value)?;
             }
@@ -328,10 +334,10 @@ impl CBWebDatabase {
         let tx = self
             .db
             .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)?;
-        
+
         let store = tx.object_store(CUSTOM_SUB_CF)?;
         store.delete(&JsValue::from_str(&name))?;
-        
+
         tx.await.into_result()?;
         Ok(())
     }
@@ -395,10 +401,10 @@ impl CBWebDatabase {
         let tx = self
             .db
             .transaction_on_one_with_mode(USER_CF, IdbTransactionMode::Readwrite)?;
-        
+
         let store = tx.object_store(USER_CF)?;
         store.delete(&JsValue::from_str(&name))?;
-        
+
         tx.await.into_result()?;
         Ok(())
     }
@@ -445,10 +451,10 @@ impl CBWebDatabase {
         let tx = self
             .db
             .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
-        
+
         let store = tx.object_store(MISC_CF)?;
         store.delete(&JsValue::from_str(&key))?;
-        
+
         tx.await.into_result()?;
         Ok(())
     }
