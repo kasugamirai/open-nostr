@@ -8,6 +8,7 @@ pub enum CBwebDatabaseError {
     DomError(String),
     SerializationError(serde_json::Error),
     DeserializationError(serde_wasm_bindgen::Error),
+    InvalidOperation(String),
 }
 
 impl fmt::Display for CBwebDatabaseError {
@@ -18,6 +19,7 @@ impl fmt::Display for CBwebDatabaseError {
             CBwebDatabaseError::SerializationError(e) => write!(f, "Serialization Error: {}", e),
             CBwebDatabaseError::DeserializationError(e) => write!(f, "Deserialization Error: {}", e),
             CBwebDatabaseError::NotFound => write!(f, "No record found"),
+            CBwebDatabaseError::InvalidOperation(e) => write!(f, "Invalid operation Error: {}", e),
         }
     }
 }

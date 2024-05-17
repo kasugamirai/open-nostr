@@ -1,6 +1,7 @@
 use nostr_sdk::{EventId, Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
+use crate::store::DEFAULT_RELAY_SET_KEY;
 
 /// CustomSub
 ///
@@ -16,7 +17,7 @@ use serde_json::Value;
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
     pub name: String,
-    pub relay_set: RelaySet,
+    pub relay_set: String,
     pub live: bool,
     pub since: u64,
     pub until: u64,
@@ -28,14 +29,7 @@ impl Default for CustomSub {
     fn default() -> Self {
         Self {
             name: String::from("#steakstr"),
-            relay_set: RelaySet {
-                name: String::from("Default"),
-                relays: vec![
-                    String::from("wss://btc.klendazu.com"),
-                    // String::from("wss://relay.damus.io"),
-                    // String::from("wss://nostr.pjv.me"),
-                ],
-            },
+            relay_set: DEFAULT_RELAY_SET_KEY.to_string(),
             live: false,
             since: 0,
             until: 0,
@@ -49,14 +43,11 @@ impl Default for CustomSub {
 }
 
 impl CustomSub {
-    pub fn default_with_opt(name: String, relay: String, tags: Vec<String>, live: bool) -> Self {
+    pub fn default_with_opt(name: String, relay_set_name: String, tags: Vec<String>, live: bool) -> Self {
         let now = Timestamp::now().as_u64();
         Self {
             name: name.clone(),
-            relay_set: RelaySet {
-                name: format!("{} - relays", name),
-                relays: vec![relay],
-            },
+            relay_set: relay_set_name,
             live: live,
             since: now - 86400,
             until: now,
@@ -86,10 +77,7 @@ impl CustomSub {
     pub fn empty() -> Self {
         Self {
             name: String::new(),
-            relay_set: RelaySet {
-                name: String::new(),
-                relays: vec![],
-            },
+            relay_set: DEFAULT_RELAY_SET_KEY.to_string(),
             live: false,
             since: 0,
             until: 0,
