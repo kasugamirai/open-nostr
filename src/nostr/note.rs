@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use indextree::{Arena, NodeId};
+use nostr::event;
 use nostr::nips::nip10::Marker;
 use nostr_sdk::TagStandard;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
@@ -115,13 +116,14 @@ impl TextNote {
         event.iter_tags().for_each(|tag| {
             let tag_standard = tag.as_standardized();
             if let Some(tag_standard_value) = tag_standard {
+                let event_id = get_event_id(tag_standard_value);
                 if tag_standard_value.is_reply() {
-                    text_note.reply_to = Some(event.id);
+                    text_note.reply_to = event_id;
                 }
                 if is_root_tag(tag_standard_value) {
-                    text_note.root = Some(event.id);
-                } else {
-                    no_marker_array.push(event.id);
+                    text_note.root = event_id;
+                } else if let Some(event_id) = event_id {
+                    no_marker_array.push(event_id);
                 }
             }
         });
@@ -161,6 +163,13 @@ fn is_root_tag(t: &TagStandard) -> bool {
             ..
         }
     )
+}
+
+fn get_event_id(tag: &TagStandard) -> Option<EventId> {
+    match tag {
+        TagStandard::Event { event_id, .. } => Some(*event_id),
+        _ => None,
+    }
 }
 
 impl TryFrom<Event> for TextNote {
@@ -296,6 +305,10 @@ mod tests {
     fn test_reply_with_marker() {
         let event = event_from(REPLY_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
+        console_log!("text_note: {:?}", text_note);
+        console_log!("text_note.root: {:?}", text_note.root);
+        console_log!("text_note.reply_to: {:?}", text_note.reply_to);
+
         assert!(
             text_note.root.unwrap().to_hex()
                 == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"
