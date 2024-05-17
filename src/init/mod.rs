@@ -1,10 +1,7 @@
-use dioxus::html::data;
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder, RelayPoolNotification};
-use wasm_bindgen_test::console_log;
-
-use crate::store::subscription::{CustomSub, RelaySet, SubNames};
+use nostr_sdk::ClientBuilder;
+use crate::store::subscription::{CustomSub, RelaySet};
 use crate::store::CBWebDatabase;
 use crate::utils::contants::{CAPYBASTR_DBNAME, DEFAULT_CUSTOM_SUBS, DEFAULT_RELAY_SET_NAMES};
 use crate::{
@@ -91,68 +88,6 @@ pub fn App() -> Element {
                     }
                 }
             }
-
-
-            // let database = cb_database_db.read();
-            // match database.get_all_subs().await {
-            //     Ok(subs) => {
-            //         if subs.len() == 0 {
-            //             // TODO: Initialize database, remove it in production
-            //             init().await;
-            //         }
-            //     }
-            //     Err(_) => {}
-            // }
-
-            // match database.get_all_subs().await {
-            //     Ok(subs) => {
-            //         let mut clients = multiclient.write();
-            //         for i in subs.clone().iter() {
-            //             let client_builder = ClientBuilder::new()
-            //                 .database(WebDatabase::open(i.name.clone()).await.unwrap());
-            //             let c = client_builder.build();
-            //             c.add_relays(i.relay_set.relays.clone()).await.unwrap();
-            //             c.connect().await;
-            //             clients.register(i.name.clone(), c.clone());
-
-            //             if i.live {
-            //                 let name = i.name.clone();
-            //                 spawn(async move {
-            //                     tracing::info!("subscribing: {name}");
-            //                     match c
-            //                         .handle_notifications(|notification| async {
-            //                             match notification {
-            //                                 RelayPoolNotification::Event {
-            //                                     relay_url,
-            //                                     subscription_id,
-            //                                     event,
-            //                                 } => {
-            //                                     if subscription_id.to_string() == name {
-            //                                         c.database().save_event(&event).await.unwrap();
-            //                                         tracing::info!("{relay_url}: {event:?}");
-            //                                     }
-            //                                 }
-            //                                 _ => {}
-            //                             }
-            //                             Ok(false) // Set to true to exit from the loop
-            //                         })
-            //                         .await
-            //                     {
-            //                         Ok(_) => {}
-            //                         Err(e) => {
-            //                             alert(e.to_string()).await;
-            //                         }
-            //                     }
-            //                 });
-            //             }
-            //         }
-
-            //         all_sub.set(subs);
-            //     }
-            //     Err(e) => {
-            //         alert(e.to_string()).await;
-            //     }
-            // };
 
             router.set(rsx! {Router::<Route> {}});
         });
