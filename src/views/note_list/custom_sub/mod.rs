@@ -56,18 +56,18 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_reload = move |_| {
-        props.on_reload.call(sub_current.read().clone());
+        // props.on_reload.call(sub_current.read().clone());
     };
 
     let handle_import = move || {
-        spawn(async move {
-            let value = import_from_clipboard().await;
-            sub_current.set(CustomSub::from(&value));
-        });
+        // spawn(async move {
+        //     let value = import_from_clipboard().await;
+        //     sub_current.set(CustomSub::from(&value));
+        // });
     };
 
     let handle_export = move || {
-        export_to_clipboard(sub_current.read().json());
+        // export_to_clipboard(sub_current.read().json());
     };
 
     rsx! {
@@ -152,10 +152,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     class: "custom-sub-name",
                     div {
                         class: "width-80-fontSize-16",
-                        "Name:"
+                        "1Name:"
                     }
                     Input {
-                        edit: false,
+                        edit: true,
                         on_change: move |v| {
                             let mut sub = sub_current.write();
                             sub.name = v;

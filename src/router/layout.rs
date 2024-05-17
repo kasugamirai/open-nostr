@@ -147,8 +147,8 @@ pub fn Layout() -> Element {
                             Link {
                                 active_class: "active",
                                 class: "nav-item",
-                                to: Route::NoteList { name: sub.name.clone() },
-                                "#{sub.name}"
+                                to: Route::NoteList { name: urlencoding::encode(&sub.name.clone()).to_string() },
+                                "{sub.name}"
                             }
                         }
                     }

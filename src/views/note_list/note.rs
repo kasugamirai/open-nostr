@@ -49,6 +49,7 @@ pub struct NoteProps {
     #[props(default = EventHandler::default())]
     pub on_expand: EventHandler<()>,
     pub is_expand: Option<bool>,
+    pub relay_name: Option<String>,
 }
 enum NoteAction {
     Replay,
@@ -103,9 +104,13 @@ pub fn Note(props: NoteProps) -> Element {
     let mut root_avatar = use_signal(|| None);
     let mut root_nickname = use_signal(|| None);
     let mut emoji = use_signal(|| HashMap::new());
+    // let optional_str_ref: Option<&str> = props.relay_name;
     let _future = use_resource(move || async move {
         let clients = multiclient();
-        let client = clients.get(&sub_name.read()).unwrap();
+        if props.relay_name != None {
+            return;
+        }
+        let client = clients.get(&props.relay_name).unwrap();
 
         match get_reactions(&client, &eid(), None).await {
             Ok(emojis) => {

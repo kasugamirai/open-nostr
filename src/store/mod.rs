@@ -318,7 +318,24 @@ impl CBWebDatabase {
         tx.await.into_result()?;
         Ok(())
     }
+    pub async fn update_custom_sub(&self, old_name: String, custom_sub: CustomSub) -> Result<(), CBwebDatabaseError> {
+        let old_custom_sub = self.get_custom_sub(old_name.clone()).await?;
+        if old_custom_sub.name != custom_sub.name {
+            self.remove_custom_sub(old_name.clone()).await?;
+            self.save_custom_sub(custom_sub).await?;
+        } else {
+            let tx = self
+                .db
+                .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)?;
 
+            let store = tx.object_store(CUSTOM_SUB_CF)?;
+            let value = to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
+            store.put_val(&value)?;
+
+            tx.await.into_result()?;
+        }
+        Ok(())
+    }
     pub async fn get_custom_sub(&self, name: String) -> Result<CustomSub, CBwebDatabaseError> {
         let tx = self
             .db

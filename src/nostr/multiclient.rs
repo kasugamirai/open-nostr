@@ -32,7 +32,7 @@ impl MultiClient {
     }
     pub async fn get_or_create(&mut self, name: &str) -> &nostr_sdk::Client {
         let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-        let db = WebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let db = WebDatabase::open("nostr-idb").await.unwrap();
         let client_builder = ClientBuilder::new().database(db);
         let client = client_builder.build();
         let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
