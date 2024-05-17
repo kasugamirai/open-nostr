@@ -212,6 +212,34 @@ impl CBWebDatabase {
         }
     }
 
+
+    pub async fn get_all_relay_sets(&self) -> Result<Vec<RelaySet>, CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(RELAY_SET_CF, IdbTransactionMode::Readonly)?;
+
+        let store = tx.object_store(RELAY_SET_CF)?;
+        let value = store.get_all()?.await?;
+
+        let mut relay_sets = Vec::new();
+
+        loop {
+            let v = value.shift();
+            if !v.is_object(){
+                break;
+            }
+            match from_value::<RelaySet>(v) {
+                Ok(relay_set) => relay_sets.push(relay_set),
+                Err(e) => {
+                    tracing::error!("Error deserializing RelaySets: {:?}", e);
+                    return Err(CBwebDatabaseError::DeserializationError(e));
+                }
+            }
+        }
+
+        Ok(relay_sets)
+    }
+
     pub async fn save_custom_sub(&self, custom_sub: CustomSub) -> Result<(), CBwebDatabaseError> {
         let tx = self
             .db

@@ -1,49 +1,21 @@
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder, RelayPoolNotification};
-
+use nostr_sdk::ClientBuilder;
 use crate::store::subscription::{CustomSub, RelaySet};
 use crate::store::CBWebDatabase;
+use crate::utils::contants::{CAPYBASTR_DBNAME, DEFAULT_CUSTOM_SUBS, DEFAULT_RELAY_SET_NAMES};
 use crate::{
     nostr::{multiclient::MultiClient, register::*},
-    utils::js::alert,
     Route,
 };
+use serde::Deserialize;
 
-pub const NOSTR_DB: &str = "nostr-idb";
-
-async fn init() {
-    let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
-
-    let sub = CustomSub::default_with_opt(
-        "Dog".to_string(),
-        "wss://relay.damus.io".to_string(),
-        vec!["dog".to_string()],
-        true,
-    );
-    database.save_custom_sub(sub).await.unwrap();
-
-    let sub = CustomSub::default_with_opt(
-        "Car".to_string(),
-        "wss://btc.klendazu.com".to_string(),
-        vec!["car".to_string()],
-        false,
-    );
-    database.save_custom_sub(sub).await.unwrap();
-
-    let rs = RelaySet {
-        name: "Damus".to_string(),
-        relays: vec!["wss://relay.damus.io".to_string()],
-    };
-    database.save_relay_set(rs).await.unwrap();
-
-    let rs = RelaySet {
-        name: "Klendazu".to_string(),
-        relays: vec!["wss://btc.klendazu.com".to_string()],
-    };
-    database.save_relay_set(rs).await.unwrap();
+#[derive(Deserialize)]
+struct DefaultCustomSub {
+    name: String,
+    relay_set_name: String,
+    tags: Vec<String>,
 }
-
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
@@ -61,70 +33,62 @@ pub fn App() -> Element {
     let mut router = use_signal(|| rsx! {div{}});
     // hook: on mounted
     let on_mounted = move |_| {
+        // init treading
         spawn(async move {
-            let database = CBWebDatabase::open("Capybastr-db").await.unwrap();
+            let _database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+            // global database
+            let cb_database_db = use_context_provider(|| Signal::new(_database));
+            // global multiclient
 
-            match database.get_all_subs().await {
-                Ok(subs) => {
-                    if subs.len() == 0 {
-                        // TODO: Initialize database, remove it in production
-                        init().await;
+            let db = cb_database_db.read();
+
+            let default_custom_subs: Vec<DefaultCustomSub> =
+                serde_json::from_str(DEFAULT_CUSTOM_SUBS).expect("Failed to parse custom subs");
+            let default_relay_sets: Vec<RelaySet> =
+                serde_json::from_str(&DEFAULT_RELAY_SET_NAMES).expect("Failed to parse relay sets");
+            for rs in default_relay_sets {
+                match db.get_relay_set(rs.name.clone()).await {
+                    NotFound => {
+                        db.save_relay_set(rs).await.unwrap();
                     }
                 }
-                Err(_) => {}
             }
 
-            //this logic is wrong
-            match database.get_all_subs().await {
+            // subs
+            match db.get_all_subs().await {
                 Ok(subs) => {
-                    let mut clients = multiclient.write();
-                    for i in subs.clone().iter() {
-                        let client_builder = ClientBuilder::new()
-                            .database(WebDatabase::open(NOSTR_DB).await.unwrap());
-                        let c = client_builder.build();
-                        c.add_relays(i.relay_set.relays.clone()).await.unwrap();
-                        c.connect().await;
-                        clients.register(i.name.clone(), c.clone());
-                        
-
-                        if i.live {
-                            let name = i.name.clone();
-                            spawn(async move {
-                                tracing::info!("subscribing: {name}");
-                                match c
-                                    .handle_notifications(|notification| async {
-                                        match notification {
-                                            RelayPoolNotification::Event {
-                                                relay_url,
-                                                subscription_id,
-                                                event,
-                                            } => {
-                                                if subscription_id.to_string() == name {
-                                                    c.database().save_event(&event).await.unwrap();
-                                                    tracing::info!("{relay_url}: {event:?}");
-                                                }
-                                            }
-                                            _ => {}
-                                        }
-                                        Ok(false) // Set to true to exit from the loop
-                                    })
-                                    .await
-                                {
-                                    Ok(_) => {}
-                                    Err(e) => {
-                                        alert(e.to_string()).await;
-                                    }
-                                }
-                            });
+                    if subs.len() == 0 {
+                        for custom_sub in default_custom_subs {
+                            let sub = CustomSub::default_with_opt(
+                                custom_sub.name,
+                                custom_sub.relay_set_name,
+                                custom_sub.tags.to_vec(),
+                                false,
+                            );
+                            db.save_custom_sub(sub).await.unwrap();
                         }
                     }
+                }
+                Err(_) => {
+                    tracing::error!("Failed to get all subs");
+                }
+            }
+            let relay_sets: Vec<RelaySet> = db.get_all_relay_sets().await.unwrap();
+            if !relay_sets.is_empty() {
+                let mut _multiclient = multiclient.write();
+                for rs in relay_sets {
+                    let client = _multiclient.get(&rs.name);
+                    if client.is_none() {
+                        let client_builder = ClientBuilder::new()
+                            .database(WebDatabase::open(rs.name.clone()).await.unwrap());
+                        let c: nostr_sdk::Client = client_builder.build();
+                        c.add_relays(rs.relays).await.unwrap();
+                        c.connect().await;
+                        _multiclient.register(rs.name, c);
+                    }
+                }
+            }
 
-                    all_sub.set(subs);
-                }
-                Err(e) => {
-                    alert(e.to_string()).await;
-                }
-            };
             router.set(rsx! {Router::<Route> {}});
         });
     };

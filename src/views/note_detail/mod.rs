@@ -76,23 +76,23 @@ fn Layer(replytree: Signal<ReplyTrees>, sub_name: String, event_id: String) -> E
     tracing::info!("event: {:?}", event);
     tracing::info!("replies: {:?}", replies);
     let mut show = use_signal(|| false);
+    let repliesLen = replies.len();
     rsx! {
-        div {
-            style: "position: relative;",
-            Note {
-                on_expand: move |_| show.set(!show()),
-                sub_name: sub_name.clone(),
-                data: NoteData::from(&event.inner.clone(), 0),
-                is_expand: true,
-            }
+        Note {
+            on_expand: move |_| show.set(!show()),
+            sub_name: sub_name.clone(),
+            data: NoteData::from(&event.inner.clone(), 0),
+            is_expand: repliesLen > 0,
         }
-        div {
-            style: format!("border: 1px solid #ccc; padding: 10px; display: {}; flex-direction: column; gap: 10px;", if show() { "flex" } else { "none" }),
-            for e in replies {
-                Layer {
-                    replytree: replytree,
-                    sub_name: sub_name.clone(),
-                    event_id: e.inner.id.to_string(),
+        if show() {
+            div {
+                style: "margin-left: 20px;",
+                for reply in replies {
+                    Note {
+                        sub_name: sub_name.clone(),
+                        data: NoteData::from(&reply.inner.clone(), 0),
+                        is_expand: false,
+                    }
                 }
             }
         }
