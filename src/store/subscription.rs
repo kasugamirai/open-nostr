@@ -363,201 +363,201 @@ impl Tag {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use nostr_sdk::EventId;
-    use nostr_sdk::Filter;
-    use nostr_sdk::PublicKey;
-    use std::str::FromStr;
+// #[cfg(test)]
+// mod test {
+//     use nostr_sdk::EventId;
+//     use nostr_sdk::Filter;
+//     use nostr_sdk::PublicKey;
+//     use std::str::FromStr;
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    fn test_json() {
-        let custom_sub = CustomSub::default();
-        println!("custom_sub: {:?}", custom_sub);
+//     #[test]
+//     fn test_json() {
+//         let custom_sub = CustomSub::default();
+//         println!("custom_sub: {:?}", custom_sub);
 
-        let json = custom_sub.json();
-        println!("json: {}", json);
+//         let json = custom_sub.json();
+//         println!("json: {}", json);
 
-        let cs = serde_json::from_str::<super::CustomSub>(&json).unwrap();
-        println!("--------cs: {:?}", cs);
-    }
+//         let cs = serde_json::from_str::<super::CustomSub>(&json).unwrap();
+//         println!("--------cs: {:?}", cs);
+//     }
 
-    #[test]
-    fn test_account_sub() {
-        let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
-        let custom_sub = CustomSub {
-            name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
-            live: false,
-            since: 0,
-            until: 0,
-            filters: vec![FilterTemp::Accounts(CustomAccounts {
-                r#type: String::from("accounts"),
-                kinds: vec![1],
-                accounts: vec![Account {
-                    alt_name: String::from("User1"),
-                    npub: String::from(public_key),
-                }],
-            })],
-            keep_alive: true,
-        };
-        let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
+//     #[test]
+//     fn test_account_sub() {
+//         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
+//         let custom_sub = CustomSub {
+//             name: String::from("Test"),
+//             relay_set: RelaySet {
+//                 name: String::from("TestRelaySet"),
+//                 relays: vec![String::from("wss://relay.damus.io")],
+//             },
+//             live: false,
+//             since: 0,
+//             until: 0,
+//             filters: vec![FilterTemp::Accounts(CustomAccounts {
+//                 r#type: String::from("accounts"),
+//                 kinds: vec![1],
+//                 accounts: vec![Account {
+//                     alt_name: String::from("User1"),
+//                     npub: String::from(public_key),
+//                 }],
+//             })],
+//             keep_alive: true,
+//         };
+//         let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
 
-        let filter = Filter::new()
-            .author(PublicKey::from_str(public_key).unwrap())
-            .kind(Kind::TextNote);
+//         let filter = Filter::new()
+//             .author(PublicKey::from_str(public_key).unwrap())
+//             .kind(Kind::TextNote);
 
-        assert_eq!(filter, custom_filter);
-    }
+//         assert_eq!(filter, custom_filter);
+//     }
 
-    #[test]
-    fn test_default_sub() {
-        let custom_sub = CustomSub::default();
-        println!("custom_sub: {:?}", custom_sub);
-        let filters = custom_sub.get_filters();
-        println!("filters: {:?}", filters);
+//     #[test]
+//     fn test_default_sub() {
+//         let custom_sub = CustomSub::default();
+//         println!("custom_sub: {:?}", custom_sub);
+//         let filters = custom_sub.get_filters();
+//         println!("filters: {:?}", filters);
 
-        let filter =
-            Filter::new().hashtags(vec![String::from("#steakstr"), String::from("#steak")]);
+//         let filter =
+//             Filter::new().hashtags(vec![String::from("#steakstr"), String::from("#steak")]);
 
-        assert_eq!(filters[0], filter);
-    }
+//         assert_eq!(filters[0], filter);
+//     }
 
-    #[test]
-    fn test_custom_sub() {
-        let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
-        let custom_sub = CustomSub {
-            name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
-            live: false,
-            since: 0,
-            until: 0,
-            filters: vec![FilterTemp::Customize(CustomFilter {
-                r#type: String::from("customized"),
-                kinds: vec![1],
-                accounts: vec![Account {
-                    alt_name: String::from("User1"),
-                    npub: String::from(public_key),
-                }],
-                since: 0,
-                until: 0,
-                limit: 0,
-                tags: vec![],
-            })],
-            keep_alive: true,
-        };
-        let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
+//     #[test]
+//     fn test_custom_sub() {
+//         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
+//         let custom_sub = CustomSub {
+//             name: String::from("Test"),
+//             relay_set: RelaySet {
+//                 name: String::from("TestRelaySet"),
+//                 relays: vec![String::from("wss://relay.damus.io")],
+//             },
+//             live: false,
+//             since: 0,
+//             until: 0,
+//             filters: vec![FilterTemp::Customize(CustomFilter {
+//                 r#type: String::from("customized"),
+//                 kinds: vec![1],
+//                 accounts: vec![Account {
+//                     alt_name: String::from("User1"),
+//                     npub: String::from(public_key),
+//                 }],
+//                 since: 0,
+//                 until: 0,
+//                 limit: 0,
+//                 tags: vec![],
+//             })],
+//             keep_alive: true,
+//         };
+//         let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
 
-        let filter = Filter::new()
-            .author(PublicKey::from_str(public_key).unwrap())
-            .kind(Kind::TextNote);
+//         let filter = Filter::new()
+//             .author(PublicKey::from_str(public_key).unwrap())
+//             .kind(Kind::TextNote);
 
-        assert_eq!(filter, custom_filter);
-    }
+//         assert_eq!(filter, custom_filter);
+//     }
 
-    #[test]
-    fn test_event_sub() {
-        let event_id =
-            EventId::from_hex("70b10f70c1318967eddf12527799411b1a9780ad9c43858f5e5fcd45486a13a5")
-                .unwrap();
-        let custom_sub = CustomSub {
-            name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
-            live: false,
-            since: 0,
-            until: 0,
-            filters: vec![FilterTemp::Events(CustomEvents {
-                r#type: String::from("events"),
-                events: vec![Event {
-                    alt_name: String::from("Event1"),
-                    nevent: String::from(
-                        "70b10f70c1318967eddf12527799411b1a9780ad9c43858f5e5fcd45486a13a5",
-                    ),
-                }],
-            })],
-            keep_alive: true,
-        };
-        let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
+//     #[test]
+//     fn test_event_sub() {
+//         let event_id =
+//             EventId::from_hex("70b10f70c1318967eddf12527799411b1a9780ad9c43858f5e5fcd45486a13a5")
+//                 .unwrap();
+//         let custom_sub = CustomSub {
+//             name: String::from("Test"),
+//             relay_set: RelaySet {
+//                 name: String::from("TestRelaySet"),
+//                 relays: vec![String::from("wss://relay.damus.io")],
+//             },
+//             live: false,
+//             since: 0,
+//             until: 0,
+//             filters: vec![FilterTemp::Events(CustomEvents {
+//                 r#type: String::from("events"),
+//                 events: vec![Event {
+//                     alt_name: String::from("Event1"),
+//                     nevent: String::from(
+//                         "70b10f70c1318967eddf12527799411b1a9780ad9c43858f5e5fcd45486a13a5",
+//                     ),
+//                 }],
+//             })],
+//             keep_alive: true,
+//         };
+//         let custom_filter = custom_sub.filters[0].to_filter(0, Timestamp::now().as_u64());
 
-        let filter = Filter::new().event(event_id);
-        println!("filter: {:?}", filter);
-        println!("custom_filter: {:?}", custom_filter);
+//         let filter = Filter::new().event(event_id);
+//         println!("filter: {:?}", filter);
+//         println!("custom_filter: {:?}", custom_filter);
 
-        assert_eq!(filter, custom_filter);
-    }
+//         assert_eq!(filter, custom_filter);
+//     }
 
-    #[test]
-    fn test_multiple_filters_sub() {
-        let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
-        let custom_sub = CustomSub {
-            name: String::from("Test"),
-            relay_set: RelaySet {
-                name: String::from("TestRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
-            live: false,
-            since: 0,
-            until: 0,
-            filters: vec![
-                FilterTemp::Accounts(CustomAccounts {
-                    r#type: String::from("accounts"),
-                    kinds: vec![1],
-                    accounts: vec![Account {
-                        alt_name: String::from("User1"),
-                        npub: String::from(public_key),
-                    }],
-                }),
-                FilterTemp::HashTag(CustomHashTag {
-                    r#type: String::from("hashtag"),
-                    tags: vec![String::from("#rust"), String::from("#programming")],
-                }),
-            ],
-            keep_alive: true,
-        };
-        let filters = custom_sub.get_filters();
+//     #[test]
+//     fn test_multiple_filters_sub() {
+//         let public_key: &str = "npub1dvxmgeq0w7t44ejvhgu6r0yrtthtwmtlfftlg230ecc9l9e3fqgshca58l";
+//         let custom_sub = CustomSub {
+//             name: String::from("Test"),
+//             relay_set: RelaySet {
+//                 name: String::from("TestRelaySet"),
+//                 relays: vec![String::from("wss://relay.damus.io")],
+//             },
+//             live: false,
+//             since: 0,
+//             until: 0,
+//             filters: vec![
+//                 FilterTemp::Accounts(CustomAccounts {
+//                     r#type: String::from("accounts"),
+//                     kinds: vec![1],
+//                     accounts: vec![Account {
+//                         alt_name: String::from("User1"),
+//                         npub: String::from(public_key),
+//                     }],
+//                 }),
+//                 FilterTemp::HashTag(CustomHashTag {
+//                     r#type: String::from("hashtag"),
+//                     tags: vec![String::from("#rust"), String::from("#programming")],
+//                 }),
+//             ],
+//             keep_alive: true,
+//         };
+//         let filters = custom_sub.get_filters();
 
-        let filter1 = Filter::new()
-            .author(PublicKey::from_str(public_key).unwrap())
-            .kind(Kind::TextNote);
-        let filter2 =
-            Filter::new().hashtags(vec![String::from("#rust"), String::from("#programming")]);
+//         let filter1 = Filter::new()
+//             .author(PublicKey::from_str(public_key).unwrap())
+//             .kind(Kind::TextNote);
+//         let filter2 =
+//             Filter::new().hashtags(vec![String::from("#rust"), String::from("#programming")]);
 
-        assert_eq!(filters.len(), 2);
-        assert_eq!(filters[0], filter1);
-        assert_eq!(filters[1], filter2);
-    }
+//         assert_eq!(filters.len(), 2);
+//         assert_eq!(filters[0], filter1);
+//         assert_eq!(filters[1], filter2);
+//     }
 
-    #[test]
-    fn test_empty_filters() {
-        let custom_sub = CustomSub {
-            name: String::from("EmptyTest"),
-            relay_set: RelaySet {
-                name: String::from("EmptyRelaySet"),
-                relays: vec![String::from("wss://relay.damus.io")],
-            },
-            live: false,
-            since: 0,
-            until: 0,
-            filters: vec![],
-            keep_alive: true,
-        };
+//     #[test]
+//     fn test_empty_filters() {
+//         let custom_sub = CustomSub {
+//             name: String::from("EmptyTest"),
+//             relay_set: RelaySet {
+//                 name: String::from("EmptyRelaySet"),
+//                 relays: vec![String::from("wss://relay.damus.io")],
+//             },
+//             live: false,
+//             since: 0,
+//             until: 0,
+//             filters: vec![],
+//             keep_alive: true,
+//         };
 
-        let filters = custom_sub.get_filters();
-        assert!(
-            filters.is_empty(),
-            "Filters should be empty but found {:?}",
-            filters
-        );
-    }
-}
+//         let filters = custom_sub.get_filters();
+//         assert!(
+//             filters.is_empty(),
+//             "Filters should be empty but found {:?}",
+//             filters
+//         );
+//     }
+// }

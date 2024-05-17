@@ -3,10 +3,10 @@ pub mod subscription;
 pub mod user;
 
 pub use error::CBwebDatabaseError;
-use indexed_db_futures::idb_object_store::IdbObjectStoreParameters;
+use indexed_db_futures::idb_object_store::{IdbObjectStore, IdbObjectStoreParameters};
 use indexed_db_futures::request::{IdbOpenDbRequestLike, OpenDbRequest};
 use indexed_db_futures::web_sys::IdbTransactionMode;
-use indexed_db_futures::{IdbDatabase, IdbKeyPath, IdbQuerySource, IdbVersionChangeEvent};
+use indexed_db_futures::{IdbDatabase,IdbKeyPath, IdbQuerySource, IdbVersionChangeEvent};
 use serde_wasm_bindgen::{from_value, to_value};
 use std::future::IntoFuture;
 use std::sync::Arc;
@@ -23,6 +23,7 @@ const MISC_CF: &str = "misc";
 
 //some entries keys & values
 pub const LAST_LOGINED_KEY: &str = "last_logined";
+pub const DEFAULT_RELAY_SET_KEY: &str = "default"; //this record can not be removed
 pub const NOT_LOGGED_IN_VALUE: &str = "NOT_LOGGED_IN";
 
 #[derive(Clone)]
@@ -83,6 +84,17 @@ impl CBWebDatabase {
                                 IdbIndexParameters::new().unique(true),
                             )
                             .unwrap();
+
+                        //insert default relay-set
+                        let value = to_value(&RelaySet {
+                            name: DEFAULT_RELAY_SET_KEY.to_string(),
+                            relays: vec!["wss://relay.damus.io".to_string(),
+                                         "wss://nos.lol".to_string(),
+                                         "wss://nostr.wine".to_string(),
+                                         "wss://nostr.purplerelay".to_string(),
+                                         ],
+                        }).unwrap();
+                        relay_set_store.add_val(&value).unwrap();
                     }
 
                     {
@@ -109,7 +121,7 @@ impl CBWebDatabase {
                             .db()
                             .create_object_store(MISC_CF)
                             .unwrap();
-                        
+
                         //insert last logined
                         let key = to_value(LAST_LOGINED_KEY).unwrap();
                         let val = to_value(NOT_LOGGED_IN_VALUE).unwrap();
@@ -169,6 +181,18 @@ impl CBWebDatabase {
         Ok(())
     }
 
+    pub async fn remove_relay_set(&self, name: String) -> Result<(), CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(RELAY_SET_CF, IdbTransactionMode::Readwrite)?;
+        
+        let store = tx.object_store(RELAY_SET_CF)?;
+        store.delete(&JsValue::from_str(&name))?;
+        
+        tx.await.into_result()?;
+        Ok(())
+    }
+
     pub async fn get_relay_set(&self, name: String) -> Result<RelaySet, CBwebDatabaseError> {
         let tx = self
             .db
@@ -201,6 +225,18 @@ impl CBWebDatabase {
         let value = to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
         store.add_val(&value)?;
 
+        tx.await.into_result()?;
+        Ok(())
+    }
+
+    pub async fn remove_custom_sub(&self, name: String) -> Result<(), CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)?;
+        
+        let store = tx.object_store(CUSTOM_SUB_CF)?;
+        store.delete(&JsValue::from_str(&name))?;
+        
         tx.await.into_result()?;
         Ok(())
     }
@@ -267,6 +303,18 @@ impl CBWebDatabase {
         Ok(())
     }
 
+    pub async fn remove_user(&self, name: String) -> Result<(), CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(USER_CF, IdbTransactionMode::Readwrite)?;
+        
+        let store = tx.object_store(USER_CF)?;
+        store.delete(&JsValue::from_str(&name))?;
+        
+        tx.await.into_result()?;
+        Ok(())
+    }
+
     pub async fn get_user(&self, name: String) -> Result<User, CBwebDatabaseError> {
         let tx = self
             .db
@@ -303,6 +351,18 @@ impl CBWebDatabase {
             },
             None => Ok(None),
         }
+    }
+
+    pub async fn remove_misc(&self, key: String) -> Result<(), CBwebDatabaseError> {
+        let tx = self
+            .db
+            .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
+        
+        let store = tx.object_store(MISC_CF)?;
+        store.delete(&JsValue::from_str(&key))?;
+        
+        tx.await.into_result()?;
+        Ok(())
     }
 
     pub async fn save_misc(&self, key: String, value: String) -> Result<(), CBwebDatabaseError> {
