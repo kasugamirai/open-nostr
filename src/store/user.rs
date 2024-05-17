@@ -32,8 +32,6 @@ pub struct OnlyPubkey {
     pub pk: PublicKey,
 }
 
-
-
 impl Serialize for AccountType {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

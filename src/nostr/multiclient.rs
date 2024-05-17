@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::store::CAPYBASTR_DBNAME;
 use crate::store::CBWebDatabase;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder};
+use nostr_sdk::ClientBuilder;
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {

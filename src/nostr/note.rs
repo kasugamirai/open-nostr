@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use indextree::{Arena, NodeId};
 use nostr_sdk::prelude::*;
-use wasm_bindgen_test::console_log;
 use std::fmt;
+use wasm_bindgen_test::console_log;
 
 use super::utils::{self, get_children};
 
@@ -44,14 +44,17 @@ impl TextNote {
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-    
+
         event.iter_tags().for_each(|t| {
             let normalized_tag = match t {
                 Tag::Event { .. } => Some(t.clone()),
-                Tag::Generic(TagKind::SingleLetter(SingleLetterTag {
-                    character: Alphabet::E,
-                    uppercase: false,
-                }), _strings) => {
+                Tag::Generic(
+                    TagKind::SingleLetter(SingleLetterTag {
+                        character: Alphabet::E,
+                        uppercase: false,
+                    }),
+                    _strings,
+                ) => {
                     let t_vec = t.as_vec();
                     let at_most_4 = &t_vec[..std::cmp::min(4, t_vec.len())];
                     let normalized_t = at_most_4.to_vec();
@@ -62,7 +65,7 @@ impl TextNote {
                 }
                 _ => None,
             };
-    
+
             if let Some(Tag::Event {
                 event_id, marker, ..
             }) = normalized_tag
@@ -75,7 +78,7 @@ impl TextNote {
                 }
             }
         });
-    
+
         // Fix condition that root is None but reply_to is Some
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
             text_note.root = Some(*reply);
@@ -84,7 +87,7 @@ impl TextNote {
         if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
             text_note.reply_to = Some(*root);
         }
-    
+
         // Handle case where no marker is present
         if text_note.reply_to.is_none() {
             match no_marker_array.len() {
@@ -101,10 +104,9 @@ impl TextNote {
                 }
             }
         }
-    
+
         Ok(())
     }
-
 }
 
 impl TryFrom<Event> for TextNote {
@@ -120,7 +122,6 @@ impl TryFrom<Event> for TextNote {
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct ReplyTrees {
@@ -373,10 +374,7 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_get_in_batch() {
         //assume we already have root
-        let root: Vec<Event> = [R]
-            .iter()
-            .map(|raw: &&str| event_from(raw))
-            .collect();
+        let root: Vec<Event> = [R].iter().map(|raw: &&str| event_from(raw)).collect();
         //assume the following data is fetched by get_replies
         let replies: Vec<Event> = [R_A, R_A_B, R_X, R_Z, R_Z_O]
             .iter()

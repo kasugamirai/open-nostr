@@ -104,7 +104,6 @@ pub fn Children(name: String) -> Element {
             getDataBtn.click();
         }}
         ";
-    
 
     rsx! {
         div {
@@ -129,7 +128,7 @@ pub fn Children(name: String) -> Element {
                 {auotGetData}
             }
         }
-        
+
     }
 }
 

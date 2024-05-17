@@ -10,7 +10,7 @@ use crate::store::DEFAULT_RELAY_SET_KEY;
 #[component]
 pub fn Home() -> Element {
     let cb_database_db = use_context::<Signal<CBWebDatabase>>();
-    
+
     use_effect(move || {
         spawn(async move {
           let binding = cb_database_db.read();
@@ -18,7 +18,7 @@ pub fn Home() -> Element {
           console_log!("Relay set: {:?}", relay_set);
         });
     });
-    
+
     rsx! {
       div{
         class:"flexBox",
@@ -30,6 +30,6 @@ pub fn Home() -> Element {
           CustomSub {}
         }
       }
-        
+
     }
 }

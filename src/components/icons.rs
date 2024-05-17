@@ -14,7 +14,7 @@ pub const DOWN: &str = include_str!("../../public/static/down.svg");
 pub const COPY_ALL: &str = include_str!("../../public/static/copy_all.svg");
 pub const ARROW_UP: &str = include_str!("../../public/static/arrow_up.svg");
 
-// slider icons 
+// slider icons
 pub const HOME: &str = include_str!("../../public/svgs/home.svg");
 pub const SEARCH: &str = include_str!("../../public/svgs/search.svg");
 pub const RELAY: &str = include_str!("../../public/svgs/relay.svg");
@@ -37,8 +37,6 @@ pub const IMPORTICON: &str = include_str!("../../public/svgs/importIcon.svg");
 pub const RESTART: &str = include_str!("../../public/svgs/restart.svg");
 pub const SAVEICON: &str = include_str!("../../public/svgs/saveIcon.svg");
 
-
 pub const LAUGH: &str = include_str!("../../public/svgs/laugh.svg");
 pub const CRY: &str = include_str!("../../public/svgs/cry.svg");
 pub const PULLDOWN: &str = include_str!("../../public/svgs/pullDown.svg");
-

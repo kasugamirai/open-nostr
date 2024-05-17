@@ -1,7 +1,7 @@
+use crate::store::DEFAULT_RELAY_SET_KEY;
 use nostr_sdk::{EventId, Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
-use crate::store::DEFAULT_RELAY_SET_KEY;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
@@ -15,7 +15,12 @@ pub struct CustomSub {
 }
 
 impl CustomSub {
-    pub fn default_with_opt(name: String, relay_set_name: String, tags: Vec<String>, live: bool) -> Self {
+    pub fn default_with_opt(
+        name: String,
+        relay_set_name: String,
+        tags: Vec<String>,
+        live: bool,
+    ) -> Self {
         let now = Timestamp::now().as_u64();
         Self {
             name: name.clone(),
