@@ -98,10 +98,7 @@ impl CBWebDatabase {
 
                     {
                         // Init misc store
-                        let _misc_store = evt
-                            .db()
-                            .create_object_store(MISC_CF)
-                            .unwrap();
+                        let _misc_store = evt.db().create_object_store(MISC_CF).unwrap();
                     }
                 }
                 Ok(())
@@ -465,7 +462,7 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(MISC_CF)?;
-        let key =  to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
+        let key = to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
         let value = to_value(&value).map_err(CBwebDatabaseError::DeserializationError)?;
         store.put_key_val(&key, &value)?;
         tx.await.into_result()?;
