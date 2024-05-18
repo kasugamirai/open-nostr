@@ -44,6 +44,7 @@ impl TextNote {
         matches!((&self.root, &self.reply_to), (None, None))
     }
     /*
+    //nostr-sdk has been updated, so we need to refactor this function
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
 
@@ -111,6 +112,7 @@ impl TextNote {
     }
     */
 
+    //sdk 0.31.0
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
         event.iter_tags().for_each(|tag| {
@@ -306,8 +308,11 @@ mod tests {
         let event = event_from(REPLY_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
         console_log!("text_note: {:?}", text_note);
-        console_log!("text_note.root: {:?}", text_note.root);
-        console_log!("text_note.reply_to: {:?}", text_note.reply_to);
+        console_log!("text_note.root: {:?}", text_note.root.unwrap().to_hex());
+        console_log!(
+            "text_note.reply_to: {:?}",
+            text_note.reply_to.unwrap().to_hex()
+        );
 
         assert!(
             text_note.root.unwrap().to_hex()
