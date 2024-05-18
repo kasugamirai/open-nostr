@@ -161,7 +161,7 @@ fn is_root_tag(t: &TagStandard) -> bool {
     matches!(
         t,
         TagStandard::Event {
-            marker: Some(Marker::Reply),
+            marker: Some(Marker::Root),
             ..
         }
     )
