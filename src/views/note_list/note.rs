@@ -107,10 +107,12 @@ pub fn Note(props: NoteProps) -> Element {
     // let optional_str_ref: Option<&str> = props.relay_name;
     let _future = use_resource(move || async move {
         let clients = multiclient();
-        if props.relay_name != None {
-            return;
-        }
-        let client = clients.get(&props.relay_name).unwrap();
+        // if props.relay_name != None {
+        //     return;
+        // }
+        
+        // TODO: relay_name
+        let client = clients.get("default").unwrap();
 
         match get_reactions(&client, &eid(), None).await {
             Ok(emojis) => {

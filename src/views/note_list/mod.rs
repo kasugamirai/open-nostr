@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use dioxus::prelude::*;
 use nostr_sdk::Event;
+use web_sys::console;
 
 use crate::{
     nostr::multiclient::MultiClient,
@@ -92,6 +93,7 @@ pub fn List(props: ListProps) -> Element {
 
     // get events from relay && set data to database and notes
     let handle_fetch = move || {
+        console::log_1(&"Fetching events...".into());
         spawn(async move {
             let sub = sub_current.read().clone();
             let clients = multiclient();
