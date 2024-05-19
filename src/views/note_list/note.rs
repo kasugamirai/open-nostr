@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 use nostr_sdk::{EventId, FromBech32, JsonUtil};
 use regex::Regex;
+use web_sys::console;
 
 use crate::{
     components::{icons::*, Avatar},
@@ -104,15 +105,24 @@ pub fn Note(props: NoteProps) -> Element {
     let mut root_avatar = use_signal(|| None);
     let mut root_nickname = use_signal(|| None);
     let mut emoji = use_signal(|| HashMap::new());
-    // let optional_str_ref: Option<&str> = props.relay_name;
+    let optional_str_ref: String = match props.relay_name.clone() {
+        Some(s) => s,
+        None => String::from("default"),
+    };
+    let relay_name = use_signal(|| optional_str_ref.clone());
     let _future = use_resource(move || async move {
         let clients = multiclient();
+        console::log_1(&"Fetching events...".into());
         // if props.relay_name != None {
         //     return;
         // }
         
         // TODO: relay_name
-        let client = clients.get("default").unwrap();
+        // if relay_name == None  {
+        //     return;
+        // }
+
+        let client = clients.get(&relay_name()).unwrap();
 
         match get_reactions(&client, &eid(), None).await {
             Ok(emojis) => {
