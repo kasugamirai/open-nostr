@@ -27,8 +27,9 @@ pub struct DateTimePickerProps {
 /// ```
 #[component]
 pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
-    let mut value = use_signal(|| props.value);
+    let mut value = use_signal(|| if props.value == 0 { props.value} else { props.value *1000 });
     let mut end = use_signal(|| props.end);
+    tracing::info!("value: {:?}", value());
     let start_value = DateTime::from_timestamp(value() as i64, 0)
         .unwrap()
         .format("%Y-%m-%dT%H:%M")

@@ -127,3 +127,21 @@ $z-index_max_size: 100;
     word-wrap: break-word;
 }
 
+
+.cursor-pointer {
+    cursor: pointer;
+}
+.cursor-disabled {
+    cursor: not-allowed;
+}
+
+.w-full {
+    width: 100%;
+}
+.h-full {
+    height: 100%;
+}
+
+.overflow-y-auto {
+    overflow-y: auto;
+}

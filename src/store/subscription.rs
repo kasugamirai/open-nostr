@@ -79,6 +79,15 @@ pub struct RelaySet {
     pub name: String,
     pub relays: Vec<String>,
 }
+impl RelaySet {
+    pub fn new(key: &usize) -> Self {
+        Self {
+            name: format!("RelaySet-{}", key),
+            relays: vec![],
+        }
+    }
+    
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum FilterTemp {

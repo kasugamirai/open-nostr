@@ -17,6 +17,30 @@ use note::{Note, NoteData};
 
 #[component]
 pub fn NoteList(name: String) -> Element {
+    tracing::info!("NoteList: {:?}", name);
+    // {
+    //     let url = match web_sys::window().unwrap().location().href() {
+    //         Ok(url) => url,
+    //         Err(_) => "".to_string(),
+    //     };  
+          
+    //     // 创建一个新的 URL 对象  
+    //     let url_object = match web_sys::Url::new(&url) {  
+    //         Ok(url) => url,  
+    //         Err(_) => panic!("Invalid URL"),  
+    //     };
+          
+    //     // 获取查询字符串（即 URL 中的 ?key=value 部分）  
+    //     let search_params = url_object.search_params();
+    //     // 使用 UrlSearchParams API 来获取特定的搜索参数  
+    //     let my_param = search_params.get("my_param").unwrap(); 
+      
+    //     // 将参数值转换为字符串（如果需要的话）  
+    //     let my_param_str: String = my_param.into();  
+    
+    //     tracing::info!("URL: {:?}", my_param_str); 
+    // }
+      
     // all custom subscriptions
     let mut all_sub = use_context::<Signal<Vec<CustomSub>>>();
 

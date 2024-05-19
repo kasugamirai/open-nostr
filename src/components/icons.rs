@@ -36,7 +36,6 @@ pub const EXPORTICON: &str = include_str!("../../public/svgs/exportIcon.svg");
 pub const IMPORTICON: &str = include_str!("../../public/svgs/importIcon.svg");
 pub const RESTART: &str = include_str!("../../public/svgs/restart.svg");
 pub const SAVEICON: &str = include_str!("../../public/svgs/saveIcon.svg");
+pub const LIKEICON: &str = include_str!("../../public/svgs/likeIcon.svg");
+pub const IMGICON: &str = include_str!("../../public/svgs/imgIcon.svg");
 
-pub const LAUGH: &str = include_str!("../../public/svgs/laugh.svg");
-pub const CRY: &str = include_str!("../../public/svgs/cry.svg");
-pub const PULLDOWN: &str = include_str!("../../public/svgs/pullDown.svg");

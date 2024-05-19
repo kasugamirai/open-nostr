@@ -171,13 +171,13 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                     div {
                         style: "display: inline-block;",
-                        // RelaysInput {
-                        //     on_change: move |v: RelaySet| {
-                        //         let mut sub = sub_current.write();
-                        //         sub.relay_set = v;
-                        //     },
-                        //     relay_set: sub_current.read().relay_set.clone(),
-                        // }
+                        RelaysInput {
+                            on_change: move |v: RelaySet| {
+                                let mut sub = sub_current.write();
+                                sub.relay_set = v.name;
+                            },
+                            relay_name: &sub_current.read().relay_set,
+                        }
                     }
                 }
                 div {

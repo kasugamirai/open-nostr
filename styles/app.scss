@@ -124,8 +124,8 @@ svg path {
 
 .btn-icon {
     cursor: pointer;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: var(--radius-circle);
     border: none;
     background: none;
@@ -218,4 +218,7 @@ svg path {
   flex: 1; 
   overflow-y: scroll; 
   width: 100%;
+}
+.display-flex-Box{
+  display: flex;
 }
