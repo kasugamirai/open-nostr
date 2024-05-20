@@ -42,23 +42,6 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
         None => RelaySet::new(&relay_sets.read().len()),
     };
     let wss_regx = Regex::new(WSS_REG).unwrap();
-    // use_effect(move || {
-    //     spawn(async move {
-    //         let cb_database_db_write = cb_database_db.read();
-    //         let _relay_sets: Vec<RelaySet> =
-    //             cb_database_db_write.get_all_relay_sets().await.unwrap();
-    //         relay_sets.set((|| _relay_sets.clone())());
-    //         old_relay_sets.set(_relay_sets); // Clone the value before using it
-    //         match relay_sets.iter().position(|x| x.name == relay_name()) {
-    //             Some(i) => {
-    //                 relay_curent_index.set(i);
-    //             }
-    //             None => {
-    //                 relay_curent_index.set(0);
-    //             }
-    //         }
-    //     });
-    // });
     use_effect(move || {
         spawn(async move {
             // Reading from the database
@@ -68,9 +51,12 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     // Update the relay sets state
                     relay_sets.set(relay_sets_vec.clone());
                     old_relay_sets.set(relay_sets_vec.clone());
-    
+
                     // Find the relay set by name
-                    let index = relay_sets_vec.iter().position(|x| x.name == relay_name()).unwrap_or(0);
+                    let index = relay_sets_vec
+                        .iter()
+                        .position(|x| x.name == relay_name())
+                        .unwrap_or(0);
                     relay_curent_index.set(index);
                 }
                 Err(e) => {
@@ -80,75 +66,39 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
             }
         });
     });
-    // // update value and cancel editing when parent data has changed
-    // use_effect(use_reactive(
-    //     (&relay_name, &edit),
-    //     // move |(mut valuezz, relay_set, mut edit)| {
-    //     //     value.set(relay_set.clone());
-    //     //     bak.set(relay_set.clone());
-    //     //     edit.set(false);
-    //     // },
-
-    //     move |mut new_relay_name, mut _edit| {
-    //         spawn(async move {
-    //             let cb_database_db_write = cb_database_db.write();
-    //             let _relay_set: RelaySet = cb_database_db_write.get_relay_set(new_relay_name()).await.unwrap();
-    //             // relay_set.set(_relay_set)
-    //             // value.set(&relay_set);
-    //             // bak.set(relay_set.clone());
-    //             // edit.set(false);
-    //         });
-
-    //         return ();
-    //     },
-    // ));
-
-    // let handle_export = move |text: String| {
-    //     export_to_clipboard(text);
-    // };
-
-    // let handle_import = move || {
-    //     // tracing::error!("import {:?}", _);
-    //     // spawn(async move {
-    //     //     let text = import_from_clipboard().await;
-    //     //     if !text.is_empty() {
-    //     //         let rs: Vec<String> = text.split(',').map(|s| s.trim().to_string()).collect();
-    //     //         let mut v = value.write();
-    //     //         v.relays = rs;
-    //     //     }
-    //     // });
-    // };
-    // let mut relay_sets: Signal<Vec<RelaySet>> = use_signal(Vec::new);
     let handle_save = move || {
-        let mut duplicate_names = HashSet::new();
-        let mut names_set = HashSet::new();
-        
-        for relay in relay_sets.read().iter() {
-            if !names_set.insert(relay.name.to_string()) {
-                duplicate_names.insert(relay.name.to_string());
+        let duplicate_names = {
+            let relay_sets = relay_sets.read();
+            let mut names_set = HashSet::new();
+            let mut duplicates = HashSet::new();
+            for relay in relay_sets.iter() {
+                if !names_set.insert(relay.name.to_string()) {
+                    duplicates.insert(relay.name.to_string());
+                }
             }
-        }
-    
+            duplicates
+        };
+
         if !duplicate_names.is_empty() {
             spawn(async move {
                 alert(format!("Duplicate names: {:?}", duplicate_names)).await;
             });
             return;
         }
-    
+
         spawn(async move {
             let cb_database_db_write = cb_database_db.write();
-            let current_relay_sets = relay_sets.read();
-            let previous_relay_sets = old_relay_sets.read();
-    
+            let current_relay_sets = relay_sets.read().clone();
+            let previous_relay_sets = old_relay_sets.read().clone();
+
             let previous_map: HashMap<_, _> = previous_relay_sets
                 .iter()
                 .map(|relay| (relay.name.clone(), relay.clone()))
                 .collect();
-    
+
             let mut new_added = Vec::new();
             let mut modified = Vec::new();
-    
+
             for relay in current_relay_sets.iter() {
                 match previous_map.get(&relay.name) {
                     Some(prev_relay) => {
@@ -161,10 +111,10 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     }
                     None => {
                         // Check if the relay was renamed
-                        let renamed = previous_relay_sets.iter().find(|prev_relay| {
-                            prev_relay.relays == relay.relays
-                        });
-    
+                        let renamed = previous_relay_sets
+                            .iter()
+                            .find(|prev_relay| prev_relay.relays == relay.relays);
+
                         if let Some(prev_relay) = renamed {
                             modified.push(ModifiedRelaySet {
                                 old_name: prev_relay.name.clone(),
@@ -176,7 +126,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     }
                 }
             }
-    
+
             let current_names: HashSet<_> = current_relay_sets
                 .iter()
                 .map(|relay| relay.name.clone())
@@ -186,41 +136,64 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                 .filter(|relay| !current_names.contains(&relay.name))
                 .cloned()
                 .collect();
-    
+
             tracing::info!("new_added: {:#?}", new_added);
             tracing::info!("modified: {:#?}", modified);
             tracing::info!("deleted: {:#?}", deleted);
-    
-            let mut tips = String::new();
-            for relay in new_added.iter().chain(modified.iter().map(|m| &m.new_relay)) {
-                if relay.relays.is_empty() {
-                    tips.push_str(&format!("Relay set {} must have at least one relay\n", relay.name));
+
+            if new_added.len() > 0 || modified.len() > 0 || deleted.len() > 0 {
+                let mut tips = String::new();
+                for relay in new_added
+                    .iter()
+                    .chain(modified.iter().map(|m| &m.new_relay))
+                {
+                    if relay.relays.is_empty() {
+                        tips.push_str(&format!(
+                            "Relay set {} must have at least one relay\n",
+                            relay.name
+                        ));
+                    }
                 }
-            }
-    
-            if !tips.is_empty() {
-                alert(tips).await;
-                return;
-            }
-    
-            for relay in new_added.iter() {
-                cb_database_db_write.save_relay_set(relay.clone()).await.unwrap();
-            }
-    
-            for relay in modified.iter() {
-                cb_database_db_write.relay_set_change(relay.old_name.clone(), relay.new_relay.clone()).await.unwrap();
+
+                if !tips.is_empty() {
+                    alert(tips).await;
+                    return;
+                }
+
+                for relay in new_added.iter() {
+                    cb_database_db_write
+                        .save_relay_set(relay.clone())
+                        .await
+                        .unwrap();
+                }
+
+                for relay in modified.iter() {
+                    cb_database_db_write
+                        .relay_set_change(relay.old_name.clone(), relay.new_relay.clone())
+                        .await
+                        .unwrap();
+                }
+
+                for relay in deleted.iter() {
+                    cb_database_db_write
+                        .remove_relay_set(relay.name.clone())
+                        .await
+                        .unwrap();
+                }
+                // Refresh relay sets signal after database operations
+                let updated_relay_sets: Vec<RelaySet> =
+                    cb_database_db_write.get_all_relay_sets().await.unwrap();
+                relay_sets.set(updated_relay_sets.clone());
+                old_relay_sets.set(updated_relay_sets);
             }
 
-            for relay in deleted.iter() {
-                cb_database_db_write.remove_relay_set(relay.name.clone()).await.unwrap();
-            }
-    
-            props.on_change.call(current_relay_sets[relay_curent_index()].clone());
+            props
+                .on_change
+                .call(relay_sets.read()[relay_curent_index()].clone());
             edit.set(false);
         });
     };
-    
-    
+
     rsx! {
         div {
             class: "relay-btn relative",
@@ -275,7 +248,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                             input {
                                 class:"relay-name-ipt",
                                 r#type: "text",
-                                disabled: if current_relay_set.name == DEFAULT_RELAY_SET_KEY { true } else { false },
+                                disabled: (current_relay_set.name == DEFAULT_RELAY_SET_KEY).to_string(),
                                 value: current_relay_set.name,
                                 oninput: move |event| {
                                     let mut _relay_sets = relay_sets.write();
@@ -286,11 +259,6 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                 class: "btn-circle btn-circle-true ml-24",
                                 onclick: move |_| {
                                     handle_save();
-                                    // 1. todo save relays
-                                    // 2.
-                                    // bak.set(value());
-                                    // props.on_change.call(relay_sets.read().get(relay_curent_index()).unwrap().clone());
-                                    // edit.set(false);
                                 },
                                 dangerous_inner_html: "{TRUE}"
                             }

@@ -8,7 +8,7 @@ mod limit;
 mod relays;
 mod tag;
 
-use dioxus::prelude::*;
+use dioxus::{html::tr, prelude::*};
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, Switch},
@@ -35,7 +35,6 @@ pub struct CustomSubscriptionProps {
 #[component]
 pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     let mut sub_current = use_signal(|| props.subscription.clone());
-
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
@@ -51,12 +50,12 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_save = move |_| {
-        props.on_save.call(sub_current.read().clone());
+        props.on_save.call(sub_current().clone());
         edit.set(false);
     };
 
     let handle_reload = move |_| {
-        // props.on_reload.call(sub_current.read().clone());
+        props.on_reload.call(sub_current.read().clone());
     };
 
     let handle_import = move || {
@@ -174,7 +173,8 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         RelaysInput {
                             on_change: move |v: RelaySet| {
                                 let mut sub = sub_current.write();
-                                sub.relay_set = v.name;
+                                sub.relay_set = v.name.clone();
+                                tracing::info!("Relay set: {:?}", v);
                             },
                             relay_name: &sub_current.read().relay_set,
                         }

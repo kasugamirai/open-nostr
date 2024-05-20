@@ -22,25 +22,25 @@ pub fn NoteList(name: String) -> Element {
     //     let url = match web_sys::window().unwrap().location().href() {
     //         Ok(url) => url,
     //         Err(_) => "".to_string(),
-    //     };  
-          
-    //     // 创建一个新的 URL 对象  
-    //     let url_object = match web_sys::Url::new(&url) {  
-    //         Ok(url) => url,  
-    //         Err(_) => panic!("Invalid URL"),  
     //     };
-          
-    //     // 获取查询字符串（即 URL 中的 ?key=value 部分）  
+
+    //     // 创建一个新的 URL 对象
+    //     let url_object = match web_sys::Url::new(&url) {
+    //         Ok(url) => url,
+    //         Err(_) => panic!("Invalid URL"),
+    //     };
+
+    //     // 获取查询字符串（即 URL 中的 ?key=value 部分）
     //     let search_params = url_object.search_params();
-    //     // 使用 UrlSearchParams API 来获取特定的搜索参数  
-    //     let my_param = search_params.get("my_param").unwrap(); 
-      
-    //     // 将参数值转换为字符串（如果需要的话）  
-    //     let my_param_str: String = my_param.into();  
-    
-    //     tracing::info!("URL: {:?}", my_param_str); 
+    //     // 使用 UrlSearchParams API 来获取特定的搜索参数
+    //     let my_param = search_params.get("my_param").unwrap();
+
+    //     // 将参数值转换为字符串（如果需要的话）
+    //     let my_param_str: String = my_param.into();
+
+    //     tracing::info!("URL: {:?}", my_param_str);
     // }
-      
+
     // all custom subscriptions
     let mut all_sub = use_context::<Signal<Vec<CustomSub>>>();
 
@@ -50,7 +50,6 @@ pub fn NoteList(name: String) -> Element {
 
     use_effect(use_reactive((&name,), move |(s,)| {
         for (i, sub) in all_sub.read().iter().enumerate() {
-            tracing::info!("Subscription: {:?}", sub);
             if sub.name == s {
                 sub_current.set(sub.clone());
                 sub_index.set(i);
@@ -59,23 +58,35 @@ pub fn NoteList(name: String) -> Element {
     }));
 
     let handle_save = move |value: CustomSub| {
-        let old_name = sub_current.read().name.clone();
-        sub_current.set(value);
-        let index: usize = *sub_index.read();
-        let mut subs = all_sub.write();
-        subs[index] = sub_current.read().clone();
-
         spawn(async move {
-            let cb_database_db_write = cb_database_db.write();
-            cb_database_db_write.update_custom_sub(old_name, sub_current()).await.unwrap();
+            let old_name = sub_current.read().name.clone();
+
+            sub_current.set(value.clone());
+            tracing::info!("Save: {:?}", value);
+            let index: usize = *sub_index.read();
+            let mut subs = all_sub.write();
+            subs[index] = sub_current.read().clone();
+
+            // Capture necessary variables for the async block
+            let sub_current_clone = sub_current.clone();
+            let old_name_clone = old_name.clone();
+
+            // Move the database write operation here
+            let cb_database_db_write = cb_database_db.write(); // Ensure .await is used if necessary
+            tracing::info!("Update: {:?}", sub_current_clone.read()); // Ensure you read from the Arc
+            cb_database_db_write
+                .update_custom_sub(old_name_clone, sub_current_clone.read().clone())
+                .await
+                .unwrap();
         });
     };
+
     let mut index = use_signal(|| 0);
 
-    let handle_reload = move |value: CustomSub| {
+    let handle_reload = move |_: CustomSub| {
         //todo
         index += 1;
-        sub_current.set(value);
+        // sub_current.set(value);
     };
 
     rsx! {
@@ -120,13 +131,13 @@ pub fn List(props: ListProps) -> Element {
         console::log_1(&"Fetching events...".into());
         spawn(async move {
             let sub = sub_current.read().clone();
-            let clients = multiclient();
-            let c: &nostr_sdk::Client = clients.get(&sub.relay_set).unwrap();
+            let mut clients = multiclient();
+            let client: &nostr_sdk::Client = clients.get_or_create(&sub.relay_set).await.unwrap();
             // TODO: use global client by this subscription
             let filters = sub.get_filters();
-
+            tracing::info!("Filters: {:#?}", filters);
             // TODO: use the 'subscribe' function if this sub requires subscription
-            let events = c
+            let events = client
                 .get_events_of(filters, Some(Duration::from_secs(180)))
                 .await
                 .unwrap();
@@ -139,7 +150,7 @@ pub fn List(props: ListProps) -> Element {
 
     let handle_load = move || {
         let count = notes.read().len();
-        // if count == 0 {
+        if count == 0 {
             // let database = WebDatabase::open("events_database").await.unwrap();
             // TODO: load from database
             // if load_from_database.len() == 0 {
@@ -148,7 +159,7 @@ pub fn List(props: ListProps) -> Element {
             //     set data to notes
             // }
             handle_fetch();
-        // }/
+        }
     };
 
     use_effect(use_reactive(

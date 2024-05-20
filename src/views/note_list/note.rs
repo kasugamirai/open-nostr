@@ -272,7 +272,7 @@ pub fn Note(props: NoteProps) -> Element {
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
-        // nav.push(route);
+        nav.push(route);
     };
 
     rsx! {

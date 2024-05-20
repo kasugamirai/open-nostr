@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use crate::store::CAPYBASTR_DBNAME;
 use crate::store::CBWebDatabase;
+use dioxus::hooks::use_context;
+use dioxus::signals::Readable;
+use dioxus::signals::Signal;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::ClientBuilder;
 
@@ -30,14 +33,28 @@ impl MultiClient {
         //todo lazy init
         self.clients.get(name)
     }
-    pub async fn get_or_create(&mut self, name: &str) -> &nostr_sdk::Client {
-        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-        let db = WebDatabase::open("nostr-idb").await.unwrap();
-        let client_builder = ClientBuilder::new().database(db);
-        let client = client_builder.build();
-        let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
-        client.add_relays(relay_set_info.relays).await.unwrap();
-        self.register(name.to_string(), client);
-        self.get(name).unwrap()
+    pub async fn get_or_create(&mut self, name: &str) -> Option<&nostr_sdk::Client> {
+        // First, check if the client already exists with an immutable borrow
+        if self.get(name).is_some() {
+            return self.get(name);
+        }
+    
+        // At this point, the client does not exist, and we can proceed with a mutable borrow
+        {
+            let cb_database_db = use_context::<Signal<CBWebDatabase>>();
+            let db = WebDatabase::open("nostr-idb").await.unwrap();
+            let client_builder = ClientBuilder::new().database(db);
+            let client = client_builder.build();
+            let cb_database_db_lock = cb_database_db.read();
+            let relay_set_info = cb_database_db_lock.get_relay_set(name.to_string()).await.unwrap();
+            client.add_relays(relay_set_info.relays).await.unwrap();
+            client.connect();
+            self.register(name.to_string(), client);
+        }
+    
+        // Return the newly created client
+        self.get(name)
     }
+    
+    
 }

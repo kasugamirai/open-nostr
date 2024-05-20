@@ -321,6 +321,7 @@ impl CBWebDatabase {
         Ok(())
     }
     pub async fn update_custom_sub(&self, old_name: String, custom_sub: CustomSub) -> Result<(), CBwebDatabaseError> {
+        tracing::info!("Update custom sub: {:?}", custom_sub);
         let old_custom_sub = self.get_custom_sub(old_name.clone()).await?;
         if old_custom_sub.name != custom_sub.name {
             self.remove_custom_sub(old_name.clone()).await?;
