@@ -193,10 +193,10 @@ impl CBWebDatabase {
         Ok(())
     }
 
-    pub async fn relay_set_change_name(
+    pub async fn relay_set_change(
         &self,
         old_name: String,
-        new_name: String,
+        new_relay_set: RelaySet,
     ) -> Result<(), CBwebDatabaseError> {
         if old_name == DEFAULT_RELAY_SET_KEY {
             return Err(CBwebDatabaseError::InvalidOperation(
@@ -219,7 +219,8 @@ impl CBWebDatabase {
                 .map_err(CBwebDatabaseError::DeserializationError)?;
 
             // Update the name
-            relay_set.name = new_name.clone();
+            relay_set.name = new_relay_set.name.clone();
+            relay_set.relays = new_relay_set.relays.clone();
             relay_set_value =
                 to_value(&relay_set).map_err(CBwebDatabaseError::DeserializationError)?;
 
@@ -238,7 +239,7 @@ impl CBWebDatabase {
                 from_value(sub_value.clone()).map_err(CBwebDatabaseError::DeserializationError)?;
 
             if custom_sub.relay_set == old_name {
-                custom_sub.relay_set = new_name.clone();
+                custom_sub.relay_set = new_relay_set.name.clone();
                 let updated_sub_value =
                     to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
 
@@ -251,6 +252,7 @@ impl CBWebDatabase {
         tx.await.into_result()?;
         Ok(())
     }
+
 
     pub async fn get_relay_set(&self, name: String) -> Result<RelaySet, CBwebDatabaseError> {
         let tx = self
