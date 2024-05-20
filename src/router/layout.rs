@@ -1,5 +1,6 @@
 use crate::store::subscription::CustomSub;
 use dioxus::prelude::*;
+use wasm_bindgen::closure;
 struct UserItem {
     avatar: &'static str,
     username: &'static str,
@@ -11,11 +12,13 @@ use crate::{
 
 use crate::components::icons::*;
 use crate::components::Button;
+use crate::components::Message;
 use crate::router::*;
+
 #[component]
 pub fn Layout() -> Element {
     let subs = use_context::<Signal<Vec<CustomSub>>>();
-let mut edit = use_signal(|| false);
+    let mut edit = use_signal(|| false);
     let mut theme = use_context::<Signal<String>>();
     let toggle_theme = move |_| {
         if theme() == "light" {
@@ -24,6 +27,7 @@ let mut edit = use_signal(|| false);
             theme.set("light".to_string());
         }
     };
+    let mut messageContent = use_signal(||String::from(""));
 
     let users = [UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
@@ -148,65 +152,75 @@ let mut edit = use_signal(|| false);
                         "New Note"
                     }
                     div{
-                      class:"show-{edit} Note-popUp",
-                      textarea{
-                        class:"textAreaStyle",
-                        value:"{contentText}",
-                        onchange: move |event| {
-                          contentText.set(event.value());
-                        }
-
-                      }
-                      span{
-                        class:"img-svg-style",
-                        dangerous_inner_html: "{IMGICON}",
+                      class:"show-{edit}",
+                      div{
+                        class:"relay-edit-mask",
+                        onclick: move |_| {
+                            edit.set(false);
+                        },
                       }
                       div{
-                        class:"preview",
+                        class:" Note-popUp",
+                        textarea{
+                          class:"textAreaStyle",
+                          value:"{contentText}",
+                          onchange: move |event| {
+                            contentText.set(event.value());
+                          }
+  
+                        }
+                        span{
+                          class:"img-svg-style",
+                          dangerous_inner_html: "{IMGICON}",
+                        }
                         div{
-                          "Preview:"
+                          class:"preview",
                           div{
-                            class:"previewContent",
-                            // NoteEdit {
-                            //   content: contentText.read().clone()
-                            // }
-                            div {
-                              class: "event-note",
-                              for i in splite_by_replys(&contentText()) {
-                                if i.starts_with("nostr:") {
-                                    div {
-                                        class: "quote",
-                                        div {
-                                            class: "title",
-                                            "Qt:"
-                                        }
-                                        div {
-                                            class: "note",
-                                            EventLess {content: i }
-                                        }
-                                    }
-                                } else {
-                                    div {
-                                        class: "content",
-                                        dangerous_inner_html: "{i}"
-                                    }
+                            "Preview:"
+                            div{
+                              class:"previewContent",
+                              // NoteEdit {
+                              //   content: contentText.read().clone()
+                              // }
+                              div {
+                                class: "event-note",
+                                for i in splite_by_replys(&contentText()) {
+                                  if i.starts_with("nostr:") {
+                                      div {
+                                          class: "quote",
+                                          div {
+                                              class: "title",
+                                              "Qt:"
+                                          }
+                                          div {
+                                              class: "note",
+                                              EventLess {content: i }
+                                          }
+                                      }
+                                  } else {
+                                      div {
+                                          class: "content",
+                                          dangerous_inner_html: "{i}"
+                                      }
+                                  }
                                 }
                               }
                             }
                           }
                         }
+                        button{
+                          class:"noteButton sendStyle",
+                          "Send"
+                        }
+                        button{
+                          class:"noteButton cancelStyle",
+                          onclick: move |_| {
+                            edit.set(false);
+                          },
+                          "Cancel"
+                        }
                       }
-                      button{
-                        class:"noteButton sendStyle",
-                        "Send"
-                      }
-                      button{
-                        class:"noteButton cancelStyle",
-                        onclick: move |_| {
-                          edit.set(false);
-                        },
-                        "Cancel"
-                      }
+                  
                     }
                 }
                 div {
@@ -227,8 +241,18 @@ let mut edit = use_signal(|| false);
                         }
                     }
                 }
+                div{
+                  h1{
+                    style: "color:var(--txt-1)",
+                    onclick: move |_| {
+                      messageContent.set("Received 10 New Events !!".to_string());
+                    },
+                    "获取新消息"
+                  }
+                }
                 Button { on_click: toggle_theme, "{theme}" }
             }
+            Message{content:"{messageContent.clone()}"}
         }
         div {
             class: "layout-main",

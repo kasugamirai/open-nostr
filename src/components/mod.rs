@@ -5,6 +5,7 @@ mod dropdown;
 mod dtpicker;
 mod outside;
 mod switch;
+mod message;
 
 pub mod icons;
 
@@ -15,3 +16,4 @@ pub use dropdown::Dropdown;
 pub use dtpicker::DateTimePicker;
 pub use outside::ClickOutside;
 pub use switch::Switch;
+pub use message::Message;

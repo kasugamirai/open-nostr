@@ -43,6 +43,9 @@ $z-index_max_size: 100;
         margin-top: $i + px;
         margin-bottom: $i + px;
     }
+    .ti-#{$i} {
+      text-indent: $i + $unitpx;
+    }
     .m-#{$i} {
         margin: $i + px;
     }

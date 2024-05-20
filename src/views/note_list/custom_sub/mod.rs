@@ -208,9 +208,13 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 }
                 div {
                     class: "custom-sub-time",
-                    style: format!("display: {}; align-items: center; gap: 10px;", if sub_current().live { "none" } else { "flex" }),
+                    style: format!("display: {}; align-items: center; gap: 5px;", if sub_current().live { "none" } else { "flex" }),
                     div {
-                        class: "width-80-fontSize-16",
+                        class: "width-80-fontSize-16 relative ti-12",
+                        span{
+                          class:"sub-window-icon",
+                          dangerous_inner_html: "{ARROWRIGHT}",
+                        }
                         "Window:"
                     }
                     div {

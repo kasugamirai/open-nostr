@@ -42,19 +42,40 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
         None => RelaySet::new(&relay_sets.read().len()),
     };
     let wss_regx = Regex::new(WSS_REG).unwrap();
+    // use_effect(move || {
+    //     spawn(async move {
+    //         let cb_database_db_write = cb_database_db.read();
+    //         let _relay_sets: Vec<RelaySet> =
+    //             cb_database_db_write.get_all_relay_sets().await.unwrap();
+    //         relay_sets.set((|| _relay_sets.clone())());
+    //         old_relay_sets.set(_relay_sets); // Clone the value before using it
+    //         match relay_sets.iter().position(|x| x.name == relay_name()) {
+    //             Some(i) => {
+    //                 relay_curent_index.set(i);
+    //             }
+    //             None => {
+    //                 relay_curent_index.set(0);
+    //             }
+    //         }
+    //     });
+    // });
     use_effect(move || {
         spawn(async move {
+            // Reading from the database
             let cb_database_db_write = cb_database_db.read();
-            let _relay_sets: Vec<RelaySet> =
-                cb_database_db_write.get_all_relay_sets().await.unwrap();
-            relay_sets.set((|| _relay_sets.clone())());
-            old_relay_sets.set(_relay_sets); // Clone the value before using it
-            match relay_sets.iter().position(|x| x.name == relay_name()) {
-                Some(i) => {
-                    relay_curent_index.set(i);
+            match cb_database_db_write.get_all_relay_sets().await {
+                Ok(relay_sets_vec) => {
+                    // Update the relay sets state
+                    relay_sets.set(relay_sets_vec.clone());
+                    old_relay_sets.set(relay_sets_vec.clone());
+    
+                    // Find the relay set by name
+                    let index = relay_sets_vec.iter().position(|x| x.name == relay_name()).unwrap_or(0);
+                    relay_curent_index.set(index);
                 }
-                None => {
-                    relay_curent_index.set(0);
+                Err(e) => {
+                    // Handle the error (e.g., log it)
+                    eprintln!("Failed to get relay sets: {:?}", e);
                 }
             }
         });
@@ -98,45 +119,40 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
     //     // });
     // };
     // let mut relay_sets: Signal<Vec<RelaySet>> = use_signal(Vec::new);
-
     let handle_save = move || {
-
         let mut duplicate_names = HashSet::new();
-        let mut names_set = HashSet::<String>::new();
+        let mut names_set = HashSet::new();
+        
         for relay in relay_sets.read().iter() {
             if !names_set.insert(relay.name.to_string()) {
-                // 如果插入失败，说明该 name 已经存在于集合中
                 duplicate_names.insert(relay.name.to_string());
             }
         }
-
-        // 如果有重复的 name，则打印出来并从 new_added 中移除
+    
         if !duplicate_names.is_empty() {
             spawn(async move {
                 alert(format!("Duplicate names: {:?}", duplicate_names)).await;
             });
             return;
         }
+    
         spawn(async move {
             let cb_database_db_write = cb_database_db.write();
-            let current_relay_sets = &*
-            relay_sets.read();
-            let previous_relay_sets = &old_relay_sets.read();
-
-            // 将 previous_relay_sets 转换为 HashMap 以便快速查找
+            let current_relay_sets = relay_sets.read();
+            let previous_relay_sets = old_relay_sets.read();
+    
             let previous_map: HashMap<_, _> = previous_relay_sets
                 .iter()
-                .map(|relay| (&relay.name, relay))
+                .map(|relay| (relay.name.clone(), relay.clone()))
                 .collect();
-            // 初始化新增加的值和被修改的值的集合
-            let mut new_added: Vec<RelaySet> = Vec::new();
-            let mut modified: Vec<ModifiedRelaySet> = Vec::new();
-
-            // 找出新增加和被修改的值
+    
+            let mut new_added = Vec::new();
+            let mut modified = Vec::new();
+    
             for relay in current_relay_sets.iter() {
                 match previous_map.get(&relay.name) {
                     Some(prev_relay) => {
-                        if **prev_relay != *relay {
+                        if *prev_relay != *relay {
                             modified.push(ModifiedRelaySet {
                                 old_name: prev_relay.name.clone(),
                                 new_relay: relay.clone(),
@@ -144,55 +160,67 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                         }
                     }
                     None => {
-                        new_added.push(relay.clone());
+                        // Check if the relay was renamed
+                        let renamed = previous_relay_sets.iter().find(|prev_relay| {
+                            prev_relay.relays == relay.relays
+                        });
+    
+                        if let Some(prev_relay) = renamed {
+                            modified.push(ModifiedRelaySet {
+                                old_name: prev_relay.name.clone(),
+                                new_relay: relay.clone(),
+                            });
+                        } else {
+                            new_added.push(relay.clone());
+                        }
                     }
                 }
             }
-
-            // 找出删除的值
-            let current_ids: HashMap<_, _> = current_relay_sets
+    
+            let current_names: HashSet<_> = current_relay_sets
                 .iter()
-                .map(|relay| (&relay.name, relay))
+                .map(|relay| relay.name.clone())
                 .collect();
-            let deleted: Vec<RelaySet> = previous_relay_sets
+            let deleted: Vec<_> = previous_relay_sets
                 .iter()
-                .filter(|relay| !current_ids.contains_key(&relay.name))
+                .filter(|relay| !current_names.contains(&relay.name))
                 .cloned()
                 .collect();
-
-            // duplicate_names
+    
             tracing::info!("new_added: {:#?}", new_added);
             tracing::info!("modified: {:#?}", modified);
             tracing::info!("deleted: {:#?}", deleted);
-
-            // new add
-            // cb_database_db_write.save_relay_set()
+    
             let mut tips = String::new();
-            for relay in new_added.iter() {
+            for relay in new_added.iter().chain(modified.iter().map(|m| &m.new_relay)) {
                 if relay.relays.is_empty() {
                     tips.push_str(&format!("Relay set {} must have at least one relay\n", relay.name));
                 }
             }
-            for relay in modified.iter() {
-                if relay.new_relay.relays.is_empty() {
-                    tips.push_str(&format!("Relay set {} must have at least one relay\n", relay.new_relay.name));
-                }
-            }
+    
             if !tips.is_empty() {
                 alert(tips).await;
                 return;
             }
-            // add 
+    
             for relay in new_added.iter() {
                 cb_database_db_write.save_relay_set(relay.clone()).await.unwrap();
             }
-            // modify
+    
             for relay in modified.iter() {
                 cb_database_db_write.relay_set_change(relay.old_name.clone(), relay.new_relay.clone()).await.unwrap();
             }
 
+            for relay in deleted.iter() {
+                cb_database_db_write.remove_relay_set(relay.name.clone()).await.unwrap();
+            }
+    
+            props.on_change.call(current_relay_sets[relay_curent_index()].clone());
+            edit.set(false);
         });
     };
+    
+    
     rsx! {
         div {
             class: "relay-btn relative",

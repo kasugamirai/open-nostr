@@ -1,5 +1,8 @@
 use chrono::{DateTime, NaiveDateTime};
 use dioxus::prelude::*;
+use crate::{
+  components::{icons::*},
+};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct DateTimePickerProps {
@@ -53,11 +56,21 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
                         let parsed_datetime = NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").unwrap();
                         let timestamp = parsed_datetime.and_utc().timestamp() as u64;
                         value.set(timestamp);
+                        tracing::info!("value: {:?}", parsed_datetime);
                         props.on_change.call((value(), end()));
                     }
                 }
             }
+            span{
+              class:"data-start-icon",
+              dangerous_inner_html: "{LEFTICON}",
+            }
+            span{
+              class:"data-end-icon",
+              dangerous_inner_html: "{RIGHTICON}",
+            }
             input {
+                class:"end_data",
                 r#type: "datetime-local",
                 value: "{end_value}",
                 oninput: move |event| {

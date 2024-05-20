@@ -349,21 +349,45 @@
 }
 .com-dtpicker {
   display: flex;
-  gap: 10px;
+  gap:5px;
   font-size: var(--textSize-14);
+  position: relative;
   input {
     padding: 0;
     letter-spacing: -1px;
     box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
     background-color: #ffffff;
     padding-left: 12px;
+    padding-right: 10px;
     height: 34px;
+  }
+  .end_data{
+    padding-right: 0;
+    padding-left: 20px;
+  }
+  .data-start-icon{
+    position: absolute;
+    top: 5px;
+    left: 120px;
+  }
+  .data-end-icon{
+    position: absolute;
+    top: 5px;
+    left: 150px;
   }
   /* 隐藏所有<input>元素的向下箭头 */
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    display: none;
-    -webkit-appearance: none;
+    width: 100%;
+    background: none;
+    padding-right: 100px;
+    position: absolute;
+    z-index: 99;
   }
+}
+
+.sub-window-icon{
+  position: absolute;
+  left: -7px;
 }
 
 .event-note {
@@ -478,6 +502,20 @@
   .post-image {
     border-radius: var(--radius-8);
   }
+}
+.message-content{
+  width: 260px;
+  height: 40px;
+  background-color: #93f4a6;
+  border-radius: 26px;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  line-height: 40px;
+  text-align: center;
+  margin: auto;
+  z-index: 99;
 }
 .event-less {
   width: 100%;
