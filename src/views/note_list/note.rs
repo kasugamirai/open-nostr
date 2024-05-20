@@ -318,7 +318,7 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
                 onclick: move |_| {
-                    handle_nav(Route::NoteDetail { sub: props.sub_name.clone(), id: props.data.id.clone() });
+                    handle_nav(Route::NoteDetail { sub: urlencoding::encode(&props.sub_name.clone()).to_string(), id: props.data.id.clone() });
                 },
                 {element}
             }
