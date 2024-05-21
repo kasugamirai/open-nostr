@@ -53,7 +53,7 @@ impl TextNote {
             let tag_standard = tag.as_standardized();
             let new_tag = match tag_standard {
                 Some(tag) => tag.clone(),
-                None => normalize_tag(tag).unwrap(),
+                None => normalize_e_tag(tag).unwrap(),
             };
             if let TagStandard::Event {
                 event_id, marker, ..
@@ -97,7 +97,7 @@ impl TextNote {
     }
 }
 
-fn normalize_tag(t: &Tag) -> Option<TagStandard> {
+fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
     match t.kind() {
         TagKind::SingleLetter(SingleLetterTag {
             character: Alphabet::E,
