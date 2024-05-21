@@ -122,14 +122,17 @@ impl TextNote {
             let tag_standard = tag.as_standardized();
             if let Some(tag_standard_value) = tag_standard {
                 let t = normalize_tag(tag_standard_value).unwrap_or(tag_standard_value.clone());
-                let event_id = get_event_id(&t);
-                if t.is_reply() {
-                    text_note.reply_to = event_id;
-                }
-                if is_root_tag(&t) {
-                    text_note.root = event_id;
-                } else if let Some(event_id) = event_id {
-                    no_marker_array.push(event_id);
+                //let event_id = get_event_id(&t);
+                if let TagStandard::Event {
+                    event_id, marker, ..
+                } = t
+                {
+                    match marker {
+                        Some(Marker::Root) => text_note.root = Some(event_id),
+                        Some(Marker::Reply) => text_note.reply_to = Some(event_id),
+                        None => no_marker_array.push(event_id),
+                        _ => {}
+                    }
                 }
             }
         });
@@ -205,20 +208,12 @@ fn normalize_tag(t: &TagStandard) -> Option<TagStandard> {
     if matches!(t, TagStandard::Event { .. }) {
         return Some(t.clone());
     }
-    match t.kind() {
-        TagKind::SingleLetter(SingleLetterTag {
-            character: Alphabet::E,
-            uppercase: false,
-        }) => {
-            let t_vec = <nostr::TagStandard as Clone>::clone(t).to_vec();
-            let at_most_4 = &t_vec[..min(4, t_vec.len())];
-            let normalized_t = at_most_4.to_vec();
-            match TagStandard::parse(&normalized_t) {
-                Ok(tag) => Some(tag),
-                Err(_) => None,
-            }
-        }
-        _ => None,
+    let t_vec = <nostr::TagStandard as Clone>::clone(t).to_vec();
+    let at_most_4 = &t_vec[..min(4, t_vec.len())];
+    let normalized_t = at_most_4.to_vec();
+    match TagStandard::parse(&normalized_t) {
+        Ok(tag) => Some(tag),
+        Err(_) => None,
     }
 }
 
