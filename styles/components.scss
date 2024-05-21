@@ -377,9 +377,9 @@
   }
   /* 隐藏所有<input>元素的向下箭头 */
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    width: 100%;
+    width: 130px;
     background: none;
-    padding-right: 100px;
+    // padding-right: 20px;
     position: absolute;
     z-index: 99;
   }

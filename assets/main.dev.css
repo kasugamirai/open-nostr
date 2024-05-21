@@ -12019,9 +12019,8 @@ video {
   left: 150px;
 }
 .com-dtpicker input[type=datetime-local]::-webkit-calendar-picker-indicator {
-  width: 100%;
+  width: 130px;
   background: none;
-  padding-right: 100px;
   position: absolute;
   z-index: 99;
 }
@@ -12540,7 +12539,7 @@ video {
 }
 
 .subStyle {
-  width: 370px;
+  width: 400px;
   height: 100%;
   position: relative;
   display: flex;
