@@ -174,7 +174,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             on_change: move |v: RelaySet| {
                                 let mut sub = sub_current.write();
                                 sub.relay_set = v.name.clone();
-                                tracing::info!("Relay set: {:?}", v);
                             },
                             relay_name: &sub_current.read().relay_set,
                         }

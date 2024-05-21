@@ -42,7 +42,8 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
         None => RelaySet::new(&relay_sets.read().len()),
     };
     let wss_regx = Regex::new(WSS_REG).unwrap();
-    use_effect(move || {
+    // tracing::info!("index: {:?}", );
+    use_effect(use_reactive((&props.relay_name), move |_relay_name| {
         spawn(async move {
             // Reading from the database
             let cb_database_db_write = cb_database_db.read();
@@ -55,8 +56,11 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     // Find the relay set by name
                     let index = relay_sets_vec
                         .iter()
-                        .position(|x| x.name == relay_name())
+                        .position(|x| x.name == _relay_name)
                         .unwrap_or(0);
+
+                    tracing::info!("index: {:?}", index);
+                    tracing::info!("relay_name(): {:?}", _relay_name);
                     relay_curent_index.set(index);
                 }
                 Err(e) => {
@@ -65,7 +69,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                 }
             }
         });
-    });
+    }));
     let handle_save = move || {
         let duplicate_names = {
             let relay_sets = relay_sets.read();
