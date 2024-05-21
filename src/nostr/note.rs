@@ -6,6 +6,7 @@ use nostr::nips::nip10::Marker;
 use nostr_sdk::TagStandard;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
 use std::fmt;
+use wasm_bindgen_test::*;
 
 use super::utils::{self, get_children};
 
@@ -118,6 +119,9 @@ impl TextNote {
         event.iter_tags().for_each(|tag| {
             let tag_standard = tag.as_standardized();
             if let Some(tag_standard_value) = tag_standard {
+                if !tag_is_event(tag_standard_value) {
+                    return;
+                }
                 let event_id = get_event_id(tag_standard_value);
                 if tag_standard_value.is_reply() {
                     text_note.reply_to = event_id;
@@ -166,6 +170,12 @@ fn is_root_tag(t: &TagStandard) -> bool {
         }
     )
 }
+
+fn tag_is_event(tag: &TagStandard) -> bool {
+    matches!(tag, TagStandard::Event { .. })
+}
+
+//fn normalize_tag(tag: &TagStandard) -> Option<TagStandard> {}
 
 fn get_event_id(tag: &TagStandard) -> Option<EventId> {
     match tag {
@@ -245,7 +255,9 @@ impl ReplyTrees {
 
     pub fn get_replies(&self, id: &EventId, order: Option<DisplayOrder>) -> Vec<&TextNote> {
         if let Some(node_id) = self.id2id.get(id) {
+            console_log!("node_id: {:?}", node_id);
             let mut results = get_children(&self.arena, *node_id);
+            console_log!("results: {:?}", results);
             match order {
                 Some(DisplayOrder::NewestFirst) => {
                     results.sort_by(|b, a| a.inner.created_at.cmp(&b.inner.created_at));
