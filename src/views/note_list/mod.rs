@@ -131,17 +131,17 @@ pub fn List(props: ListProps) -> Element {
         console::log_1(&"Fetching events...".into());
         spawn(async move {
             let sub = sub_current.read().clone();
+            let filters = sub.get_filters();
+            tracing::info!("Subscription: {:#?}", filters);
             let mut clients = multiclient();
             let client: &nostr_sdk::Client = clients.get_or_create(&sub.relay_set).await.unwrap();
             // TODO: use global client by this subscription
-            let filters = sub.get_filters();
             tracing::info!("Filters: {:#?}", filters);
             // TODO: use the 'subscribe' function if this sub requires subscription
             let events = client
                 .get_events_of(filters, Some(Duration::from_secs(180)))
                 .await
                 .unwrap();
-
             // TODO: add or append to database
 
             notes.extend(events);
@@ -165,7 +165,6 @@ pub fn List(props: ListProps) -> Element {
     use_effect(use_reactive(
         (&props.index, &props.subscription),
         move |(i, sub)| {
-            tracing::info!("Subscription: {:?}", i);
             if i != index() {
                 tracing::info!("Subscription changed: {:?}", index());
                 sub_current.set(sub);

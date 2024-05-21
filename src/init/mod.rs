@@ -52,9 +52,8 @@ pub fn App() -> Element {
                 db.save_relay_set(RelaySet {
                     name: DEFAULT_RELAY_SET_KEY.to_string(),
                     relays: vec![
-                        "wss://relay.damus.io".to_string(),
                         "wss://nos.lol".to_string(),
-                        "wss://nostr.wine".to_string(),
+                        "wss://relay.n057r.club".to_string(),
                     ],
                 })
                 .await

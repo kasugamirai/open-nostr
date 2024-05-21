@@ -48,7 +48,7 @@ impl MultiClient {
             let cb_database_db_lock = cb_database_db.read();
             let relay_set_info = cb_database_db_lock.get_relay_set(name.to_string()).await.unwrap();
             client.add_relays(relay_set_info.relays).await.unwrap();
-            client.connect();
+            client.connect().await;
             self.register(name.to_string(), client);
         }
     
