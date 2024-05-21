@@ -111,14 +111,14 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
                         },
                         "Follow Notes"
                     }
-                    button {
-                        class: "btn-add-item",
-                        onclick: move |_| {
-                            props.on_click.call(FilterTemp::Customize(CustomFilter::empty()));
-                            edit.set(false);
-                        },
-                        "Customize"
-                    }
+                    // button {
+                    //     class: "btn-add-item",
+                    //     onclick: move |_| {
+                    //         props.on_click.call(FilterTemp::Customize(CustomFilter::empty()));
+                    //         edit.set(false);
+                    //     },
+                    //     "Customize"
+                    // }
                 }
             }
         }

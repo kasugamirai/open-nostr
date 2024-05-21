@@ -1,4 +1,5 @@
 use indextree::{Arena, NodeId};
+use nostr_sdk::{EventId, FromBech32};
 
 /// Utility function to get all children of a specified node in an Arena.
 ///
@@ -40,4 +41,21 @@ pub fn get_ancestors<T>(arena: &Arena<T>, node_id: NodeId) -> Vec<&T> {
     }
 
     ancestors
+}
+
+pub fn is_note_address(address: &str) -> bool {
+    let is_start_nostr = address.starts_with("nostr:");
+    if is_start_nostr || address.starts_with("note") {
+        let id = if is_start_nostr {
+            address.strip_prefix("nostr:").unwrap()
+        } else {
+            address
+        };
+        let is_note = match EventId::from_bech32(id) {
+            Ok(_) => true,
+            Err(_) => false,
+        };
+        return is_note;
+    }
+    return false;
 }

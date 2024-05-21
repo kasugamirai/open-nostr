@@ -1,5 +1,6 @@
 mod custom_sub;
 pub mod note;
+ mod quote;
 
 use std::time::Duration;
 
@@ -128,7 +129,6 @@ pub fn List(props: ListProps) -> Element {
 
     // get events from relay && set data to database and notes
     let handle_fetch = move || {
-        console::log_1(&"Fetching events...".into());
         spawn(async move {
             let sub = sub_current.read().clone();
             let filters = sub.get_filters();

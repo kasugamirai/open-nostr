@@ -22,7 +22,7 @@ use crate::{
 pub fn Settings() -> Element {
     let mut data = use_signal(|| vec![]);
     let get_events = move || {
-        let n = r#"
+        let n: &str = r#"
         qwetgsss http://1/2.jpg #Dog
         123 nostr:adsg4ea34hasedrf #Car
         geoamkhhh
@@ -168,7 +168,7 @@ fn EventLess(event: nostr_sdk::Event, content: String) -> Element {
     rsx! {
         div {
             class: "event-less",
-            Avatar { pubkey: event.author(),  timestamp: event.created_at().as_u64() }
+            // Avatar { pubkey: event.author(),  timestamp: event.created_at().as_u64() }
             div {
                 class: "text",
                 dangerous_inner_html: "{event.content.to_string()}",

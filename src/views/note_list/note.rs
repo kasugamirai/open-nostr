@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use nostr_sdk::{EventId, FromBech32, JsonUtil};
+use nostr_sdk::{Event, EventId, FromBech32, JsonUtil, Kind};
 use regex::Regex;
 use web_sys::console;
 
@@ -10,10 +10,13 @@ use crate::{
     nostr::{
         fetch::{get_event_by_id, get_metadata, get_reactions, get_replies},
         multiclient::MultiClient,
+        utils::is_note_address,
     },
     utils::format::{format_content, format_create_at},
     Route,
 };
+
+use super::quote::Quote;
 
 #[derive(PartialEq, Clone)]
 pub struct NoteData {
@@ -98,31 +101,36 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
     });
-    let notetext = use_signal(|| props.data.content.clone());
+    tracing::info!("note data: {:#?}", props.data.event.tags());
+    let mut notetext = use_signal(|| props.data.content.clone());
+    let mut repost_text = use_signal(|| if props.data.event.kind() == Kind::Repost {
+        match Event::from_json(&props.data.content) {
+            Ok(event) => event.content.to_string(),
+            Err(e) => {
+                tracing::error!("parse event error: {:?}", e);
+                // props.data.content.clone()
+                String::new()
+            }
+        }
+    } else {
+        String::new()
+    });
     let sub_name = use_signal(|| props.sub_name.clone());
     let pk = use_signal(|| props.data.event.author().clone());
     let eid = use_signal(|| props.data.event.id().clone());
-    let mut root_avatar = use_signal(|| None);
-    let mut root_nickname = use_signal(|| None);
     let mut emoji = use_signal(|| HashMap::new());
     let optional_str_ref: String = match props.relay_name.clone() {
         Some(s) => s,
         None => String::from("default"),
     };
     let relay_name = use_signal(|| optional_str_ref.clone());
+    let is_repost = props.data.event.kind() == Kind::Repost;
     let _future = use_resource(move || async move {
         let clients = multiclient();
         console::log_1(&"Fetching events...".into());
-        // if props.relay_name != None {
-        //     return;
-        // }
-        
-        // TODO: relay_name
-        // if relay_name == None  {
-        //     return;
-        // }
 
         let client = clients.get(&relay_name()).unwrap();
+        // let repost_evnet =
 
         match get_reactions(&client, &eid(), None).await {
             Ok(emojis) => {
@@ -143,24 +151,14 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
 
-        match get_metadata(&client, &pk(), None).await {
-            Ok(metadata) => {
-                root_avatar.set(metadata.picture);
-                root_nickname.set(metadata.name);
-            }
-            Err(_) => {
-                tracing::info!("metadata not found");
-            }
-        }
+        let re: Regex = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
 
-        let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
-
-        let data = &notetext();
+        let data = if is_repost { repost_text().clone() } else { notetext().clone() };
 
         let mut parts = Vec::new();
         let mut last_end = 0;
 
-        for mat in re.find_iter(data) {
+        for mat in re.find_iter(&data) {
             if mat.start() > last_end {
                 parts.push(&data[last_end..mat.start()]);
             }
@@ -176,82 +174,23 @@ pub fn Note(props: NoteProps) -> Element {
         for i in parts {
             if i.starts_with("nostr:note") {
                 let id = i.strip_prefix("nostr:").unwrap();
-
-                match get_event_by_id(&client, &EventId::from_bech32(id).unwrap(), None).await {
-                    Ok(Some(event)) => {
-                        let mut action_state = note_action_state.write();
-                        action_state[2].count += 1;
-                        let pk = event.author();
-                        let content = event.content.to_string();
-                        let timestamp = event.created_at.as_u64();
-
-                        let mut nickname = "".to_string();
-                        let mut avatar = "".to_string();
-
-                        match get_metadata(&client, &pk, None).await {
-                            Ok(metadata) => {
-                                nickname = metadata.name.unwrap_or("Default".to_string());
-                                avatar = match metadata.picture {
-                                    Some(picture) => {
-                                        if picture.is_empty() {
-                                            "https://avatars.githubusercontent.com/u/1024025?v=4"
-                                                .to_string()
-                                        } else {
-                                            picture
-                                        }
-                                    }
-                                    None => "https://avatars.githubusercontent.com/u/1024025?v=4"
-                                        .to_string(),
-                                }
-                            }
-                            Err(_) => {
-                                tracing::info!("metadata not found");
-                            }
+                let is_note = is_note_address(i);
+                if is_note {
+                    let mut action_state = note_action_state.write();
+                    action_state[2].count += 1;
+                    elements.push(rsx! {
+                        Quote {
+                            event_id: EventId::from_bech32(id).unwrap().clone(),
+                            relay_name: relay_name.clone(),
+                            quote_nostr: i.to_string(),
                         }
-
-                        elements.push(rsx! {
-                        div {
-                            class: "quote",
-                            style: "display: flex; align-items: center;",
-                            div {
-                                style: "font-weight: bold; width: 52px; display: flex; align-items: center; justify-content: center;",
-                                "Qt:"
-                            }
-                            div {
-                                style: "flex: 1; border: 1px solid #333; border-radius: 20px; overflow: hidden; padding: 4px; display: flex; gap: 12px; background: #fff; height: 50px;",
-                                div {
-                                    style: "width: 140px; display: flex; align-items: center; gap: 12px;",
-                                    img {
-                                        class: "square-40 radius-20 mr-12",
-                                        src: avatar,
-                                        alt: "avatar",
-                                    }
-                                    div {
-                                        class: "profile flex flex-col",
-                                        span {
-                                            class: "nickname font-size-16 txt-1",
-                                            {nickname}
-                                        }
-                                        span {
-                                            class: "created txt-3 font-size-12",
-                                            {format_create_at(timestamp)}
-                                        }
-                                    }
-                                }
-                                div {
-                                    style: "flex: 1; font-size: 14px; line-height: 20px; border-left: 2px solid #b4b4b4; padding: 0 12px;",
-                                    dangerous_inner_html: "{content}"
-                                }
-                            }
+                    })
+                } else {
+                    elements.push(rsx! {
+                        span {
+                            "{i}"
                         }
                     });
-                    }
-                    Ok(None) => {
-                        tracing::info!("event not found");
-                    }
-                    Err(e) => {
-                        tracing::error!("{:?}", e);
-                    }
                 }
             } else {
                 elements.push(rsx! {
@@ -301,10 +240,16 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-header flex items-start justify-between",
                 Avatar {
-                    pubkey: props.data.author.clone(),
+                    pubkey: pk.read().clone(),
                     timestamp: props.data.created_at,
-                    avatar: root_avatar(),
-                    nickname: root_nickname(),
+                    relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                    repost_event: match props.data.event.kind() {
+                        Kind::Repost => {
+                            let repost_event = Event::from_json(&props.data.content).unwrap();
+                            Some(repost_event)
+                        }
+                        _=> None
+                    },
                 }
                 MoreInfo {
                     on_detail: move |_| {
