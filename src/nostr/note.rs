@@ -121,13 +121,12 @@ impl TextNote {
         event.iter_tags().for_each(|tag| {
             let tag_standard = tag.as_standardized();
             if let Some(tag_standard_value) = tag_standard {
-                let tag_standard_value =
-                    normalize_tag(tag_standard_value).unwrap_or(tag_standard_value.clone());
-                let event_id = get_event_id(&tag_standard_value);
-                if tag_standard_value.is_reply() {
+                let t = normalize_tag(tag_standard_value).unwrap_or(tag_standard_value.clone());
+                let event_id = get_event_id(&t);
+                if t.is_reply() {
                     text_note.reply_to = event_id;
                 }
-                if is_root_tag(&tag_standard_value) {
+                if is_root_tag(&t) {
                     text_note.root = event_id;
                 } else if let Some(event_id) = event_id {
                     no_marker_array.push(event_id);
@@ -187,6 +186,7 @@ fn get_event_id(tag: &TagStandard) -> Option<EventId> {
     }
 }
 
+/*
 pub fn normalize_and_parse(tag: TagStandard) -> Option<TagStandard> {
     let t_vec = tag.to_vec();
     let at_most_4 = &t_vec[..std::cmp::min(4, t_vec.len())];
@@ -199,8 +199,12 @@ pub fn normalize_and_parse(tag: TagStandard) -> Option<TagStandard> {
         }
     }
 }
+*/
 
 fn normalize_tag(t: &TagStandard) -> Option<TagStandard> {
+    if matches!(t, TagStandard::Event { .. }) {
+        return Some(t.clone());
+    }
     match t.kind() {
         TagKind::SingleLetter(SingleLetterTag {
             character: Alphabet::E,
@@ -214,10 +218,7 @@ fn normalize_tag(t: &TagStandard) -> Option<TagStandard> {
                 Err(_) => None,
             }
         }
-        _ => match t {
-            TagStandard::Event { .. } => Some(t.clone()),
-            _ => None,
-        },
+        _ => None,
     }
 }
 
