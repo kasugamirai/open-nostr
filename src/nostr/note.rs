@@ -2,13 +2,10 @@ use std::cmp::min;
 use std::collections::HashMap;
 
 use indextree::{Arena, NodeId};
-use log::kv::value;
-use nostr::event::{self, tag};
 use nostr::nips::nip10::Marker;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
 use nostr_sdk::{SingleLetterTag, TagStandard};
 use std::fmt;
-use wasm_bindgen_test::*;
 
 use super::utils::{self, get_children};
 
@@ -68,12 +65,10 @@ impl TextNote {
             }
         });
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
-            console_log!("reply: {:?}", reply);
             text_note.root = Some(*reply);
         }
         // Assign root to reply_to if it is a reply to root
         if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
-            console_log!("root: {:?}", root);
             text_note.reply_to = Some(*root);
         }
 
@@ -103,7 +98,6 @@ fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
             character: Alphabet::E,
             uppercase: false,
         }) => {
-            console_log!("t: {:?}", t);
             let t_vec = <nostr::Tag as Clone>::clone(t).to_vec();
             let at_most_4 = &t_vec[..min(4, t_vec.len())];
             let normalized_t = at_most_4.to_vec();
@@ -163,16 +157,13 @@ impl ReplyTrees {
         for event in text_notes.into_iter() {
             let node_id = self.arena.new_node(event.clone());
             self.id2id.insert(event.inner.id, node_id);
-            // console_log!("insert {:?} - {:?}", event.inner.id, node_id);
             self.notes.push(event);
         }
 
         for tn in &self.notes {
             let node_id = self.id2id.get(&tn.inner.id).unwrap();
             if let Some(reply_to) = &tn.reply_to {
-                // console_log!("reply_to: {:?}", reply_to);
                 if let Some(p_node_id) = self.id2id.get(reply_to) {
-                    // console_log!("p_node_id: {:?}", p_node_id);
                     p_node_id.append(*node_id, &mut self.arena);
                 }
             }
@@ -187,9 +178,7 @@ impl ReplyTrees {
 
     pub fn get_replies(&self, id: &EventId, order: Option<DisplayOrder>) -> Vec<&TextNote> {
         if let Some(node_id) = self.id2id.get(id) {
-            console_log!("node_id: {:?}", node_id);
             let mut results = get_children(&self.arena, *node_id);
-            console_log!("results: {:?}", results);
             match order {
                 Some(DisplayOrder::NewestFirst) => {
                     results.sort_by(|b, a| a.inner.created_at.cmp(&b.inner.created_at));
@@ -251,12 +240,6 @@ mod tests {
     fn test_reply_with_marker() {
         let event = event_from(REPLY_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        console_log!("text_note: {:?}", text_note);
-        console_log!("text_note.root: {:?}", text_note.root.unwrap().to_hex());
-        console_log!(
-            "text_note.reply_to: {:?}",
-            text_note.reply_to.unwrap().to_hex()
-        );
 
         assert!(
             text_note.root.unwrap().to_hex()
