@@ -46,101 +46,34 @@ impl TextNote {
     pub fn is_root(&self) -> bool {
         matches!((&self.root, &self.reply_to), (None, None))
     }
-    /*
-    //nostr-sdk has been updated, so we need to refactor this function
+
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-
-        event.iter_tags().for_each(|t| {
-            let normalized_tag = match t {
-                Tag::Event { .. } => Some(t.clone()),
-                Tag::Generic(
-                    TagKind::SingleLetter(SingleLetterTag {
-                        character: Alphabet::E,
-                        uppercase: false,
-                    }),
-                    _strings,
-                ) => {
-                    let t_vec = t.as_vec();
-                    let at_most_4 = &t_vec[..std::cmp::min(4, t_vec.len())];
-                    let normalized_t = at_most_4.to_vec();
-                    match Tag::parse(&normalized_t) {
-                        Ok(tag) => Some(tag),
-                        Err(_) => None,
-                    }
-                }
-                _ => None,
+        event.iter_tags().for_each(|tag| {
+            let tag_standard = tag.as_standardized();
+            let new_tag = match tag_standard {
+                Some(tag) => tag.clone(),
+                None => normalize_tag(tag).unwrap(),
             };
-
-            if let Some(Tag::Event {
+            if let TagStandard::Event {
                 event_id, marker, ..
-            }) = normalized_tag
+            } = new_tag
             {
                 match marker {
                     Some(Marker::Root) => text_note.root = Some(event_id),
                     Some(Marker::Reply) => text_note.reply_to = Some(event_id),
                     None => no_marker_array.push(event_id),
-                    _ => {} // do nothing
-                }
-            }
-        });
-
-        // Fix condition that root is None but reply_to is Some
-        if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
-            text_note.root = Some(*reply);
-        }
-        // Assign root to reply_to if it is a reply to root
-        if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
-            text_note.reply_to = Some(*root);
-        }
-
-        // Handle case where no marker is present
-        if text_note.reply_to.is_none() {
-            match no_marker_array.len() {
-                1 => {
-                    text_note.root = no_marker_array.first().cloned();
-                    text_note.reply_to = no_marker_array.first().cloned();
-                }
-                n if n >= 2 => {
-                    text_note.root = no_marker_array.first().cloned();
-                    text_note.reply_to = no_marker_array.get(1).cloned();
-                }
-                _ => {
-                    return Err(Error::NotEnoughElements);
-                }
-            }
-        }
-
-        Ok(())
-    }
-    */
-
-    //sdk 0.31.0
-    fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
-        let mut no_marker_array: Vec<EventId> = vec![];
-        event.iter_tags().for_each(|tag| {
-            let tag_standard = tag.as_standardized();
-            if let Some(tag_standard_value) = tag_standard {
-                let t = normalize_tag(tag_standard_value).unwrap_or(tag_standard_value.clone());
-                //let event_id = get_event_id(&t);
-                if let TagStandard::Event {
-                    event_id, marker, ..
-                } = t
-                {
-                    match marker {
-                        Some(Marker::Root) => text_note.root = Some(event_id),
-                        Some(Marker::Reply) => text_note.reply_to = Some(event_id),
-                        None => no_marker_array.push(event_id),
-                        _ => {}
-                    }
+                    _ => {}
                 }
             }
         });
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
+            console_log!("reply: {:?}", reply);
             text_note.root = Some(*reply);
         }
         // Assign root to reply_to if it is a reply to root
         if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
+            console_log!("root: {:?}", root);
             text_note.reply_to = Some(*root);
         }
 
@@ -164,32 +97,14 @@ impl TextNote {
     }
 }
 
-/*
-fn tag_is_event(tag: &TagStandard) -> bool {
-    matches!(tag, TagStandard::Event { .. })
-}
-*/
-
-//fn normalize_tag(tag: &TagStandard) -> Option<TagStandard> {}
-
-fn get_event_id(tag: &TagStandard) -> Option<EventId> {
-    match tag {
-        TagStandard::Event { event_id, .. } => Some(*event_id),
-        _ => None,
-    }
-}
-
-fn normalize_tag(t: &TagStandard) -> Option<TagStandard> {
-    if matches!(t, TagStandard::Event { .. }) {
-        return Some(t.clone());
-    }
+fn normalize_tag(t: &Tag) -> Option<TagStandard> {
     match t.kind() {
         TagKind::SingleLetter(SingleLetterTag {
             character: Alphabet::E,
             uppercase: false,
         }) => {
             console_log!("t: {:?}", t);
-            let t_vec = <nostr::TagStandard as Clone>::clone(t).to_vec();
+            let t_vec = <nostr::Tag as Clone>::clone(t).to_vec();
             let at_most_4 = &t_vec[..min(4, t_vec.len())];
             let normalized_t = at_most_4.to_vec();
             match TagStandard::parse(&normalized_t) {
