@@ -1,10 +1,12 @@
+use std::cmp::min;
 use std::collections::HashMap;
 
 use indextree::{Arena, NodeId};
+use log::kv::value;
 use nostr::event::{self, tag};
 use nostr::nips::nip10::Marker;
-use nostr_sdk::TagStandard;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
+use nostr_sdk::{SingleLetterTag, TagStandard};
 use std::fmt;
 use wasm_bindgen_test::*;
 
@@ -119,15 +121,13 @@ impl TextNote {
         event.iter_tags().for_each(|tag| {
             let tag_standard = tag.as_standardized();
             if let Some(tag_standard_value) = tag_standard {
-                console_log!("tag_standard_value: {:?}", tag_standard_value);
-                let tag  = 
-                //let tag_standard_value = normalize_generic_tag(tag_standard_value).unwrap();
+                let tag_standard_value =
+                    normalize_tag(tag_standard_value).unwrap_or(tag_standard_value.clone());
                 let event_id = get_event_id(&tag_standard_value);
                 if tag_standard_value.is_reply() {
                     text_note.reply_to = event_id;
                 }
                 if is_root_tag(&tag_standard_value) {
-                    // Borrow the value here
                     text_note.root = event_id;
                 } else if let Some(event_id) = event_id {
                     no_marker_array.push(event_id);
@@ -172,9 +172,11 @@ fn is_root_tag(t: &TagStandard) -> bool {
     )
 }
 
+/*
 fn tag_is_event(tag: &TagStandard) -> bool {
     matches!(tag, TagStandard::Event { .. })
 }
+*/
 
 //fn normalize_tag(tag: &TagStandard) -> Option<TagStandard> {}
 
@@ -198,31 +200,24 @@ pub fn normalize_and_parse(tag: TagStandard) -> Option<TagStandard> {
     }
 }
 
-fn normalize_generic_tag(tag: &TagStandard) -> Option<TagStandard> {
-    match tag {
-        TagStandard::Event { .. } => Some(tag.clone()),
-        _ => {
-            let strings = match tag {
-                TagStandard::Event {
-                    event_id,
-                    relay_url,
-                    marker,
-                } => {
-                    vec![
-                        event_id.to_string(),
-                        relay_url.clone().unwrap_or_else(|| "".into()).to_string(),
-                        marker.clone().unwrap_or_else(|| "".into()).to_string(),
-                    ]
-                }
-                _ => return None,
-            };
-            let at_most_4 = &strings[..std::cmp::min(4, strings.len())];
+fn normalize_tag(t: &TagStandard) -> Option<TagStandard> {
+    match t.kind() {
+        TagKind::SingleLetter(SingleLetterTag {
+            character: Alphabet::E,
+            uppercase: false,
+        }) => {
+            let t_vec = <nostr::TagStandard as Clone>::clone(t).to_vec();
+            let at_most_4 = &t_vec[..min(4, t_vec.len())];
             let normalized_t = at_most_4.to_vec();
             match TagStandard::parse(&normalized_t) {
                 Ok(tag) => Some(tag),
                 Err(_) => None,
             }
         }
+        _ => match t {
+            TagStandard::Event { .. } => Some(t.clone()),
+            _ => None,
+        },
     }
 }
 
