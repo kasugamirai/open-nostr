@@ -133,8 +133,8 @@ pub fn List(props: ListProps) -> Element {
             let sub = sub_current.read().clone();
             let filters = sub.get_filters();
             tracing::info!("Subscription: {:#?}", filters);
-            let mut clients = multiclient();
-            let client: &nostr_sdk::Client = clients.get_or_create(&sub.relay_set).await.unwrap();
+            let clients = multiclient();
+            let client: &nostr_sdk::Client = &clients.get_or_create(&sub.relay_set).await;
             // TODO: use global client by this subscription
             tracing::info!("Filters: {:#?}", filters);
             // TODO: use the 'subscribe' function if this sub requires subscription
@@ -144,6 +144,7 @@ pub fn List(props: ListProps) -> Element {
                 .unwrap();
             // TODO: add or append to database
 
+            notes.clear();
             notes.extend(events);
         })
     };

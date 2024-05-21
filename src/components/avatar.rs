@@ -31,7 +31,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
             let multiclient = multiclient.clone();
             spawn(async move {
                 if let Some(client) = multiclient.read().get(&relay_name) {
-                    match get_metadata(client, &pubkey, None).await {
+                    match get_metadata(&client, &pubkey, None).await {
                         Ok(metadata) => {
                             nickname.set(metadata.display_name.unwrap_or_else(|| metadata.name.unwrap_or("Nostr Account".to_string())));
                             avatar.set(metadata.picture.unwrap_or_else(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()));
@@ -53,7 +53,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
             spawn(async move {
                 if let Some(event) = repost_event {
                     if let Some(client) = multiclient.read().get(&relay_name) {
-                        match get_metadata(client, &event.pubkey, None).await {
+                        match get_metadata(&client, &event.pubkey, None).await {
                             Ok(metadata) => {
                                 root_pic.set(metadata.picture.unwrap_or_else(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()));
                                 root_nickname.set(metadata.display_name.or(metadata.name).unwrap());

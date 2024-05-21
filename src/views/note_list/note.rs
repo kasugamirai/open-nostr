@@ -102,8 +102,8 @@ pub fn Note(props: NoteProps) -> Element {
         }
     });
     tracing::info!("note data: {:#?}", props.data.event.tags());
-    let mut notetext = use_signal(|| props.data.content.clone());
-    let mut repost_text = use_signal(|| if props.data.event.kind() == Kind::Repost {
+    let notetext = use_signal(|| props.data.content.clone());
+    let repost_text = use_signal(|| if props.data.event.kind() == Kind::Repost {
         match Event::from_json(&props.data.content) {
             Ok(event) => event.content.to_string(),
             Err(e) => {
@@ -211,7 +211,7 @@ pub fn Note(props: NoteProps) -> Element {
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
-        nav.push(route);
+        // nav.push(route);
     };
 
     rsx! {
