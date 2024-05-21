@@ -164,16 +164,6 @@ impl TextNote {
     }
 }
 
-fn is_root_tag(t: &TagStandard) -> bool {
-    matches!(
-        t,
-        TagStandard::Event {
-            marker: Some(Marker::Root),
-            ..
-        }
-    )
-}
-
 /*
 fn tag_is_event(tag: &TagStandard) -> bool {
     matches!(tag, TagStandard::Event { .. })
@@ -189,31 +179,25 @@ fn get_event_id(tag: &TagStandard) -> Option<EventId> {
     }
 }
 
-/*
-pub fn normalize_and_parse(tag: TagStandard) -> Option<TagStandard> {
-    let t_vec = tag.to_vec();
-    let at_most_4 = &t_vec[..std::cmp::min(4, t_vec.len())];
-    let normalized_t = at_most_4.to_vec();
-    match TagStandard::parse(&normalized_t) {
-        Ok(parsed_tag) => Some(parsed_tag),
-        Err(_) => {
-            console_log!("Error parsing tag");
-            None
-        }
-    }
-}
-*/
-
 fn normalize_tag(t: &TagStandard) -> Option<TagStandard> {
     if matches!(t, TagStandard::Event { .. }) {
         return Some(t.clone());
     }
-    let t_vec = <nostr::TagStandard as Clone>::clone(t).to_vec();
-    let at_most_4 = &t_vec[..min(4, t_vec.len())];
-    let normalized_t = at_most_4.to_vec();
-    match TagStandard::parse(&normalized_t) {
-        Ok(tag) => Some(tag),
-        Err(_) => None,
+    match t.kind() {
+        TagKind::SingleLetter(SingleLetterTag {
+            character: Alphabet::E,
+            uppercase: false,
+        }) => {
+            console_log!("t: {:?}", t);
+            let t_vec = <nostr::TagStandard as Clone>::clone(t).to_vec();
+            let at_most_4 = &t_vec[..min(4, t_vec.len())];
+            let normalized_t = at_most_4.to_vec();
+            match TagStandard::parse(&normalized_t) {
+                Ok(tag) => Some(tag),
+                Err(_) => None,
+            }
+        }
+        _ => None,
     }
 }
 
