@@ -16,9 +16,13 @@ pub type NotificationHandler = Arc<
         + Sync,
 >;
 
+// Type aliases for complex types
+type HandlerStatus = Arc<RwLock<bool>>;
+type HandlerMap = HashMap<SubscriptionId, (NotificationHandler, HandlerStatus)>;
+
 #[derive(Clone)]
 pub struct Register {
-    handlers: Arc<RwLock<HashMap<SubscriptionId, (NotificationHandler, Arc<RwLock<bool>>)>>>,
+    handlers: Arc<RwLock<HandlerMap>>,
 }
 
 impl Default for Register {
