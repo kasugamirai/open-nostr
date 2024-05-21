@@ -1,9 +1,11 @@
+use std::cmp::min;
 use std::collections::HashMap;
 
 use indextree::{Arena, NodeId};
-use nostr_sdk::prelude::*;
+use nostr::nips::nip10::Marker;
+use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
+use nostr_sdk::{SingleLetterTag, TagStandard};
 use std::fmt;
-use wasm_bindgen_test::console_log;
 
 use super::utils::{self, get_children};
 
@@ -44,42 +46,24 @@ impl TextNote {
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-
-        event.iter_tags().for_each(|t| {
-            let normalized_tag = match t {
-                Tag::Event { .. } => Some(t.clone()),
-                Tag::Generic(
-                    TagKind::SingleLetter(SingleLetterTag {
-                        character: Alphabet::E,
-                        uppercase: false,
-                    }),
-                    _strings,
-                ) => {
-                    let t_vec = t.as_vec();
-                    let at_most_4 = &t_vec[..std::cmp::min(4, t_vec.len())];
-                    let normalized_t = at_most_4.to_vec();
-                    match Tag::parse(&normalized_t) {
-                        Ok(tag) => Some(tag),
-                        Err(_) => None,
-                    }
-                }
-                _ => None,
+        event.iter_tags().for_each(|tag| {
+            let tag_standard = tag.as_standardized();
+            let new_tag = match tag_standard {
+                Some(tag) => tag.clone(),
+                None => normalize_e_tag(tag).unwrap(),
             };
-
-            if let Some(Tag::Event {
+            if let TagStandard::Event {
                 event_id, marker, ..
-            }) = normalized_tag
+            } = new_tag
             {
                 match marker {
                     Some(Marker::Root) => text_note.root = Some(event_id),
                     Some(Marker::Reply) => text_note.reply_to = Some(event_id),
                     None => no_marker_array.push(event_id),
-                    _ => {} // do nothing
+                    _ => {}
                 }
             }
         });
-
-        // Fix condition that root is None but reply_to is Some
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
             text_note.root = Some(*reply);
         }
@@ -104,8 +88,25 @@ impl TextNote {
                 }
             }
         }
-
         Ok(())
+    }
+}
+
+fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
+    match t.kind() {
+        TagKind::SingleLetter(SingleLetterTag {
+            character: Alphabet::E,
+            uppercase: false,
+        }) => {
+            let t_vec = <nostr::Tag as Clone>::clone(t).to_vec();
+            let at_most_4 = &t_vec[..min(4, t_vec.len())];
+            let normalized_t = at_most_4.to_vec();
+            match TagStandard::parse(&normalized_t) {
+                Ok(tag) => Some(tag),
+                Err(_) => None,
+            }
+        }
+        _ => None,
     }
 }
 
@@ -156,16 +157,13 @@ impl ReplyTrees {
         for event in text_notes.into_iter() {
             let node_id = self.arena.new_node(event.clone());
             self.id2id.insert(event.inner.id, node_id);
-            // console_log!("insert {:?} - {:?}", event.inner.id, node_id);
             self.notes.push(event);
         }
 
         for tn in &self.notes {
             let node_id = self.id2id.get(&tn.inner.id).unwrap();
             if let Some(reply_to) = &tn.reply_to {
-                // console_log!("reply_to: {:?}", reply_to);
                 if let Some(p_node_id) = self.id2id.get(reply_to) {
-                    // console_log!("p_node_id: {:?}", p_node_id);
                     p_node_id.append(*node_id, &mut self.arena);
                 }
             }
@@ -206,6 +204,7 @@ impl ReplyTrees {
 mod tests {
 
     use super::*;
+    use nostr_sdk::JsonUtil;
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -241,6 +240,7 @@ mod tests {
     fn test_reply_with_marker() {
         let event = event_from(REPLY_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
+
         assert!(
             text_note.root.unwrap().to_hex()
                 == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"

@@ -109,13 +109,20 @@ impl FilterTemp {
                     .limit(5);
             }
             FilterTemp::Accounts(accounts) => {
-                filter = filter
-                    .kinds(
-                        accounts.kinds.iter().map(|&x| Kind::from(x)).collect::<Vec<Kind>>(),
-                    )
-                    .authors(
-                        accounts.accounts.iter().map(|x| PublicKey::parse(&x.npub).unwrap()).collect::<Vec<PublicKey>>(),
-                    );
+                filter = filter.kinds(
+                    accounts
+                        .kinds
+                        .iter()
+                        .map(|&x| Kind::from(x as u16))
+                        .collect::<Vec<Kind>>(),
+                );
+                filter = filter.authors(
+                    accounts
+                        .accounts
+                        .iter()
+                        .map(|x| PublicKey::parse(&x.npub).unwrap())
+                        .collect::<Vec<PublicKey>>(),
+                );
             }
             FilterTemp::Events(events) => {
                 for x in &events.events {
@@ -129,7 +136,11 @@ impl FilterTemp {
             FilterTemp::Customize(customize) => {
                 if !customize.kinds.is_empty() {
                     filter = filter.kinds(
-                        customize.kinds.iter().map(|&x| Kind::from(x)).collect::<Vec<Kind>>(),
+                        customize
+                            .kinds
+                            .iter()
+                            .map(|&x| Kind::from(x as u16))
+                            .collect::<Vec<Kind>>(),
                     );
                 }
                 if !customize.accounts.is_empty() {

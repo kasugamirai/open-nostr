@@ -1,15 +1,13 @@
-use std::collections::HashMap;
-use crate::store::CAPYBASTR_DBNAME;
 use crate::store::CBWebDatabase;
-use dioxus::hooks::use_context;
-use dioxus::signals::Readable;
-use dioxus::signals::Signal;
+use crate::store::CAPYBASTR_DBNAME;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::ClientBuilder;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: HashMap<String, nostr_sdk::Client>,
+    clients: Arc<Mutex<HashMap<String, nostr_sdk::Client>>>,
 }
 
 impl Default for MultiClient {
@@ -21,40 +19,38 @@ impl Default for MultiClient {
 impl MultiClient {
     pub fn new() -> Self {
         Self {
-            clients: HashMap::new(),
+            clients: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    pub fn register(&mut self, name: String, client: nostr_sdk::Client) {
-        self.clients.insert(name, client);
+    pub fn register(&self, name: String, client: nostr_sdk::Client) {
+        let mut clients = self.clients.lock().unwrap();
+        clients.insert(name, client);
     }
 
-    pub fn get(&self, name: &str) -> Option<&nostr_sdk::Client> {
-        //todo lazy init
-        self.clients.get(name)
+    pub fn get(&self, name: &str) -> Option<nostr_sdk::Client> {
+        let clients = self.clients.lock().unwrap();
+        clients.get(name).cloned()
     }
-    pub async fn get_or_create(&mut self, name: &str) -> Option<&nostr_sdk::Client> {
-        // First, check if the client already exists with an immutable borrow
-        if self.get(name).is_some() {
-            return self.get(name);
+
+    pub async fn get_or_create(&self, name: &str) -> nostr_sdk::Client {
+        let mut clients = self.clients.lock().unwrap();
+        if let Some(client) = clients.get(name) {
+            return client.clone();
         }
-    
-        // At this point, the client does not exist, and we can proceed with a mutable borrow
-        {
-            let cb_database_db = use_context::<Signal<CBWebDatabase>>();
-            let db = WebDatabase::open("nostr-idb").await.unwrap();
-            let client_builder = ClientBuilder::new().database(db);
-            let client = client_builder.build();
-            let cb_database_db_lock = cb_database_db.read();
-            let relay_set_info = cb_database_db_lock.get_relay_set(name.to_string()).await.unwrap();
-            client.add_relays(relay_set_info.relays).await.unwrap();
-            client.connect().await;
-            self.register(name.to_string(), client);
-        }
-    
-        // Return the newly created client
-        self.get(name)
+
+        drop(clients); // Release the lock before awaiting
+
+        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let db = WebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let client_builder = ClientBuilder::new().database(db);
+        let client = client_builder.build();
+        let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
+        client.add_relays(relay_set_info.relays).await.unwrap();
+
+        // Acquire the lock again to update the map
+        let mut clients = self.clients.lock().unwrap();
+        clients.insert(name.to_string(), client.clone());
+        client
     }
-    
-    
 }

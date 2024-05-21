@@ -153,6 +153,7 @@ mod tests {
                 .unwrap();
         let client = Client::default();
         client.add_relay("wss://nos.lol").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
         let root = get_event_by_id(&client, &event_id, timeout)
             .await

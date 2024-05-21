@@ -1,4 +1,4 @@
-use async_std::sync::Mutex;
+use async_std::sync::RwLock;
 use nostr_sdk::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -16,9 +16,13 @@ pub type NotificationHandler = Arc<
         + Sync,
 >;
 
+// Type aliases for complex types
+type HandlerStatus = Arc<RwLock<bool>>;
+type HandlerMap = HashMap<SubscriptionId, (NotificationHandler, HandlerStatus)>;
+
 #[derive(Clone)]
 pub struct Register {
-    handlers: Arc<Mutex<HashMap<SubscriptionId, NotificationHandler>>>,
+    handlers: Arc<RwLock<HandlerMap>>,
 }
 
 impl Default for Register {
@@ -30,9 +34,19 @@ impl Default for Register {
 impl Register {
     pub fn new() -> Self {
         Self {
-            handlers: Arc::new(Mutex::new(HashMap::new())),
+            handlers: Arc::new(RwLock::new(HashMap::new())),
         }
     }
+
+    pub async fn set_stop_flag(&self, sub_id: &SubscriptionId, value: bool) {
+        let mut handlers = self.handlers.write().await;
+        if let Some((_, flag)) = handlers.get_mut(sub_id) {
+            let mut stop_flag = flag.write().await;
+            *stop_flag = value;
+        }
+    }
+
+    
 
     pub async fn add_subscription(
         &self,
@@ -45,13 +59,13 @@ impl Register {
         client
             .subscribe_with_id(sub_id.clone(), filters, opts)
             .await;
-        let mut handlers = self.handlers.lock().await;
-        handlers.insert(sub_id.clone(), handler);
+        let mut handlers = self.handlers.write().await;
+        handlers.insert(sub_id.clone(), (handler, Arc::new(RwLock::new(false))));
         Ok(())
     }
 
     pub async fn remove_subscription(&self, sub_id: &SubscriptionId) {
-        let mut handlers = self.handlers.lock().await;
+        let mut handlers = self.handlers.write().await;
         handlers.remove(sub_id);
     }
 
@@ -66,9 +80,11 @@ impl Register {
             ..
         } = &notification
         {
-            let handlers = self.handlers.lock().await;
-            if let Some(handler) = handlers.get(subscription_id) {
-                return (handler)(notification.clone()).await;
+            let handlers = self.handlers.read().await;
+            if let Some((handler, stop_flag)) = handlers.get(subscription_id) {
+                let result = (handler)(notification.clone()).await?;
+                let stop_flag = stop_flag.read().await;
+                return Ok(result || *stop_flag); // Return true if result is true or stop_flag is true
             }
         }
         Ok(false)
@@ -81,11 +97,16 @@ impl Register {
         tracing::info!("Register::handle_notifications");
         client
             .handle_notifications(|notification| {
-                let register = self;
-                async move { register.handle_notification(notification).await }
+                let register = self.clone();
+                async move {
+                    if register.handle_notification(notification).await? {
+                        Ok(true)
+                    } else {
+                        Ok(false)
+                    }
+                }
             })
             .await?;
-
         Ok(())
     }
 }
@@ -142,10 +163,10 @@ mod tests {
                         ..
                     } => {
                         console_log!("event: {:?}", event);
+                        Ok(true) // Here you can return true to stop the handling process
                     }
-                    _ => {}
+                    _ => Ok(false),
                 }
-                Ok(false)
             })
         });
 
@@ -154,9 +175,9 @@ mod tests {
 
         let register = Register::default();
 
-        //add the subscription
-        register
-            .add_subscription(
+        let r = register.clone();
+        // Add the subscription for test1
+        r.add_subscription(
                 &client1,
                 SubscriptionId::new("test1"),
                 vec![filter1],
@@ -166,9 +187,24 @@ mod tests {
             .await
             .unwrap();
 
-        //add another subscription
-        register
-            .add_subscription(
+        // Handle notifications for test1
+        let r = register.clone();
+        spawn_local(async move {
+            r.handle_notifications(&client1).await.unwrap();
+        });
+
+
+        let r = register.clone();
+        // Stop handling notifications for test1 after some time
+        spawn_local(async move {
+            sleep(2000).await.unwrap();
+            r.set_stop_flag(&SubscriptionId::new("test1"), true).await;
+        });
+
+        let r = register.clone();
+        // Add the subscription for test2 after stopping test1
+        sleep(3000).await.unwrap();
+        r.add_subscription(
                 &client2,
                 SubscriptionId::new("test2"),
                 vec![filter2],
@@ -178,14 +214,10 @@ mod tests {
             .await
             .unwrap();
 
-        let r1 = register.clone();
+        // Handle notifications for test2
+        let r = register.clone();
         spawn_local(async move {
-            r1.handle_notifications(&client1).await.unwrap();
-        });
-
-        let r2 = register.clone();
-        spawn_local(async move {
-            r2.handle_notifications(&client2).await.unwrap();
+            r.handle_notifications(&client2).await.unwrap();
         });
 
         sleep(5000).await.unwrap();
