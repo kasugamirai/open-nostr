@@ -3,6 +3,7 @@ mod init;
 pub mod nostr;
 mod router;
 pub mod store;
+mod testhelper;
 mod utils;
 mod views;
 

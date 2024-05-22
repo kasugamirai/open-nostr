@@ -113,6 +113,8 @@ impl Register {
 
 #[cfg(test)]
 mod tests {
+    use crate::testhelper::sleep;
+
     use super::*;
     use js_sys::Promise;
     use wasm_bindgen::prelude::*;
@@ -120,25 +122,6 @@ mod tests {
     use wasm_bindgen_test::*;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
-    #[wasm_bindgen]
-    extern "C" {
-        #[wasm_bindgen(js_namespace = window, js_name = setTimeout)]
-        fn set_timeout(closure: &Closure<dyn FnMut()>, time: u32) -> i32;
-    }
-
-    async fn sleep(ms: u32) -> Result<(), JsValue> {
-        let promise = Promise::new(&mut |resolve, _| {
-            let closure = Closure::once(move || {
-                resolve.call0(&JsValue::NULL).unwrap();
-            });
-            set_timeout(&closure, ms);
-            // Keep the closure alive until it's called
-            closure.forget();
-        });
-        JsFuture::from(promise).await?;
-        Ok(())
-    }
 
     #[wasm_bindgen_test(async)]
     async fn test_sub_for_two_clients() {
@@ -222,4 +205,55 @@ mod tests {
 
         sleep(5000).await.unwrap();
     }
+
+    #[wasm_bindgen_test(async)]
+    async fn test_seen_on_relays() {
+        let event_id =
+            EventId::from_hex("770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b")
+                .unwrap();
+            let client = Arc::new(Client::default());
+            client.add_relay("wss://nos.lol").await.unwrap();
+            client.connect().await;
+            let register = Register::default();
+            let filter = Filter::new().id(event_id).limit(1);
+
+            let console_log_handler: NotificationHandler = Arc::new(|notification| {
+                Box::pin(async move {
+                    match notification {
+                        RelayPoolNotification::Message {
+                            message: RelayMessage::Event { event, .. },
+                            ..
+                        } => {
+                            console_log!("event: {:?}", event);
+                            Ok(true) // Here you can return true to stop the handling process
+                        }
+                        _ => Ok(false),
+                    }
+                })
+            });
+
+            register.add_subscription(
+                &client,
+                SubscriptionId::new("test_seen_on_relays"),
+                vec![filter],
+                console_log_handler,
+                None,
+            )
+            .await
+            .unwrap();
+
+
+            let cc = Arc::clone(&client);
+            spawn_local(async move {
+                register.handle_notifications(&cc).await.unwrap();
+            });
+
+            sleep(2000).await.unwrap();
+
+            //query seen on relay
+            let relays = client.database().event_seen_on_relays(event_id).await.unwrap().unwrap();
+            console_log!("seen on relays: {:?}", relays);
+            assert!(!relays.is_empty());
+    }
+
 }

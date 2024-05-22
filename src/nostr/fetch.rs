@@ -12,23 +12,19 @@ pub enum Error {
     UnableToSave,
 }
 
-impl From<client::Error> for Error {
-    fn from(err: client::Error) -> Self {
-        Self::Client(err)
-    }
+macro_rules! impl_from_error {
+    ($src:ty, $variant:ident) => {
+        impl From<$src> for Error {
+            fn from(err: $src) -> Self {
+                Self::$variant(err)
+            }
+        }
+    };
 }
 
-impl From<nostr_sdk::types::metadata::Error> for Error {
-    fn from(err: nostr_sdk::types::metadata::Error) -> Self {
-        Self::MetadataConversion(err)
-    }
-}
-
-impl From<nostr_indexeddb::IndexedDBError> for Error {
-    fn from(err: nostr_indexeddb::IndexedDBError) -> Self {
-        Self::Database(err)
-    }
-}
+impl_from_error!(client::Error, Client);
+impl_from_error!(nostr_sdk::types::metadata::Error, MetadataConversion);
+impl_from_error!(nostr_indexeddb::IndexedDBError, Database);
 
 pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
     events.iter().max_by_key(|event| event.created_at())
@@ -53,10 +49,7 @@ pub async fn get_events_by_ids(
     event_ids: &[EventId],
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>, Error> {
-    let mut filters = Vec::with_capacity(event_ids.len());
-    for id in event_ids {
-        filters.push(Filter::new().id(*id));
-    }
+    let filters: Vec<Filter> = event_ids.iter().map(|id| Filter::new().id(*id)).collect();
     let events = client.get_events_of(filters, timeout).await?;
     Ok(events)
 }
@@ -68,10 +61,9 @@ pub async fn get_metadata(
 ) -> Result<Metadata, Error> {
     let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
     let events = client.get_events_of(vec![filter], timeout).await?;
-    let event = get_newest_event(&events);
-    if let Some(event) = event {
-        let m = Metadata::from_json(&event.content)?;
-        Ok(m)
+    if let Some(event) = get_newest_event(&events) {
+        let metadata = Metadata::from_json(&event.content)?;
+        Ok(metadata)
     } else {
         Err(Error::NotFound)
     }
@@ -82,14 +74,13 @@ pub async fn get_reactions(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<HashMap<String, i32>, Error> {
-    let reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+    let reaction_filter = Filter::new()
+        .kind(Kind::Reaction)
+        .custom_tag(SingleLetterTag::lowercase(Alphabet::E), vec![event_id.to_hex()]);
 
     let events = client.get_events_of(vec![reaction_filter], timeout).await?;
-
     let mut reaction_counts = HashMap::new();
+
     for event in events.iter() {
         let content = event.content().to_string();
         *reaction_counts.entry(content).or_insert(0) += 1;
@@ -103,20 +94,30 @@ pub async fn get_replies(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>, Error> {
-    let filter = Filter::new().kind(Kind::TextNote).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+    let filter = Filter::new()
+        .kind(Kind::TextNote)
+        .custom_tag(SingleLetterTag::lowercase(Alphabet::E), vec![event_id.to_hex()]);
     let events = client.get_events_of(vec![filter], timeout).await?;
-    //todo filter out the mentions
+    // TODO: filter out the mentions if necessary
     Ok(events)
 }
+
+pub async fn query_events_from_db(
+    client: &Client,
+    filters: Vec<Filter>,
+) -> Result<Vec<Event>, Error> {
+    let events = client.database().query(filters, Order::Desc).await;
+    events.map_err(|e| Error::Database(nostr_indexeddb::IndexedDBError::Database(e)))
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::nostr::note::{DisplayOrder, ReplyTrees};
+    use crate::{init::NOSTR_DB_NAME, nostr::note::{DisplayOrder, ReplyTrees}, testhelper::event_from};
     use wasm_bindgen_test::*;
+    use nostr_indexeddb::WebDatabase;
+    use crate::testhelper::test_data::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test]
@@ -183,4 +184,22 @@ mod tests {
         console_log!("Reactions: {:?}", reactions);
         assert_eq!(reactions.len(), length);
     }
+
+    #[wasm_bindgen_test]
+    async fn test_fetch_from_db() {
+        let db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
+        let client_builder = ClientBuilder::new().database(db);
+        let client: nostr_sdk::Client = client_builder.build();
+
+        //save event to db
+        let event = event_from(REPLY_WITH_MARKER);
+        client.database().save_event(&event).await.unwrap();
+
+        //query from db
+        let filter = Filter::new().id(event.id).limit(1);
+        let event_result = client.database().query(vec![filter], Order::Desc).await.unwrap();
+        assert!(event_result.len() == 1);
+        assert!(event_result[0].id == event.id);
+    }
+    
 }
