@@ -105,7 +105,7 @@ pub fn Note(props: NoteProps) -> Element {
     let mut emoji = use_signal(|| HashMap::new());
     let _future = use_resource(move || async move {
         let clients = multiclient();
-        let client = clients.get(&sub_name.read()).unwrap();
+        let client = clients.get(&sub_name.read()).await.unwrap();
 
         match get_reactions(&client, &eid(), None).await {
             Ok(emojis) => {

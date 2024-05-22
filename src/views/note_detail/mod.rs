@@ -21,7 +21,7 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
     let mut element = use_signal(|| rsx! { div { "Loading..." } });
     let _ = use_resource(move || async move {
         let clients = multiclient();
-        let client = clients.get(&sub_name.read()).unwrap();
+        let client = clients.get(&sub_name.read()).await.unwrap();
 
         match get_event_by_id(&client, &EventId::from_hex(&event_id()).unwrap(), None).await {
             Ok(Some(event)) => {

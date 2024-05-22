@@ -69,7 +69,7 @@ pub fn App() -> Element {
             if !relay_sets.is_empty() {
                 let mut _multiclient = multiclient.write();
                 for rs in relay_sets {
-                    let client = _multiclient.get(&rs.name);
+                    let client = _multiclient.get(&rs.name).await;
                     if client.is_none() {
                         let client_builder = ClientBuilder::new().database(nostr_db.clone());
                         let c: nostr_sdk::Client = client_builder.build();
