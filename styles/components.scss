@@ -42,8 +42,7 @@
   width: 100%;
   // padding: 10px 40px;
   border-radius: 20px;
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 10px;
   color: var(--txt-1);
   border: 1px solid var(--boc-1);
@@ -68,8 +67,7 @@
 }
 
 .com-post .com-post-author .com-post-author-profile {
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   justify-content: space-around;
 }
 
@@ -104,15 +102,13 @@
   border: 1px solid var(--boc-1);
   border-radius: var(--radius-1);
   padding: 10px;
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 4px;
 }
 
 .more-content .more-content-item {
   cursor: pointer;
-  display: flex;
-  align-items: center;
+  @include flex-center-box;
   gap: 10px;
   padding: 6px 10px;
   border-radius: var(--radius-circle);
@@ -169,8 +165,7 @@
 }
 
 .com-switch {
-  display: flex;
-  align-items: center;
+  @include flex-center-box;
   gap: 4px;
 }
 
@@ -219,16 +214,12 @@
   width: 100%;
   height: 100%;
   cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  @include flex-justify-align-center;
   padding: 0 12px;
 }
 
 .com-input_card-input {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  @include flex-justify-align-center;
   gap: 10px;
   padding: 0 12px;
 }
@@ -246,9 +237,7 @@
   border-radius: var(--radius-circle);
   background-color: var(--bgc-1);
   border: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  @include flex-justify-align-center;
 }
 
 .com-input_card-input .btn svg {
@@ -273,20 +262,14 @@
   min-width: 600px;
   min-height: 500px;
   // width: 414px;
-  position: absolute;
   background-color: var(--bgc-0);
   border-radius: var(--radius-1);
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 19px;
   padding: 26px 28px;
   border: 1px solid var(--boc-1);
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: 0;
+  @include absolute-auto;
   z-index: 101;
-  margin: auto;
   // right: -180px;
   .name-style {
     width: 222px;
@@ -327,15 +310,13 @@
   width: 396px;
   height: 180px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 15px;
 }
 .relays-li {
-  display: flex;
+  @include flex-center-box;
   gap: 15px;
   height: 28px;
-  align-items: center;
   // margin-top: 15px;
 }
 .hierarchical {
@@ -356,7 +337,9 @@
     padding: 0;
     letter-spacing: -1px;
     box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
-    background-color: #ffffff;
+    background-color: var(--bgc-0);
+    border: 1px solid var(--bgc-4);
+    color: var(--txt-1);
     padding-left: 12px;
     padding-right: 10px;
     height: 34px;
@@ -391,24 +374,21 @@
 }
 
 .event-note {
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 6px;
   border: 1px solid var(--boc-1);
   border-radius: var(--radius-24);
   padding: 6px;
 
   .header {
-    display: flex;
-    align-items: center;
+    @include flex-center-box;
     justify-content: space-between;
 
     .moreStyle {
       margin-right: 13px;
     }
     .user {
-      display: flex;
-      align-items: center;
+      @include flex-center-box;
       gap: 12px;
       position: relative;
 
@@ -454,8 +434,7 @@
 
   .reply,
   .quote {
-    display: flex;
-    align-items: center;
+    @include flex-center-box;
 
     .title {
       width: 46px;
@@ -472,7 +451,7 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     .post-media-wrap {
-      gap: 8px !important;
+      // gap: 8px !important;
       padding-top: 2px;
       .post-image {
         border-radius: var(--radius-8);
@@ -481,16 +460,14 @@
   }
 
   .footer {
-    display: flex;
-    align-items: center;
+    @include flex-center-box;
     gap: 15px;
     padding: 8px 0;
     padding-left: 46px;
 
     .info {
       cursor: pointer;
-      display: flex;
-      align-items: center;
+      @include flex-center-box;
     }
     .pullDownStyle {
       margin-left: auto;
@@ -519,15 +496,13 @@
 }
 .event-less {
   width: 100%;
-  display: flex;
-  align-items: center;
+  @include flex-center-box;
   border: 1px solid var(--boc-1);
   border-radius: var(--radius-24);
   padding: 6px;
 
   .header {
-    display: flex;
-    align-items: center;
+    @include flex-center-box;
     gap: 12px;
     width: 142px;
 
@@ -589,7 +564,49 @@
     height: 0;
   }
 }
+.relay-contnet{
+  padding: 15px 5px;
+  display: flex;
 
+  .built-in-function{
+    width: 144px;
+    text-align: center;
+    background-color: var(--bgc-0);
+    box-sizing: border-box;
+    font-family: "Raleway";
+    color: var(--txt-1);
+  }
+  .built-li{
+    border: 1px solid var(--txt-2);
+    height: 30px;
+  }
+  .built-li-checked{
+    background-color: var(--bgc-5);
+    color: #000000;
+  }
+  .set-content{
+    width: 100%;
+    flex-direction: column;
+    border: 1px solid var(--boc-1);
+    .modal-content{
+      margin: 0;
+    }
+    .modal-content{
+      width: 100%;
+      border: none !important;
+      height: auto;
+    }
+    .relay-url-item{
+      gap: 20px;
+    }
+    .relay-ipt{
+      width: calc(100% - 56px);
+    }
+    .relay-name-ipt{
+      width: calc(70% - 56px);
+    }
+  }
+}
 .relay {
   &-edit {
     &--modal {
@@ -597,6 +614,7 @@
     }
     &--content {
       background-color: var(--bgc-0);
+      border: 1px solid var(--boc-1);
       width: 50vw;
       height: 80vh;
       min-width: 500px;
@@ -631,7 +649,7 @@
         background-color: #f5f5f5;
         height: 30px;
         line-height: 30px;
-        color: var(--bgc-0);
+        color: var(--txt-1);
         font-size: 14px;
         color: #858585;
         &--active {
@@ -643,10 +661,12 @@
         background-color: var(--bgc-1);
         height: 30px;
         text-align: center;
-        color: var(--bgc-0);
+        color: var(--txt-1);
         line-height: 30px;
     }
     &-ipt {
+        color: var(--txt-1);
+        background-color: var(--bgc-0);
         border-bottom: 1px solid var(--boc-1);
     }
   }
@@ -655,6 +675,8 @@
   }
   &-ipt {
     border-bottom: 1px solid var(--boc-1);
+    color: var(--txt-1);
+    background-color: var(--bgc-0);
     width: calc(100% - 80px);
     min-width: 200px;
   }

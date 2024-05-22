@@ -42,3 +42,6 @@ pub const RIGHTICON: &str = include_str!("../../public/svgs/leftIcon.svg");
 pub const LEFTICON: &str = include_str!("../../public/svgs/rigthIcon.svg");
 pub const ARROWRIGHT: &str = include_str!("../../public/svgs/arrowright.svg");
 
+//Relay icon
+pub const BOTTOMRIGHT: &str = include_str!("../../public/svgs/bottomRight.svg");
+pub const UPPERRIGHT: &str = include_str!("../../public/svgs/upperRight.svg");

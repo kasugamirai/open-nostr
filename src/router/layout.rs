@@ -160,9 +160,9 @@ pub fn Layout() -> Element {
                         },
                       }
                       div{
-                        class:" Note-popUp",
+                        class:"note-pop-up",
                         textarea{
-                          class:"textAreaStyle",
+                          class:"text-area-style",
                           value:"{contentText}",
                           onchange: move |event| {
                             contentText.set(event.value());
@@ -241,15 +241,15 @@ pub fn Layout() -> Element {
                         }
                     }
                 }
-                div{
-                  h1{
-                    style: "color:var(--txt-1)",
-                    onclick: move |_| {
-                      messageContent.set("Received 10 New Events !!".to_string());
-                    },
-                    "获取新消息"
-                  }
-                }
+                // div{
+                //   h1{
+                //     style: "color:var(--txt-1)",
+                //     onclick: move |event| {
+                //       messageContent.set("Received 10 New Events !!".to_string());
+                //     },
+                //     "获取新消息"
+                //   }
+                // }
                 Button { on_click: toggle_theme, "{theme}" }
             }
             Message{content:"{messageContent.clone()}"}
