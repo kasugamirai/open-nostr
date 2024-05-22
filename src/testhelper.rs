@@ -21,6 +21,39 @@ pub mod test_data {
     pub const R_X: &str = r#"{"content":"R -> X","created_at":1713517591,"id":"c1d15b70fb1cb48792cac33949e4daf74148ef58e23a254a947ae11b1a0b89cc","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"8035bb03c41851be82bae370fcdfafd8af666206b8cd3b2e7788a00d1ef4335c14f919ca4eb7fa3ed1e0614f41f15389d0439099e466dbe9bf0d3fe205269ca5","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","reply"]]}"#;
     pub const R_Z: &str = r#"{"content":"R -> Z","created_at":1713517740,"id":"e9356a18293d8122c233d19b405ab8523773fa9419db0bd634bd592ebd250a87","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"5a4c8c02a75b2fb9ffb567995366629d28c2d131b0e5359bbdc008211b400c265384a5d743cedb794526f54f6474ac6151ca02a5ca150a464d0b11840e0c2ffe","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","reply"]]}"#;
     pub const R_Z_O: &str = r#"{"content":"R -> Z -> O","created_at":1713517783,"id":"b3ec05726a7b456a7a2212981c7278ccb08d366c5caa9d1e29f2b5d652b00cf5","kind":1,"pubkey":"eba1300e9189ef52f89ddd365b8d172d234275b2288c8fbad4a18306ae13562b","sig":"63ea4e6e43006c0dc7501a111eebf348006813d9abb359a317214a6941bb6eceb889b57fca2c57b1deef568f10ca9e3f2105b43da814644612466b04185f7033","tags":[["e","9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651","","root"],["e","e9356a18293d8122c233d19b405ab8523773fa9419db0bd634bd592ebd250a87","wss://relay.damus.io/","reply"]]}"#;
+
+    //events from relay
+    pub const R_EVENT_770: &str = r#"{"id":"770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b","tags":[],"content":"How it started 🤖.......... How it's going 🥜\n\nhttps://m.primal.net/IHQz.png ","created_at":1715871171,"sig":"90a8abf718b28c51e24bce9f95f92250379e6c612937b9f113d2b24dc43492aacdd6c43a220c02e480300a6d84139bfdeb70e2fdd08330f81ef9683b627baf56","pubkey":"50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63","kind":1}"#;
+    pub const R_EVENT_70c: &str = r#"{"content":"Not gonna lie the throw back is sexy","created_at":1715871480,"id":"70cfdf05fa80ce6b4a54668788eef31ff7d5a23b74f54943ec9e5a91cb5806f1","kind":1,"pubkey":"3b7fc823611f1aeaea63ee3bf69b25b8aa16ec6e81d1afc39026808fe194354f","sig":"76a90208faa44bbf95d6d9f1100f9667a7f038c32a9b19ac60abe5c4d75a5ba13f74e74fd0830c28920815bd2ac5f2b8ee0bf6b47b32d57b660ab8a7847d5690","tags":[["e","770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b","","root"],["p","50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63"]]}"#;
+}
+
+pub mod test_hander {
+    use std::sync::Arc;
+    use nostr_sdk::prelude::*;
+    use wasm_bindgen_test::*;
+
+    use crate::nostr::register::NotificationHandler;
+
+   
+    pub fn create_console_log_handler() -> NotificationHandler {
+        Arc::new(|notification| {
+            Box::pin(async move {
+                match notification {
+                    RelayPoolNotification::Message {
+                        message: RelayMessage::Event { event, .. },
+                        ..
+                    } => {
+                        console_log!("eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
+                        event.id.to_string(), 
+                        event.author().to_string(),
+                        event.kind, event.content);
+                        Ok(false) // Return true to stop the handling process
+                    }
+                    _ => Ok(false),
+                }
+            })
+        })
+    }
 }
 
 pub fn event_from(raw: &str) -> Event {
@@ -45,3 +78,4 @@ pub async fn sleep(ms: u32) -> Result<(), JsValue> {
     JsFuture::from(promise).await?;
     Ok(())
 }
+

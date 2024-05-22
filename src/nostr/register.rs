@@ -46,8 +46,6 @@ impl Register {
         }
     }
 
-    
-
     pub async fn add_subscription(
         &self,
         client: &Client,
@@ -113,7 +111,7 @@ impl Register {
 
 #[cfg(test)]
 mod tests {
-    use crate::testhelper::sleep;
+    use crate::testhelper::{sleep, test_hander::create_console_log_handler};
 
     use super::*;
     use js_sys::Promise;
@@ -138,20 +136,7 @@ mod tests {
         let client2 = Client::default();
         client2.add_relay("wss://nos.lol").await.unwrap();
         client2.connect().await;
-        let console_log_handler: NotificationHandler = Arc::new(|notification| {
-            Box::pin(async move {
-                match notification {
-                    RelayPoolNotification::Message {
-                        message: RelayMessage::Event { event, .. },
-                        ..
-                    } => {
-                        console_log!("event: {:?}", event);
-                        Ok(true) // Here you can return true to stop the handling process
-                    }
-                    _ => Ok(false),
-                }
-            })
-        });
+        let console_log_handler: NotificationHandler = create_console_log_handler();
 
         let filter1 = Filter::new().id(event_id1).limit(1);
         let filter2: Filter = Filter::new().id(event_id2).limit(1);
@@ -161,21 +146,20 @@ mod tests {
         let r = register.clone();
         // Add the subscription for test1
         r.add_subscription(
-                &client1,
-                SubscriptionId::new("test1"),
-                vec![filter1],
-                console_log_handler.clone(),
-                None,
-            )
-            .await
-            .unwrap();
+            &client1,
+            SubscriptionId::new("test1"),
+            vec![filter1],
+            console_log_handler.clone(),
+            None,
+        )
+        .await
+        .unwrap();
 
         // Handle notifications for test1
         let r = register.clone();
         spawn_local(async move {
             r.handle_notifications(&client1).await.unwrap();
         });
-
 
         let r = register.clone();
         // Stop handling notifications for test1 after some time
@@ -188,14 +172,14 @@ mod tests {
         // Add the subscription for test2 after stopping test1
         sleep(3000).await.unwrap();
         r.add_subscription(
-                &client2,
-                SubscriptionId::new("test2"),
-                vec![filter2],
-                console_log_handler.clone(),
-                None,
-            )
-            .await
-            .unwrap();
+            &client2,
+            SubscriptionId::new("test2"),
+            vec![filter2],
+            console_log_handler.clone(),
+            None,
+        )
+        .await
+        .unwrap();
 
         // Handle notifications for test2
         let r = register.clone();
@@ -211,28 +195,16 @@ mod tests {
         let event_id =
             EventId::from_hex("770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b")
                 .unwrap();
-            let client = Arc::new(Client::default());
-            client.add_relay("wss://nos.lol").await.unwrap();
-            client.connect().await;
-            let register = Register::default();
-            let filter = Filter::new().id(event_id).limit(1);
+        let client = Arc::new(Client::default());
+        client.add_relay("wss://nos.lol").await.unwrap();
+        client.connect().await;
+        let register = Register::default();
+        let filter = Filter::new().id(event_id).limit(1);
 
-            let console_log_handler: NotificationHandler = Arc::new(|notification| {
-                Box::pin(async move {
-                    match notification {
-                        RelayPoolNotification::Message {
-                            message: RelayMessage::Event { event, .. },
-                            ..
-                        } => {
-                            console_log!("event: {:?}", event);
-                            Ok(true) // Here you can return true to stop the handling process
-                        }
-                        _ => Ok(false),
-                    }
-                })
-            });
+        let console_log_handler: NotificationHandler = create_console_log_handler();
 
-            register.add_subscription(
+        register
+            .add_subscription(
                 &client,
                 SubscriptionId::new("test_seen_on_relays"),
                 vec![filter],
@@ -242,18 +214,57 @@ mod tests {
             .await
             .unwrap();
 
+        let cc = Arc::clone(&client);
+        spawn_local(async move {
+            register.handle_notifications(&cc).await.unwrap();
+        });
 
-            let cc = Arc::clone(&client);
-            spawn_local(async move {
-                register.handle_notifications(&cc).await.unwrap();
-            });
+        sleep(2000).await.unwrap();
 
-            sleep(2000).await.unwrap();
-
-            //query seen on relay
-            let relays = client.database().event_seen_on_relays(event_id).await.unwrap().unwrap();
-            console_log!("seen on relays: {:?}", relays);
-            assert!(!relays.is_empty());
+        //query seen on relay
+        let relays = client
+            .database()
+            .event_seen_on_relays(event_id)
+            .await
+            .unwrap()
+            .unwrap();
+        console_log!("seen on relays: {:?}", relays);
+        assert!(!relays.is_empty());
     }
 
+    #[wasm_bindgen_test(async)]
+    async fn test_update_subscription() {
+        let filter1 = Filter::new().author(PublicKey::from_bech32("npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew").unwrap()).limit(1);
+        let filter2 = Filter::new().author(PublicKey::from_bech32("npub1vaq95a68j42vwau30ymu56klrkl4g9wxpd7ljsljl8rg3uwd425qyht7a9").unwrap());
+        let client = Client::default();
+        client.add_relay("wss://nos.lol").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let register = Register::default();
+        let console_log_handler: NotificationHandler = create_console_log_handler();
+        register
+            .add_subscription(
+                &client.clone(),
+                SubscriptionId::new("sub1"),
+                vec![filter1],
+                console_log_handler.clone(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        register
+            .add_subscription(
+                &client.clone(),
+                SubscriptionId::new("sub1"),
+                vec![filter2],
+                console_log_handler.clone(),
+                None,
+            )
+            .await
+            .unwrap();
+
+        // uncomment the following line to see the logs
+        // register.handle_notifications(&client).await.unwrap();
+    }
 }
