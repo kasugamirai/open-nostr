@@ -62,7 +62,7 @@ impl<'a> EventPaginator<'a> {
         }
     }
 
-    async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
+    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
         if self.done {
             return None;
         }
@@ -88,7 +88,7 @@ impl<'a> EventPaginator<'a> {
             .await
         {
             Ok(events) => {
-                if events.is_empty() {
+                if events.is_empty() || events.len() < self.page_size {
                     self.done = true;
                     return None;
                 }
@@ -315,7 +315,7 @@ mod tests {
         .unwrap();
 
         let filter = Filter::new().kind(Kind::TextNote).author(public_key);
-        let page_size = 10;
+        let page_size = 100;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator = EventPaginator::new(&client, vec![filter], timeout, page_size);
 
@@ -323,6 +323,9 @@ mod tests {
         while let Some(result) = paginator.next_page().await {
             match result {
                 Ok(events) => {
+                    if paginator.done {
+                        break;
+                    }
                     console_log!("events are: {:?}", events);
                     count += events.len();
                 }
