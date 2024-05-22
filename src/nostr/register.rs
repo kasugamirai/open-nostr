@@ -142,7 +142,7 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn test_sub_for_two_clients() {
-        let timeout = Some(std::time::Duration::from_secs(5));
+        let _timeout = Some(std::time::Duration::from_secs(5));
         let event_id1 =
             EventId::from_hex("770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b")
                 .unwrap();
