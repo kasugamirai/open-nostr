@@ -253,11 +253,16 @@ pub fn Layout() -> Element {
                 Button { on_click: toggle_theme, "{theme}" }
             }
             Message{content:"{messageContent.clone()}"}
+
+            
         }
         div {
             class: "layout-main",
             Outlet::<Route> {}
         }
+
+
+
     }
 }
 #[component]

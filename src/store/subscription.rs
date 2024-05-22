@@ -168,9 +168,17 @@ impl FilterTemp {
             }
         }
         
-        filter = filter
-            .since(Timestamp::from(since))
-            .until(Timestamp::from(until));
+        filter = if since == 0 {
+            filter.remove_since()
+        } else {
+            filter.since(Timestamp::from(since))
+        };
+        
+        filter = if until == 0 {
+            filter.remove_until()
+        } else {
+            filter.until(Timestamp::from(until))
+        };
         
         filter
     }

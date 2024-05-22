@@ -4,7 +4,7 @@ use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::prelude::*;
 
-use crate::views::note_list::note::{Note, NoteData};
+use crate::views::note_list::note::{Note};
 
 #[derive(Debug, Clone)]
 pub struct Clients {
@@ -117,12 +117,12 @@ pub fn Children(name: String) -> Element {
                 "Children: {n}"
             }
             div {
-                for (i, note) in events.read().clone().iter().enumerate() {
-                    Note {
-                        sub_name: "".to_string(),
-                        data: NoteData::from(note, i),
-                    }
-                }
+                // for (i, note) in events.read().clone().iter().enumerate() {
+                //     Note {
+                //         sub_name: "".to_string(),
+                //         data: NoteData::from(note, i),
+                //     }
+                // }
             }
             script {
                 {auotGetData}
@@ -136,7 +136,7 @@ pub fn Children(name: String) -> Element {
 pub fn ChildrenKeep(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let events = use_signal(|| vec![]);
+    // let events = use_signal(|| vec![]);
 
     let n = name.clone();
 
@@ -193,12 +193,12 @@ pub fn ChildrenKeep(name: String) -> Element {
                 "Children: {n}"
             }
             div {
-                for (i, note) in events.read().clone().iter().enumerate() {
-                    Note {
-                        sub_name: "".to_string(),
-                        data: NoteData::from(note, i),
-                    }
-                }
+                // for (i, note) in events.read().clone().iter().enumerate() {
+                //     Note {
+                //         sub_name: "".to_string(),
+                //         data: NoteData::from(note, i),
+                //     }
+                // }
             }
         }
     }

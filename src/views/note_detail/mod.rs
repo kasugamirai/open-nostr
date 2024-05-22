@@ -7,7 +7,7 @@ use crate::{
         multiclient::MultiClient,
         note::ReplyTrees,
     },
-    views::note_list::note::{Note, NoteData},
+    views::note_list::note::Note,
 };
 
 #[component]
@@ -81,7 +81,7 @@ fn Layer(replytree: Signal<ReplyTrees>, sub_name: String, event_id: String) -> E
         Note {
             on_expand: move |_| show.set(!show()),
             sub_name: sub_name.clone(),
-            data: NoteData::from(&event.inner.clone(), 0),
+            event: event.inner.clone(),
             is_expand: repliesLen > 0,
         }
         if show() {
@@ -90,7 +90,7 @@ fn Layer(replytree: Signal<ReplyTrees>, sub_name: String, event_id: String) -> E
                 for reply in replies {
                     Note {
                         sub_name: sub_name.clone(),
-                        data: NoteData::from(&reply.inner.clone(), 0),
+                        event: reply.inner.clone(),
                         is_expand: false,
                     }
                 }

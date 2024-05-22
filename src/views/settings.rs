@@ -4,9 +4,7 @@ use dioxus::prelude::*;
 use nostr_sdk::prelude::*;
 
 use crate::{
-    components::Avatar,
     utils::format::{format_create_at, format_public_key, splite_by_replys},
-    views::note_list::note::{Note, NoteData},
 };
 // {
 //     "id": "eb8142a456387a0f593273b808290b29765a1958700f94bcc6c1ff0cef7fa4b0",
@@ -75,10 +73,10 @@ pub fn Settings() -> Element {
 #[component]
 pub fn EventItem(event: nostr_sdk::Event) -> Element {
     rsx! {
-        Note {
-            sub_name: "".to_string(),
-            data: NoteData::from(&event.clone(), 1),
-        }
+        // Note {
+        //     sub_name: "".to_string(),
+        //     data: NoteData::from(&event.clone(), 1),
+        // }
         div {
             class: "event-note",
             div {

@@ -6,54 +6,23 @@ use regex::Regex;
 use web_sys::console;
 
 use crate::{
-    components::{icons::*, Avatar},
-    nostr::{
-        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies},
-        multiclient::MultiClient,
-        utils::is_note_address,
-    },
-    utils::format::{format_content, format_create_at},
-    Route,
+    components::{icons::*, Avatar}, nostr::{
+        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies}, multiclient::MultiClient, note::TextNote, utils::is_note_address
+    }, utils::format::{format_content, format_create_at}, views::note_list::reply::Reply, Route
 };
 
 use super::quote::Quote;
 
-#[derive(PartialEq, Clone)]
-pub struct NoteData {
-    pub id: String,
-    pub author: String,
-    pub created_at: u64,
-    pub kind: String,
-    pub tags: Vec<String>,
-    pub content: String,
-    pub index: usize,
-    pub event: nostr_sdk::Event,
-}
-
-impl NoteData {
-    pub fn from(event: &nostr_sdk::Event, index: usize) -> Self {
-        NoteData {
-            id: event.id().to_hex(),
-            author: event.author().to_hex(),
-            created_at: event.created_at().as_u64(),
-            kind: "".to_string(),
-            tags: vec![],
-            content: event.content.to_string(),
-            index,
-            event: event.clone(),
-        }
-    }
-}
-
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
     pub sub_name: String,
-    pub data: NoteData,
+    pub event: Event,
     pub clsname: Option<String>,
     #[props(default = EventHandler::default())]
     pub on_expand: EventHandler<()>,
     pub is_expand: Option<bool>,
     pub relay_name: Option<String>,
+    pub note_index: Option<usize>,
 }
 enum NoteAction {
     Replay,
@@ -92,7 +61,7 @@ pub fn Note(props: NoteProps) -> Element {
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
-
+    let event = use_signal(|| props.event.clone());
     let mut element = use_signal(|| {
         rsx! {
             div {
@@ -101,10 +70,10 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
     });
-    tracing::info!("note data: {:#?}", props.data.event.tags());
-    let notetext = use_signal(|| props.data.content.clone());
-    let repost_text = use_signal(|| if props.data.event.kind() == Kind::Repost {
-        match Event::from_json(&props.data.content) {
+    tracing::info!("note data: {:#?}", props.event.tags());
+    let notetext = use_signal(|| props.event.content.clone());
+    let repost_text = use_signal(|| if props.event.kind() == Kind::Repost {
+        match Event::from_json(&props.event.content) {
             Ok(event) => event.content.to_string(),
             Err(e) => {
                 tracing::error!("parse event error: {:?}", e);
@@ -115,16 +84,25 @@ pub fn Note(props: NoteProps) -> Element {
     } else {
         String::new()
     });
-    let sub_name = use_signal(|| props.sub_name.clone());
-    let pk = use_signal(|| props.data.event.author().clone());
-    let eid = use_signal(|| props.data.event.id().clone());
+    let is_reply = use_signal(|| {
+        match TextNote::try_from(props.event.clone()) {
+            Ok(text_note) => text_note.is_reply(),
+            Err(e) => {
+                tracing::error!("parse event error: {:?}", e);
+                false
+            }
+        }
+    });
+
+    let pk = use_signal(|| props.event.author().clone());
+    let eid = use_signal(|| props.event.id().clone());
     let mut emoji = use_signal(|| HashMap::new());
     let optional_str_ref: String = match props.relay_name.clone() {
         Some(s) => s,
         None => String::from("default"),
     };
     let relay_name = use_signal(|| optional_str_ref.clone());
-    let is_repost = props.data.event.kind() == Kind::Repost;
+    let is_repost = props.event.kind() == Kind::Repost;
     let _future = use_resource(move || async move {
         let clients = multiclient();
         console::log_1(&"Fetching events...".into());
@@ -217,35 +195,37 @@ pub fn Note(props: NoteProps) -> Element {
     rsx! {
         div {
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
-            id: format!("note-{}", props.data.id),
+            id: format!("note-{}", event.read().id().to_string()),
             // detail modal
-            div {
-                style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
-                div {
-                    style: "width: 50%; height: 60%; max-width: 900px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
-                    button {
-                        class: "btn-icon remove",
-                        style: "position: absolute; top: -12px; left: -12px;",
-                        onclick: move |_| {
-                            show_detail.set(false);
-                        },
-                        dangerous_inner_html: "{FALSE}",
-                    }
-                    pre {
-                        style: "height: 100%; overflow-y: auto; font-size: 16px;",
-                        "{detail}"
-                    }
-                }
-            }
+            // if *show_detail.read() { 
+            //     div {
+            //         style: "position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999;",
+            //         div {
+            //             style: "width: 50%; height: 60%; max-width: 900px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
+            //             button {
+            //                 class: "btn-icon remove",
+            //                 style: "position: absolute; top: -12px; left: -12px;",
+            //                 onclick: move |_| {
+            //                     show_detail.set(false);
+            //                 },
+            //                 dangerous_inner_html: "{FALSE}",
+            //             }
+            //             pre {
+            //                 style: "height: 100%; overflow-y: auto; font-size: 16px;",
+            //                 "{detail}"
+            //             }
+            //         }
+            //     }
+            // }
             div {
                 class: "note-header flex items-start justify-between",
                 Avatar {
                     pubkey: pk.read().clone(),
-                    timestamp: props.data.created_at,
+                    timestamp: props.event.created_at.as_u64(),
                     relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
-                    repost_event: match props.data.event.kind() {
+                    repost_event: match props.event.kind() {
                         Kind::Repost => {
-                            let repost_event = Event::from_json(&props.data.content).unwrap();
+                            let repost_event = Event::from_json(&props.event.content).unwrap();
                             Some(repost_event)
                         }
                         _=> None
@@ -253,7 +233,7 @@ pub fn Note(props: NoteProps) -> Element {
                 }
                 MoreInfo {
                     on_detail: move |_| {
-                        let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
+                        let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
                         let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
                         detail.set(formatted_json);
                         show_detail.set(!show_detail());
@@ -263,8 +243,17 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
                 onclick: move |_| {
-                    handle_nav(Route::NoteDetail { sub: urlencoding::encode(&props.sub_name.clone()).to_string(), id: props.data.id.clone() });
+                    handle_nav(Route::NoteDetail { 
+                        sub: urlencoding::encode(&props.sub_name.clone()).to_string(), 
+                        id: event.read().id().to_string(), });
                 },
+                if is_reply() {
+                    Reply {
+                        event: event.read().clone(),
+                        sub_name: props.sub_name.clone(),
+                        relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                    }
+                }
                 {element}
             }
 
@@ -319,7 +308,7 @@ pub fn Note(props: NoteProps) -> Element {
 
                 if props.is_expand.unwrap_or(false) {
                     div {
-                        "data-expand": props.data.id.clone(),
+                        // "data-expand": props.event.id().to_string(),
                         class: "note-action-expand cursor-pointer",
                         onclick: move |_| {
                             props.on_expand.call(());

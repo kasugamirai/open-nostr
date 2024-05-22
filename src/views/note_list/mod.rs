@@ -1,20 +1,23 @@
 mod custom_sub;
 pub mod note;
- mod quote;
+pub mod quote;
+pub mod reply;
+pub mod note_wrapper;
 
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::Event;
-use web_sys::console;
+use nostr_sdk::{Event, JsonUtil, Kind};
 
 use crate::{
-    nostr::multiclient::MultiClient,
+    nostr::{multiclient::MultiClient, note::TextNote},
     store::{subscription::CustomSub, CBWebDatabase},
 };
 
 use custom_sub::CustomSubscription;
-use note::{Note, NoteData};
+use note::Note;
+use note_wrapper::Note_wrapper;
+
 
 #[component]
 pub fn NoteList(name: String) -> Element {
@@ -185,10 +188,18 @@ pub fn List(props: ListProps) -> Element {
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
                     sub_name: props.subscription.name.clone(),
-                    data: NoteData::from(note, i),
+                    event: note.clone(),
                     relay_name: props.subscription.relay_set.clone(),
+                    note_index: i,
                 }
+                // Note_wrapper {
+                //     sub_name: props.subscription.name.clone(),
+                //     event: note.clone(),
+                //     relay_name: props.subscription.relay_set.clone(),
+                
+                // }
             }
         }
     }
 }
+

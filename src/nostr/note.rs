@@ -27,8 +27,8 @@ impl fmt::Display for Error {
 #[derive(Debug, Clone)]
 pub struct TextNote {
     pub inner: Event,
-    root: Option<EventId>,
-    reply_to: Option<EventId>,
+    pub root: Option<EventId>,
+    pub reply_to: Option<EventId>,
 }
 
 impl TextNote {
@@ -42,6 +42,10 @@ impl TextNote {
 
     pub fn is_root(&self) -> bool {
         matches!((&self.root, &self.reply_to), (None, None))
+    }
+    pub fn is_reply(&self) -> bool {
+        matches!((&self.root, &self.reply_to), (Some(_), Some(_))) || 
+        matches!((&self.root, &self.reply_to), (Some(_), None))
     }
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
