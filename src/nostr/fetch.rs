@@ -75,6 +75,7 @@ pub fn decrypt_dm_event(
     };
     Ok(msg)
 }
+
 pub struct EventPaginator<'a> {
     client: &'a Client,
     filters: Vec<Filter>,
@@ -167,6 +168,57 @@ impl<'a> Stream for EventPaginator<'a> {
     }
 }
 */
+
+pub struct EncryptedEventPaginator<'a> {
+    event_paginator: &'a EventPaginator<'a>,
+    private_key: &'a SecretKey,
+    target_pub_key: &'a PublicKey,
+}
+
+impl EncryptedEventPaginator<'_> {
+    pub fn new<'a>(
+        event_paginator: &'a EventPaginator<'a>,
+        private_key: &'a SecretKey,
+        target_pub_key: &'a PublicKey,
+    ) -> EncryptedEventPaginator<'a> {
+        EncryptedEventPaginator {
+            event_paginator,
+            private_key,
+            target_pub_key,
+        }
+    }
+    pub fn created_encrypted_direct_message_filters(&self) -> Vec<Filter> {
+        let keys = Keys::new(self.private_key.clone());
+        let public_key = keys.public_key();
+        let mut ret: Vec<Filter> = Vec::new();
+        let my_msg_filter = Filter::new()
+            .kind(Kind::EncryptedDirectMessage)
+            .author(public_key)
+            .custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![self.target_pub_key.to_hex()],
+            );
+        let target_msg_filter = Filter::new()
+            .kind(Kind::EncryptedDirectMessage)
+            .author(*self.target_pub_key)
+            .custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![public_key.to_hex()],
+            );
+        ret.push(my_msg_filter);
+        ret.push(target_msg_filter);
+        ret
+    }
+
+    pub fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
+        let msg = if event.author() == *self.target_pub_key {
+            nip04::decrypt(self.private_key, event.author_ref(), event.content())?
+        } else {
+            nip04::decrypt(self.private_key, self.target_pub_key, event.content())?
+        };
+        Ok(msg)
+    }
+}
 
 pub async fn get_event_by_id(
     client: &Client,
