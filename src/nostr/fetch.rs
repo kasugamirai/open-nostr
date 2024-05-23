@@ -159,9 +159,9 @@ impl EncryptedEventPaginator<'_> {
             paginator: None,
         }
     }
-    pub async fn created_encrypted_direct_message_filters(&self) -> Vec<Filter> {
-        let signer = self.client.signer().await.unwrap();
-        let public_key = signer.public_key().await.unwrap();
+    pub async fn created_encrypted_direct_message_filters(&self) -> Result<Vec<Filter>, Error> {
+        let signer = self.client.signer().await?;
+        let public_key = signer.public_key().await?;
         let mut ret: Vec<Filter> = Vec::new();
         let my_msg_filter = Filter::new()
             .kind(Kind::EncryptedDirectMessage)
@@ -179,7 +179,7 @@ impl EncryptedEventPaginator<'_> {
             );
         ret.push(my_msg_filter);
         ret.push(target_msg_filter);
-        ret
+        Ok(ret)
     }
 
     pub async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
@@ -196,7 +196,10 @@ impl EncryptedEventPaginator<'_> {
         }
 
         if self.paginator.is_none() {
-            let filters = self.created_encrypted_direct_message_filters().await;
+            let filters = self
+                .created_encrypted_direct_message_filters()
+                .await
+                .unwrap();
             self.paginator = Some(EventPaginator::new(
                 self.client,
                 filters,
