@@ -1,3 +1,4 @@
+use dioxus::html::ms;
 use futures::{Future, Stream, StreamExt};
 use nostr_sdk::prelude::*;
 use nostr_sdk::Timestamp;
@@ -10,6 +11,7 @@ pub enum Error {
     Client(client::Error),
     MetadataConversion(nostr_sdk::types::metadata::Error),
     Database(nostr_indexeddb::IndexedDBError),
+    Decryptor(nip04::Error),
     NotFound,
     UnableToSave,
 }
@@ -24,6 +26,7 @@ macro_rules! impl_from_error {
     };
 }
 
+impl_from_error!(nip04::Error, Decryptor);
 impl_from_error!(client::Error, Client);
 impl_from_error!(nostr_sdk::types::metadata::Error, MetadataConversion);
 impl_from_error!(nostr_indexeddb::IndexedDBError, Database);
@@ -36,6 +39,42 @@ pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
     events.iter().min_by_key(|event| event.created_at())
 }
 
+pub fn created_encrypted_direct_message_filters(
+    self_pub_key: &PublicKey,
+    target_pub_key: &PublicKey,
+) -> Vec<Filter> {
+    let mut ret: Vec<Filter> = Vec::new();
+    let my_msg = Filter::new()
+        .kind(Kind::EncryptedDirectMessage)
+        .author(*self_pub_key)
+        .custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![target_pub_key.to_hex()],
+        );
+    let target_msg = Filter::new()
+        .kind(Kind::EncryptedDirectMessage)
+        .author(*target_pub_key)
+        .custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![self_pub_key.to_hex()],
+        );
+    ret.push(my_msg);
+    ret.push(target_msg);
+    ret
+}
+
+pub fn decrypt_dm_event(
+    private_key: &SecretKey,
+    target_pub_key: &PublicKey,
+    event: &Event,
+) -> Result<String, Error> {
+    let msg = if event.author() == *target_pub_key {
+        nip04::decrypt(private_key, event.author_ref(), event.content())?
+    } else {
+        nip04::decrypt(private_key, target_pub_key, event.content())?
+    };
+    Ok(msg)
+}
 pub struct EventPaginator<'a> {
     client: &'a Client,
     filters: Vec<Filter>,
@@ -100,6 +139,7 @@ impl<'a> EventPaginator<'a> {
 
                 // Update the filters
                 self.filters = updated_filters;
+
                 Some(Ok(events))
             }
             Err(e) => {
@@ -110,6 +150,7 @@ impl<'a> EventPaginator<'a> {
     }
 }
 
+/*
 impl<'a> Stream for EventPaginator<'a> {
     type Item = Result<Vec<Event>, Error>;
 
@@ -125,6 +166,7 @@ impl<'a> Stream for EventPaginator<'a> {
         }
     }
 }
+*/
 
 pub async fn get_event_by_id(
     client: &Client,
@@ -214,6 +256,7 @@ mod tests {
         testhelper::event_from,
     };
     use nostr_indexeddb::WebDatabase;
+    use nostr_sdk::key::SecretKey;
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -314,7 +357,10 @@ mod tests {
         )
         .unwrap();
 
-        let filter = Filter::new().kind(Kind::TextNote).author(public_key);
+        let filter: Filter = Filter::new()
+            .kind(Kind::EncryptedDirectMessage)
+            .author(public_key);
+
         let page_size = 100;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator = EventPaginator::new(&client, vec![filter], timeout, page_size);
@@ -337,5 +383,49 @@ mod tests {
         }
 
         assert!(count > 100);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_encrypted_direct_message_filters_iterator() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let self_pub_key = PublicKey::from_bech32(
+            "npub1xlt6t8nkxtp8r8h5g9gh249k2mu4esuu7xr0hae7fny7z0mstt8szx6xtq",
+        )
+        .unwrap();
+        let target_pub_key = PublicKey::from_bech32(
+            "npub155pujvquuuy47kpw4j3t49vq4ff9l0uxu97fhph9meuxvwc0r4hq5mdhkf",
+        )
+        .unwrap();
+        let filters = created_encrypted_direct_message_filters(&self_pub_key, &target_pub_key);
+        assert_eq!(filters.len(), 2);
+        let page_size = 11;
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let mut paginator = EventPaginator::new(&client, filters, timeout, page_size);
+        let mut count = 0;
+        while let Some(result) = paginator.next_page().await {
+            match result {
+                Ok(events) => {
+                    for event in events.clone() {
+                        let msg = decrypt_dm_event(&private_key, &target_pub_key, &event).unwrap();
+                        console_log!("Decrypted message: {:?}", msg);
+                    }
+                    if paginator.done {
+                        break;
+                    }
+                    count += events.len();
+                }
+                Err(e) => {
+                    console_log!("Error fetching events: {:?}", e);
+                    break;
+                }
+            }
+        }
+        assert!(count > 0);
     }
 }
