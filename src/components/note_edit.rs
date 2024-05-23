@@ -76,16 +76,15 @@ pub fn NoteEdit(content: String) -> Element {
 
                     elements.push(rsx! {
                         div {
-                            class: "quote",
-                            style: "display: flex; align-items: center;",
+                            class: "quote display-flex-box items-center",
                             div {
-                                style: "font-weight: bold; width: 52px; display: flex; align-items: center; justify-content: center;",
+                                class:"font-weight-bold quote-box-style",
                                 "Qt:"
                             }
                             div {
-                                style: "flex: 1; border: 1px solid #333; border-radius: 20px; overflow: hidden; padding: 4px; display: flex; gap: 12px; background: #fff; height: 50px;",
+                              class:"display-flex-box qt-box",
                                 div {
-                                    style: "width: 140px; display: flex; align-items: center; gap: 12px;",
+                                    class: "qt-img-box",
                                     img {
                                         class: "square-40 radius-20 mr-12",
                                         src: avatar,
@@ -104,7 +103,7 @@ pub fn NoteEdit(content: String) -> Element {
                                     }
                                 }
                                 div {
-                                    style: "flex: 1; font-size: 14px; line-height: 20px; border-left: 2px solid #b4b4b4; padding: 0 12px;",
+                                    class:"qt-content-box font-size-14",
                                     dangerous_inner_html: "{content}"
                                 }
                             }

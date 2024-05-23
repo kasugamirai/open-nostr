@@ -1,17 +1,9 @@
-.layout-right {
-  width: 600px;
-  height: 100%;
-  padding: 20px;
-}
-
 .custom-sub {
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 10px;
 
   .sub-header {
-    display: flex;
-    align-items: center;
+    @include display-align-justify-flex(flex,center,null,null);
     gap: 10px;
     color: var(--txt-2);
     font-size: 20px;
@@ -20,12 +12,11 @@
   }
 }
 
-.subStyle {
+.sub-style {
   width: 400px;
   height: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
+  @include position(relative);
+  @include flex-direction-column;
   gap: 10px;
 }
 
@@ -33,13 +24,16 @@
   display: none !important;
 }
 
+.window-color {
+  color: var(--txt-2);
+}
+
 .custom-sub-header {
   height: 44px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  @include display-align-justify-flex(flex,center,space-between,null);
   gap: 12px;
   border-bottom: 4px solid var(--boc-2);
+  color: var(--txt-1);
 }
 
 .custom-sub .com-dropdown-content {
@@ -56,9 +50,7 @@
 .custom-sub-header .trigger {
   width: 32px;
   height: 32px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  @include display-align-justify-flex(flex,center,center,null);
   border-radius: var(--radius-circle);
   background: none;
   border: none;
@@ -79,8 +71,7 @@
 }
 
 .custom-sub-header .content {
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 10px;
   padding: 10px;
   border: 1px solid var(--boc-1);
@@ -96,14 +87,12 @@
   border-radius: var(--radius-1);
 }
 
-.btnSvg .content-btn{
-  display: flex;
-  flex-direction: initial;
+.btnSvg .content-btn {
+  @include display-align-justify-flex(flex,center,null,initial);
   gap: 10px;
-  align-items: center;
 }
 
-.btnSvg .content{
+.btnSvg .content {
   border-radius: 26px;
   gap: 5px;
   padding: 4px 6px;
@@ -114,12 +103,11 @@
 }
 
 .custom-sub-content {
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 14px;
 }
 
-.subInput {
+.sub-input {
   background-color: var(--bgc-3);
   height: 31px;
   line-height: 19px;
@@ -130,9 +118,7 @@
   color: #858585;
   font-size: var(--textSize-14);
   font-family: "Source Sans Pro";
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include display-align-justify-flex(flex,center,center,null);
   white-space: nowrap;
 }
 
@@ -141,8 +127,7 @@
 .custom-sub-live,
 .custom-sub-filters {
   padding: 0 18px;
-  display: flex;
-  align-items: center;
+  @include display-align-justify-flex(flex,center,null,null);
 
   .width-80-fontSize-16 {
     width: 80px;
@@ -169,26 +154,20 @@
   padding: 9px 15px;
   border-radius: var(--radius-16);
   background-color: var(--bgc-2);
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 10px;
-  position: relative;
+  @include position(relative);
 }
 
 .custom-sub-item-remove {
-  cursor: pointer;
-  position: absolute;
+  @include button-style;
   height: 32px;
   width: 32px;
-  top: -16px;
-  left: -16px;
-  border-radius: var(--radius-circle);
+  @include position(absolute,(top,-16px),(left,-16px));
   background-color: var(--col-error);
-  border: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
+
+// btn-add
 
 .custom-sub-item-remove.false {
   display: none;
@@ -200,14 +179,14 @@
 }
 
 .custom-sub-item-remove svg path {
-  fill: var(--bgc-0);
+  fill: var(--bgc-4);
 }
 
 .custom-sub-filter-item {
   min-height: 44px;
-  display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  @include display-align-justify-flex(flex,center,null,null);
+  color: var(--txt-1);
 }
 
 .sub-shadow {
@@ -216,9 +195,7 @@
   padding: 0 20px;
   border-radius: var(--radius-circle);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  @include display-align-justify-flex(flex,center,center,null);
   white-space: nowrap;
   box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
   margin-left: 6px;
@@ -231,19 +208,13 @@
 }
 
 .btn-add {
-  cursor: pointer;
-  width: 32px;
+  @include button-style;
   height: 32px;
+  width: 32px;
   margin-left: 10px;
-  border-radius: var(--radius-circle);
   background-color: var(--bgc-1);
-  border: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   margin-bottom: 6px;
 }
-
 
 .btn-add svg {
   width: 12px;
@@ -251,7 +222,7 @@
 }
 
 .btn-add svg path {
-  fill: var(--bgc-0);
+  fill: var(--bgc-4);
 }
 
 .btn-add-content {
@@ -260,8 +231,7 @@
   border: 1px solid var(--boc-1);
   border-radius: var(--radius-1);
   padding: 10px;
-  display: flex;
-  flex-direction: column;
+  @include flex-direction-column;
   gap: 10px;
 }
 
@@ -281,13 +251,12 @@
 
 .custom-sub-time {
   padding: 0 18px;
-  display: flex;
-  align-items: center;
+  @include display-align-justify-flex(flex,center,null,null);
+  gap: 5px;
 }
 
 .custom-sub-time span {
-  display: flex;
-  align-items: center;
+  @include display-align-justify-flex(flex,center,null,null);
 }
 
 .custom-sub-time svg {
@@ -295,73 +264,54 @@
   width: 24px;
 }
 
-.addPopUpStyle {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--bgc-0);
+.add-pop-up-style {
+  @include pop-up-style;
   border-radius: var(--radius-circle);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--boc-1);
-  z-index: 100;
 }
-.addRadiusStyle{
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: var(--bgc-0);
+
+.add-radius-style {
+  @include pop-up-style;
   border-radius: 26px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  border: 1px solid var(--boc-1);
-  z-index: 100;
 }
-.addInput{
+
+.add-input {
+  @include input-style;
   width: 114px;
-  border: none; 
-  border-bottom: 1px solid var(--boc-1); 
   font-size: 16px;
-  text-indent: 6px;
   line-height: 30px;
   margin-left: 8px;
 }
-.addInput76{
+
+.add-input-76 {
   width: 76px;
 }
 
 .custom-sub-time .com-dtpicker svg path {
-  fill: var(--bgc-1);
+  fill: var(--bgc-5);
 }
 
 .custom-sub-add {
-  display: flex;
-  justify-content: center;
-  text-align: center;
+  @include display-align-justify-flex(flex,center,center,null);
 }
 
 .btn-circle {
-  cursor: pointer;
+  @include button-style;
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-circle);
   background-color: var(--bgc-1);
-  border: none;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+}
+
+.btn-icon.purple svg path {
+  fill: var(--bgc-5);
 }
 
 .btn-circle svg {
   width: 16px;
   height: 16px;
 }
-.com-switch-true{
-  background-color: rgba(159, 116, 235, 1);
+
+.com-switch-true {
+  background-color: var(--bgc-6);
 }
 
 .btn-circle path {
@@ -370,26 +320,78 @@
 
 .btn-circle-true {
   background-color: var(--bgc-1);
+
+  svg path {
+    fill: var(--bgc-4);
+  }
 }
 
 .btn-circle-false {
   background-color: var(--col-error);
+
+  svg path {
+    fill: var(--bgc-4);
+  }
 }
 
 .btn-circle-success {
   background-color: var(--col-success);
-}
 
-/* Media Queries 0 - 1000 */
-@media screen and (max-width: 1000px) {
-  .layout-right {
-    display: none;
+  svg path {
+    fill: var(--bgc-4);
   }
 }
 
-/* Media Queries 1001 - 1600 */
-@media screen and (max-width: 1600px) {
-  .layout-right {
-    width: 400px;
+// input time Style
+.com-dtpicker {
+  display: flex;
+  gap: 5px;
+  font-size: var(--textSize-14);
+  @include position(relative);
+
+  input {
+    padding: 0;
+    letter-spacing: -1px;
+    box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
+    background-color: var(--bgc-0);
+    border: 1px solid var(--bgc-4);
+    color: var(--txt-1);
+    padding-left: 12px;
+    padding-right: 10px;
+    height: 34px;
   }
+
+  .end_data {
+    padding-right: 0;
+    padding-left: 20px;
+  }
+
+  .data-start-icon {
+    @include position(absolute,(top,5px),(left,120px));
+  }
+
+  .data-end-icon {
+    @include position(absolute,(top,5px),(left,150px));
+  }
+
+  /* 隐藏所有<input>元素的向下箭头 */
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    width: 130px;
+    background: none;
+    @include position(absolute);
+    z-index: 99;
+  }
+}
+
+.sub-window-icon {
+  @include position(absolute,(left,-7px));
+}
+.custom-sub-live .btn-icon {
+  height: 24px;
+  margin-left: 18px;
+}
+
+.sub-edit-button{
+  @include display-align-justify-flex(flex,center,null,null);
+  gap: 10px;
 }

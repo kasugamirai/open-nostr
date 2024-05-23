@@ -95,16 +95,16 @@ pub fn NoteList(name: String) -> Element {
 
     rsx! {
         div {
-            class:"flexBox",
+            class:"flex-box",
             div {
-                class:"flexBoxLeft",
+                class:"flex-box-left",
                 List {
                     index: index(),
                     subscription: sub_current.read().clone(),
                 }
             }
             div {
-                class: "subStyle",
+                class: "sub-style",
                 CustomSubscription {
                     on_save: handle_save,
                     on_reload: handle_reload,
@@ -184,7 +184,7 @@ pub fn List(props: ListProps) -> Element {
             onmounted: move |_| {
                 handle_load();
             },
-            style: "display: flex; flex-direction: column; gap: 10px; width: 100%;",
+            class: "note-more-mod-box",
             for (i, note) in notes.read().clone().iter().enumerate() {
                 Note {
                     sub_name: props.subscription.name.clone(),

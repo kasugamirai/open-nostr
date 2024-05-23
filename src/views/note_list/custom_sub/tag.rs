@@ -37,8 +37,7 @@ pub fn TagInput(props: TagInputProps) -> Element {
 
     rsx! {
         div {
-            class: "{cn}",
-            style: "position: relative;",
+            class: "{cn} relative",
             div {
               class:"sub-shadow",
               onclick: move |_| {
@@ -53,12 +52,12 @@ pub fn TagInput(props: TagInputProps) -> Element {
                 "#{value().tag} | {value().value}"
             }
             div {
-                class: "show-{edit} addPopUpStyle",
+                class: "show-{edit} add-pop-up-style",
                 label {
-                    style: "display: flex; align-items: center; gap: 10px;",
+                    class:"display-align-gap",
                     input {
                         r#type: "text",
-                        class:"addInput addInput76",
+                        class:"add-input add-input-76",
                         placeholder: "tag",
                         value: "{value().tag}",
                         oninput: move |event| {
@@ -67,7 +66,7 @@ pub fn TagInput(props: TagInputProps) -> Element {
                     }
                     input {
                         r#type: "text",
-                        class:"addInput addInput76",
+                        class:"add-input add-input-76",
                         placeholder: "value",
                         value: "{value().value}",
                         oninput: move |event| {

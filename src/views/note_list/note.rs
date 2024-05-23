@@ -282,7 +282,7 @@ pub fn Note(props: NoteProps) -> Element {
                         }
                     })}
                     span{
-                        style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
+                        class: "note-action-wrapper-span ml-10",
                     }
                     div {
                         class: "note-action-item cursor-pointer flex items-center",
@@ -350,7 +350,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                 // Save the coordinates of the event relative to the screen
                 pos.set(event.screen_coordinates().to_tuple());
             },
-            style: "position: relative;",
+            class: "relative",
             div {
                 class: "more-trigger",
                 div {
@@ -361,12 +361,11 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                 }
             }
             div {
-                class: "show-{edit}",
-                style: "position: absolute; right: 0; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                class: "show-{edit} note-more-box",
                 div {
-                    style: "display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; width: 140px;",
+                    class:"note-more-content-box",
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             edit.set(false);
                         },
@@ -376,7 +375,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                         "Share"
                     }
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             edit.set(false);
                         },
@@ -386,7 +385,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                         "Book Mark"
                     }
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             edit.set(false);
                         },
@@ -396,7 +395,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                         "Broadcast"
                     }
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             on_detail.call(());
                             edit.set(false);

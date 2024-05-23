@@ -46,9 +46,9 @@ pub fn Input(props: InputProps) -> Element {
                 props.on_change.call(value.read().clone());
             },
             div {
-                style: "position: relative;",
+                class: "relative",
                 div {
-                    class:"subInput",
+                    class:"sub-input",
                     onclick: move |_| {
                         if allow_edit() {
                             edit.set(true);
@@ -57,12 +57,12 @@ pub fn Input(props: InputProps) -> Element {
                     " {bak} "
                 }
                 div {
-                    class: "show-{edit} addPopUpStyle",
+                    class: "show-{edit} add-pop-up-style",
                     label {
-                        style: "display: flex; align-items: center; gap: 10px;",
+                        class:"display-align-gap",
                         input {
                             r#type: "text",
-                            class:"addInput",
+                            class:"add-input",
                             placeholder: "Please input",
                             value: "{value}",
                             oninput: move |event| {

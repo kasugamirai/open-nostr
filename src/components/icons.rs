@@ -38,9 +38,11 @@ pub const RESTART: &str = include_str!("../../public/svgs/restart.svg");
 pub const SAVEICON: &str = include_str!("../../public/svgs/saveIcon.svg");
 pub const LIKEICON: &str = include_str!("../../public/svgs/likeIcon.svg");
 pub const IMGICON: &str = include_str!("../../public/svgs/imgIcon.svg");
+//Custom Sub icon
 pub const RIGHTICON: &str = include_str!("../../public/svgs/leftIcon.svg");
 pub const LEFTICON: &str = include_str!("../../public/svgs/rigthIcon.svg");
 pub const ARROWRIGHT: &str = include_str!("../../public/svgs/arrowright.svg");
+pub const SUBEDIT: &str = include_str!("../../public/svgs/subEdit.svg");
 
 //Relay icon
 pub const BOTTOMRIGHT: &str = include_str!("../../public/svgs/bottomRight.svg");

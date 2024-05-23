@@ -65,8 +65,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
 
     rsx! {
         div {
-            class: "{cn}",
-            style: "position: relative;",
+            class: "{cn} relative",
             div {
                 class: "sub-shadow",
                 onclick: move |_| {
@@ -76,9 +75,9 @@ pub fn KindInput(props: KindInputProps) -> Element {
                 r#"{value().iter().map(|v| kind_to_text(*v)).collect::<Vec<String>>().join(" & ")}"#
             }
             div {
-                class: "show-{edit} addRadiusStyle",
+                class: "show-{edit} add-radius-style",
                 label {
-                    style: "display: flex; align-items: center; gap: 10px;",
+                    class:"display-align-gap",
                     span {
                         "Note"
                     }
@@ -98,7 +97,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
                     }
                 }
                 label {
-                    style: "display: flex; align-items: center; gap: 10px;",
+                    class:"display-align-gap",
                     span {
                         "Repost"
                     }

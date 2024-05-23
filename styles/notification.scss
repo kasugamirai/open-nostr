@@ -1,101 +1,91 @@
-.NotStyle {
+.not-style {
   width: 391px;
   height: 100%;
-  position: relative;
-  display: flex;
-  flex-direction: column;
   gap: 10px;
-  .custom-sub-header{
-    margin-left: 16px;
-  }
 
-  .dayBox{
-    display: flex;
+  .day-box {
     height: 22px;
-    margin-left: 16px;
-    position: relative;
-    .border000{
+
+    .border000 {
       width: 370px;
-      margin-top: 11px;
-      background-color: #000;
+      background-color: var(--boc-1);
       height: 1px;
     }
-    span{
-      color: #2b2c2b;
+
+    span {
+      color: var(--txt-2);
       font-size: var(--textSize-18);
       font-family: "Raleway";
       font-weight: 400;
       line-height: 22px;
-      position: absolute;
       left: 58px;
-      background-color: #fff;
+      background-color: var(--bgc-0);
       top: -2px;
     }
   }
 
-
-
-
-
-  .NotificatioBox{
-    background-color: #f6f2ff;
+  .notificatio-box {
+    background-color: var(--bgc-2);
     border-radius: var(--radius-24);
     border: 1px solid var(--boc-1);
     box-sizing: border-box;
     padding: 5px 4px;
   }
-  .header{
-    display: flex;    
+
+  .header {
     justify-content: space-between;
     align-items: flex-start;
     padding: 1px 3px;
     padding-right: 5px;
   }
-  .user{
-    display: flex;
+
+  .user {
     align-items: center;
   }
-  .profile{
+
+  .profile {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
   }
-  .nickname{
+
+  .nickname {
     color: var(--boc-1);
-    font-size: 16px;
     font-family: "Source Sans Pro";
     line-height: 21px;
   }
-  .created{
+
+  .created {
     color: #969696;
-    font-size: 14px;
     font-family: "Raleway";
     font-weight: 500;
     line-height: 18px;
   }
-  .avatarLeft{
-    img{
+
+  .avatar-left {
+    img {
       width: 46px;
       height: 46px;
     }
   }
-  .content{
+
+  .content {
     margin-left: 62px;
     margin-right: 44px;
     color: var(--boc-1);
-    font-size: 18px;
     font-family: "Source Sans Pro";
     font-weight: 400;
     line-height: 22px;
   }
 }
-.contBox{
-  background-color: #fff !important;
-  .content{
+
+.cont-box {
+  background-color: var(--bgc-0) !important;
+
+  .content {
     margin: 0 14px;
     margin-top: 11px;
     color: var(--boc-1);
-    font-size: 14px;
     font-family: "Raleway";
     font-weight: 500;
     line-height: 18px;

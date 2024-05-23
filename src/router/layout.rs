@@ -49,7 +49,7 @@ pub fn Layout() -> Element {
 
     rsx! {
         div{
-            class: "layout-left",
+            class: "menu-bar",
             div {
                 class: "menu",
                 h1 {
@@ -178,7 +178,7 @@ pub fn Layout() -> Element {
                           div{
                             "Preview:"
                             div{
-                              class:"previewContent",
+                              class:"preview-content",
                               // NoteEdit {
                               //   content: contentText.read().clone()
                               // }
@@ -209,11 +209,11 @@ pub fn Layout() -> Element {
                           }
                         }
                         button{
-                          class:"noteButton sendStyle",
+                          class:"note-button send-style",
                           "Send"
                         }
                         button{
-                          class:"noteButton cancelStyle",
+                          class:"note-button cancel-style",
                           onclick: move |_| {
                             edit.set(false);
                           },
@@ -226,7 +226,7 @@ pub fn Layout() -> Element {
                 div {
                     class: "subscriptions",
                     h1{
-                        style: "color:var(--txt-1)",
+                        class:"subscriptions-text",
                         "Subscriptions:"
                     }
                     div{
@@ -253,16 +253,11 @@ pub fn Layout() -> Element {
                 Button { on_click: toggle_theme, "{theme}" }
             }
             Message{content:"{messageContent.clone()}"}
-
-            
         }
         div {
-            class: "layout-main",
+            class: "content-feed",
             Outlet::<Route> {}
         }
-
-
-
     }
 }
 #[component]

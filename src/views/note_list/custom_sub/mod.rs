@@ -113,33 +113,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                     }
                                     "Export"
                                 }
-                                if edit() {
-                                    button {
-                                        class: "content-btn",
-                                        onclick: handle_save,
-                                        span{
-                                          dangerous_inner_html: "{SAVEICON}",
-                                        }
-                                        "Save"
-                                    }
-                                    button {
-                                        class: "content-btn",
-                                        onclick: handle_reset,
-                                        span{
-                                          dangerous_inner_html: "{RESTART}",
-                                        }
-                                        "Reset"
-                                    }
-                                } else {
-                                    button {
-                                        class: "content-btn",
-                                        onclick: move |_| edit.set(true),
-                                        span{
-                                          dangerous_inner_html: "{EDITICON}",
-                                        }
-                                        "Edit"
-                                    }
-                                }
+                                
                             }
                         }
                     }
@@ -169,7 +143,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         "Relays:"
                     }
                     div {
-                        style: "display: inline-block;",
+                        class:"display-inline-block",
                         RelaysInput {
                             on_change: move |v: RelaySet| {
                                 let mut sub = sub_current.write();
@@ -186,9 +160,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         "Live:"
                     }
                     div {
-                        style: "display: inline-block;",
+                        class:"display-inline-block",
                         div {
-                            style: "display: flex; align-items: center; gap: 10px;",
+                            class:"display-align-gap",
                             Switch {
                                 value: sub_current().live,
                                 on_change: move |value: bool| {
@@ -197,8 +171,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                 },
                             }
                             button {
-                                class: "btn-icon purple small",
-                                style: format!("display: {};", if sub_current().live { "none" } else { "inline-block" }),
+                                class: format!("btn-icon purple small {}", if sub_current().live { "display-none-important" } else { "display-inline-block" }),
                                 onclick: handle_reload,
                                 dangerous_inner_html: "{RELOAD}",
                             }
@@ -206,8 +179,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                 }
                 div {
-                    class: "custom-sub-time",
-                    style: format!("display: {}; align-items: center; gap: 5px;", if sub_current().live { "none" } else { "flex" }),
+                    class: format!("custom-sub-time {}", if sub_current().live { "display-none-important" } else { "display-flex-box" }),
                     div {
                         class: "width-80-fontSize-16 window-color relative ti-12",
                         span{
@@ -217,7 +189,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         "Window:"
                     }
                     div {
-                        style: "display: inline-block;",
+                        class:"display-inline-block",
                         DateTimePicker {
                             value: sub_current().since,
                             end: sub_current().until,
@@ -228,6 +200,38 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             },
                         }
                     }
+                }
+                div {
+                  class: "custom-sub-name",
+                  div {
+                      class: "width-80-fontSize-16",
+                      "Filters:"
+                  }
+                  div {
+                    class:"display-inline-block",
+                    div {
+                        class:"sub-edit-button",
+                        
+                        if edit() {
+                            button {
+                              class: "btn-circle btn-circle-true",
+                              onclick: handle_save,
+                              dangerous_inner_html: "{TRUE}"
+                            }
+                            button {
+                                class: "btn-circle btn-circle-false ml-5",
+                                onclick: handle_reset,
+                                dangerous_inner_html: "{FALSE}"
+                            }
+                        } else {
+                          button {
+                            class: format!("btn-icon purple small {}", if sub_current().live { "display-none-important" } else { "display-inline-block" }),
+                            onclick: move |_| edit.set(true),
+                            dangerous_inner_html: "{SUBEDIT}",
+                          }
+                        }
+                    }
+                  }
                 }
             }
             for (i, filter) in sub_current.read().filters.iter().enumerate() {

@@ -202,7 +202,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
         div {
             class: "relay-btn relative",
             div {
-                class: format!("subInput cursor-{}", if allow_edit() { "pointer" } else { "disabled" }),
+                class: format!("sub-input cursor-{}", if allow_edit() { "pointer" } else { "disabled" }),
                 onclick: move |_| {
                   if allow_edit() { // 判断是否编辑状态
                     edit.set(!edit());

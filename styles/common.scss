@@ -1,188 +1,350 @@
 * {
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    outline: none;
-    font-family: "Source Sans Pro";
-  }
-  #app {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--bgc-0);
-    overflow-y: auto;
-    display: flex;
-    width: 100vw;
-    height: 100vh;
-  }
-  
-  
-  #main {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-  }
-  .relative {
-    position: relative;
-  }
-  .absoulte {
-    position: absolute;
-  }
-  .flex-col {
-    flex-direction: column;
-  }
-  .flex-row {
-    flex-direction: row;
-  }
-  .items-start {
-    align-items: flex-start;
-  }
-  
-  .wor-wrap {
-    word-wrap: break-word;
-  }
-  
-  
-  .cursor-pointer {
-    cursor: pointer;
-  }
-  .cursor-disabled {
-    cursor: not-allowed;
-  }
-  /* common css */
-  .items-center {
-    align-items: center;
-  }
-  .justify-between {
-    justify-content: space-between;
-  }
-  .overflow-hidden {
-    overflow: hidden;
-  }modal-content
-  .cursor-pointer {
-    cursor: pointer;
-  }
-  .text-center {
-    text-align: center;
-  }
-  .text-overflow {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  
-  .font-Raleway-400 {
-    font-family: "Raleway";
-    font-weight: 400;
-  }
-  .font-Raleway-500 {
-    font-family: "Raleway";
-    font-weight: 500;
-  }
-  .font-Raleway-600 {
-    font-family: "Raleway";
-    font-weight: 600;
-  }
-  .font-Raleway-700 {
-    font-family: "Raleway";
-    font-weight: 700;
-  }
-  .font-Raleway-800 {
-    font-family: "Raleway";
-    font-weight: 800;
-  }
-  .flexBox{
-  display: flex; 
-  width: 100%; 
-  height: 100%; 
-  gap: 20px;
-  }
-  .flexBoxLeft{
-  flex: 1; 
-  overflow-y: scroll; 
-  width: 100%;
-  }
-  .display-flex-Box{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  outline: none;
+  font-family: "Source Sans Pro";
+}
+
+#app {
+  @include fixed-auto;
+  background-color: var(--bgc-0);
+  overflow-y: auto;
   display: flex;
-  }
-  
-  .w-full {
-      width: 100%;
-  }
-  .h-full {
-      height: 100%;
-  }
-  
-  .overflow-y-auto {
-      overflow-y: auto;
-  }
-  .show-false {
-    display: none !important;
-  }
-  
-  input[type="datetime-local"] {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    height: 42px;
-    padding: 0 12px;
-    border-radius: var(--radius-circle);
-    border: none;
-  }
-  
-  svg {
-    width: 24px;
-    height: 24px;
-  }
-  
-  svg path {
-    fill: var(--txt-1);
-  }
-  .btn-icon {
-    cursor: pointer;
-    width: 28px;
-    height: 28px;
-    border-radius: var(--radius-circle);
-    border: none;
-    background: none;
-    @include flex-justify-align-center;
-  }
-  
-  .btn-icon.right,
-  .btn-icon.add {
-    background-color: var(--bgc-1);
-    svg path{
-      fill: var(--bgc-4);
+  width: 100vw;
+  height: 100vh;
+}
+#app {
+  --radius-1: 10px;
+  --radius-2: 20px;
+  --radius-3: 30px;
+  --radius-8: 8px;
+  --radius-16: 16px;
+  --radius-24: 24px;
+  --textSize-12: 12px;
+  --textSize-14: 14px;
+  --textSize-16: 16px;
+  --textSize-18: 18px;
+  --textSize-26: 26px;
+  --radius-circle: 2000px;
+  --trans-default: 0.4s;
+  --link: rgb(159, 116, 235);
+}
+
+#app.light {
+  --bgc-0: #ffffff;
+  --bgc-1: #9f74eb;
+  --bgc-5: #9f74eb;
+  --bgc-6: #9f74eb;
+  --bgc-2: #f6f2ff;
+  --bgc-3: #f5f5f5;
+  --bgc-4: #e8e8e8;
+  --boc-1: #030303;
+  --boc-2: #e7e7e7;
+  --txt-1: #0d0d0d;
+  --txt-2: #2b2c2b;
+  --txt-3: #b4b4b4;
+  --col-error: #fc80bc;
+  --col-error-2: #fc80bc;
+  --col-success: #93f4ab;
+}
+
+#app.dark {
+  --bgc-0: #000000;
+  --bgc-1: #121212;
+  --bgc-5: #FFFFFF;
+  --bgc-6: #242424;
+  --bgc-2: #242424;
+  --bgc-4: #e8e8e8;
+  --bgc-3: #2b2b2b;
+  --boc-1: #BFBFBF;
+  --boc-2: #FFFFFF;
+  --txt-1: #FFFFFF;
+  --txt-2: #BFBFBF;
+  --txt-3: #6B6B6B;
+  --col-error: #121212;
+  --col-error-2: #ffffff;
+  --col-success: #121212;
+}
+
+
+#main {
+  @include fixed-auto;
+}
+
+
+// Font size 10 - 120px
+@for $i from 10 through $font_max_size {
+    .font-size-#{$i} {
+        font-size: $i + $unitpx;
     }
-  }
-  
-  .btn-icon.remove {
-    background-color: var(--col-error);
-  }
-  
-  .btn-icon svg {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .btn-icon svg path {
-    fill: var(--bgc-0);
-  }
-  
-  .btn-icon.small svg {
-    width: 16px;
-    height: 16px;
-  }
-  
-  .btn-icon.purple svg path {
-    fill: var(--bgc-1);
-  }
-  
-  .custom-sub-live .btn-icon{
-  height: 24px;
-  margin-left: 18px;
-  }
+}
+
+
+@for $i from 10 through $font_max_size {
+    .line-height-#{$i} {
+        line-height: $i + $unitpx;
+    }
+}
+
+// Margin 1 - 120px Padding 1 - 120px
+@for $i from 1 through $box_maring_padding_max_size {
+    .wd-#{$i} {
+        width: $i + $unitpx;
+    }
+    .ml-#{$i} {
+        margin-left: $i + $unitpx;
+    }
+    .mr-#{$i} {
+        margin-right: $i + $unitpx;
+    }
+    .mb-#{$i} {
+        margin-bottom: $i + $unitpx;
+    }
+    .mt-#{$i} {
+        margin-top: $i + $unitpx;
+    }
+    .mx-#{$i} {
+        margin-left: $i + $unitpx;
+        margin-right: $i + $unitpx;
+    }
+    .my-#{$i} {
+        margin-top: $i + px;
+        margin-bottom: $i + px;
+    }
+    .ti-#{$i} {
+      text-indent: $i + $unitpx;
+    }
+    .m-#{$i} {
+        margin: $i + px;
+    }
+    .p-#{$i} {
+        padding: $i + px;
+    }
+    .pl-#{$i} {
+        padding-left: $i + px;
+    }
+    .pr-#{$i} {
+        padding-right: $i + px;
+    }
+    .pb-#{$i} {
+        padding-bottom: $i + px;
+    }
+    .pt-#{$i} {
+        padding-top: $i + px;
+    }
+    .px-#{$i} {
+        padding-left: $i + px;
+        padding-right: $i + px;
+    }
+    .py-#{$i} {
+        padding-top: $i + px;
+        padding-bottom: $i + px;
+    }
+}
+
+// Border radius 1 - 30px
+@for $i from 1 through $border-radius_max_size {
+    .radius-#{$i} {
+        border-radius: $i + $unitpx;
+    }
+}
+// Z-index 1 - 100
+@for $i from 1 through $z-index_max_size {
+    .z-#{$i} {
+        z-index: $i;
+    }
+}
+// square 1 - 100px
+@for $i from 1 through 100 {
+    .square-#{$i} {
+        width: $i + $unitpx;
+        height: $i + $unitpx;
+    }
+}
+
+@for $i from 1 through 100 {
+    .translate-y-top-#{$i} {
+        transform: translateY($i + $unitpx);
+    }
+    .translate-y-bottom-#{$i} {
+        transform: translateY(-$i + $unitpx);
+    }
+}
+// lh 
+@for $i from 1 through 100 {
+    .lh-#{$i} {
+        line-height: $i + $unitpx;
+    }
+}
+
+.bgc-0 {
+  background-color: var(--bgc-0);
+}
+
+.bgc-1 {
+  background-color: var(--bgc-1);
+}
+
+.bgc-2 {
+  background-color: var(--bgc-2);
+}
+
+.bgc-3 {
+  background-color: var(--bgc-3);
+}
+
+.boc-1 {
+  border-color: var(--boc-1);
+}
+
+.boc-2 {
+  border-color: var(--boc-2);
+}
+
+.txt-1 {
+  color: var(--txt-1);
+}
+
+.txt-2 {
+  color: var(--txt-2);
+}
+
+.txt-3 {
+  color: var(--txt-3);
+}
+.relative {
+  @include position(relative);
+}
+
+.absoulte {
+  @include position(absolute);
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.wor-wrap {
+  word-wrap: break-word;
+}
+.font-weight-bold{
+  font-weight: bold;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-disabled {
+  cursor: not-allowed;
+}
+
+/* common css */
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+
+.text-center {
+  text-align: center;
+}
+
+.text-overflow {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.font-raleway-400 {
+  font-family: "Raleway";
+  font-weight: 400;
+}
+
+.font-raleway-500 {
+  font-family: "Raleway";
+  font-weight: 500;
+}
+
+.font-raleway-600 {
+  font-family: "Raleway";
+  font-weight: 600;
+}
+
+.font-raleway-700 {
+  font-family: "Raleway";
+  font-weight: 700;
+}
+
+.font-raleway-800 {
+  font-family: "Raleway";
+  font-weight: 800;
+}
+
+.flex-box {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  gap: 20px;
+}
+
+.flex-box-left {
+  flex: 1;
+  overflow-y: scroll;
+  width: 100%;
+}
+
+
+.items-center {
+  align-items: center;
+}
+
+.display-flex-box {
+  display: flex;
+}
+.display-none {
+  display: none;
+}
+.display-none-important {
+  display: none !important;
+}
+.display-inline-block {
+  display: inline-block;
+}
+.display-block {
+  display: block;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.h-full {
+  height: 100%;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.show-false {
+  display: none !important;
+}
+.display-align-gap{
+  display: flex; 
+  align-items: center; 
+  gap: 10px;
+}

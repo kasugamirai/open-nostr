@@ -45,9 +45,9 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
         }
         element.set(rsx! {
             div {
-                style: "width: 100%; height: 100%; display: flex; gap: 20px;",
+                class: "note-detail-mode-box",
                 div {
-                    style: "flex: 1; height: 100%; overflow-y: scroll;",
+                    class: "note-detail-mode-content",
                     Layer {
                         replytree: replytree,
                         sub_name: sub_name.read(),
@@ -55,7 +55,7 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
                     }
                 }
                 div {
-                    style: "width: 500px;",
+                    class:"width-500",
                 }
             }
         })
@@ -86,7 +86,7 @@ fn Layer(replytree: Signal<ReplyTrees>, sub_name: String, event_id: String) -> E
         }
         if show() {
             div {
-                style: "margin-left: 20px;",
+                class:"ml-20",
                 for reply in replies {
                     Note {
                         sub_name: sub_name.clone(),
