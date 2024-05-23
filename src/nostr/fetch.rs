@@ -44,22 +44,22 @@ pub fn created_encrypted_direct_message_filters(
     target_pub_key: &PublicKey,
 ) -> Vec<Filter> {
     let mut ret: Vec<Filter> = Vec::new();
-    let my_msg = Filter::new()
+    let my_msg_filter = Filter::new()
         .kind(Kind::EncryptedDirectMessage)
         .author(*self_pub_key)
         .custom_tag(
             SingleLetterTag::lowercase(Alphabet::P),
             vec![target_pub_key.to_hex()],
         );
-    let target_msg = Filter::new()
+    let target_msg_filter = Filter::new()
         .kind(Kind::EncryptedDirectMessage)
         .author(*target_pub_key)
         .custom_tag(
             SingleLetterTag::lowercase(Alphabet::P),
             vec![self_pub_key.to_hex()],
         );
-    ret.push(my_msg);
-    ret.push(target_msg);
+    ret.push(my_msg_filter);
+    ret.push(target_msg_filter);
     ret
 }
 
