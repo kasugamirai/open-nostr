@@ -218,6 +218,17 @@ impl EncryptedEventPaginator<'_> {
         };
         Ok(msg)
     }
+
+    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
+        let filters = self.created_encrypted_direct_message_filters();
+        let mut paginator = EventPaginator::new(
+            self.event_paginator.client,
+            filters,
+            self.event_paginator.timeout,
+            self.event_paginator.page_size,
+        );
+        paginator.next_page().await
+    }
 }
 
 pub async fn get_event_by_id(
