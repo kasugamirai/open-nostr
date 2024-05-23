@@ -234,8 +234,20 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn test_update_subscription() {
-        let filter1 = Filter::new().author(PublicKey::from_bech32("npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew").unwrap()).limit(1);
-        let filter2 = Filter::new().author(PublicKey::from_bech32("npub1vaq95a68j42vwau30ymu56klrkl4g9wxpd7ljsljl8rg3uwd425qyht7a9").unwrap());
+        let filter1 = Filter::new()
+            .author(
+                PublicKey::from_bech32(
+                    "npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew",
+                )
+                .unwrap(),
+            )
+            .limit(1);
+        let filter2 = Filter::new().author(
+            PublicKey::from_bech32(
+                "npub1vaq95a68j42vwau30ymu56klrkl4g9wxpd7ljsljl8rg3uwd425qyht7a9",
+            )
+            .unwrap(),
+        );
         let client = Client::default();
         client.add_relay("wss://nos.lol").await.unwrap();
         client.add_relay("wss://relay.damus.io").await.unwrap();

@@ -1,11 +1,11 @@
 use crate::init::NOSTR_DB_NAME;
 use crate::store::CBWebDatabase;
 use crate::store::CAPYBASTR_DBNAME;
+use futures::lock::Mutex;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::ClientBuilder;
 use std::collections::HashMap;
 use std::sync::Arc;
-use futures::lock::Mutex;
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {

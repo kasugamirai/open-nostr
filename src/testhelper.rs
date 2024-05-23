@@ -28,13 +28,12 @@ pub mod test_data {
 }
 
 pub mod test_hander {
-    use std::sync::Arc;
     use nostr_sdk::prelude::*;
+    use std::sync::Arc;
     use wasm_bindgen_test::*;
 
     use crate::nostr::register::NotificationHandler;
 
-   
     pub fn create_console_log_handler() -> NotificationHandler {
         Arc::new(|notification| {
             Box::pin(async move {
@@ -43,10 +42,13 @@ pub mod test_hander {
                         message: RelayMessage::Event { event, .. },
                         ..
                     } => {
-                        console_log!("eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
-                        event.id.to_string(), 
-                        event.author().to_string(),
-                        event.kind, event.content);
+                        console_log!(
+                            "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
+                            event.id.to_string(),
+                            event.author().to_string(),
+                            event.kind,
+                            event.content
+                        );
                         Ok(false) // Return true to stop the handling process
                     }
                     _ => Ok(false),
@@ -78,4 +80,3 @@ pub async fn sleep(ms: u32) -> Result<(), JsValue> {
     JsFuture::from(promise).await?;
     Ok(())
 }
-
