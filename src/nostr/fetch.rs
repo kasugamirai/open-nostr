@@ -1,10 +1,11 @@
-use dioxus::html::ms;
 use futures::{Future, Stream, StreamExt};
+use nostr_sdk::bitcoin::PrivateKey;
 use nostr_sdk::prelude::*;
 use nostr_sdk::Timestamp;
 use nostr_sdk::{client, Metadata};
 use std::collections::HashMap;
 use std::time::Duration;
+use wasm_bindgen_test::console_log;
 /// Error enum to represent possible errors in the application.
 #[derive(Debug)]
 pub enum Error {
@@ -12,6 +13,7 @@ pub enum Error {
     MetadataConversion(nostr_sdk::types::metadata::Error),
     Database(nostr_indexeddb::IndexedDBError),
     Decryptor(nip04::Error),
+    Signer(nostr_sdk::signer::Error),
     NotFound,
     UnableToSave,
 }
@@ -26,6 +28,7 @@ macro_rules! impl_from_error {
     };
 }
 
+impl_from_error!(nostr_sdk::signer::Error, Signer);
 impl_from_error!(nip04::Error, Decryptor);
 impl_from_error!(client::Error, Client);
 impl_from_error!(nostr_sdk::types::metadata::Error, MetadataConversion);
@@ -38,44 +41,6 @@ pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
 pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
     events.iter().min_by_key(|event| event.created_at())
 }
-
-pub fn created_encrypted_direct_message_filters(
-    self_pub_key: &PublicKey,
-    target_pub_key: &PublicKey,
-) -> Vec<Filter> {
-    let mut ret: Vec<Filter> = Vec::new();
-    let my_msg_filter = Filter::new()
-        .kind(Kind::EncryptedDirectMessage)
-        .author(*self_pub_key)
-        .custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![target_pub_key.to_hex()],
-        );
-    let target_msg_filter = Filter::new()
-        .kind(Kind::EncryptedDirectMessage)
-        .author(*target_pub_key)
-        .custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![self_pub_key.to_hex()],
-        );
-    ret.push(my_msg_filter);
-    ret.push(target_msg_filter);
-    ret
-}
-
-pub fn decrypt_dm_event(
-    private_key: &SecretKey,
-    target_pub_key: &PublicKey,
-    event: &Event,
-) -> Result<String, Error> {
-    let msg = if event.author() == *target_pub_key {
-        nip04::decrypt(private_key, event.author_ref(), event.content())?
-    } else {
-        nip04::decrypt(private_key, target_pub_key, event.content())?
-    };
-    Ok(msg)
-}
-
 pub struct EventPaginator<'a> {
     client: &'a Client,
     filters: Vec<Filter>,
@@ -170,26 +135,33 @@ impl<'a> Stream for EventPaginator<'a> {
 */
 
 pub struct EncryptedEventPaginator<'a> {
-    event_paginator: &'a EventPaginator<'a>,
-    private_key: &'a SecretKey,
-    target_pub_key: &'a PublicKey,
+    client: &'a Client,
+    timeout: Option<Duration>,
+    page_size: usize,
+    target_pub_key: PublicKey,
+    done: bool,
+    paginator: Option<EventPaginator<'a>>,
 }
 
 impl EncryptedEventPaginator<'_> {
-    pub fn new<'a>(
-        event_paginator: &'a EventPaginator<'a>,
-        private_key: &'a SecretKey,
-        target_pub_key: &'a PublicKey,
-    ) -> EncryptedEventPaginator<'a> {
+    pub fn new(
+        client: &Client,
+        timeout: Option<Duration>,
+        page_size: usize,
+        target_pub_key: PublicKey,
+    ) -> EncryptedEventPaginator<'_> {
         EncryptedEventPaginator {
-            event_paginator,
-            private_key,
+            client,
+            timeout,
+            page_size,
             target_pub_key,
+            done: false,
+            paginator: None,
         }
     }
-    pub fn created_encrypted_direct_message_filters(&self) -> Vec<Filter> {
-        let keys = Keys::new(self.private_key.clone());
-        let public_key = keys.public_key();
+    pub async fn created_encrypted_direct_message_filters(&self) -> Vec<Filter> {
+        let signer = self.client.signer().await.unwrap();
+        let public_key = signer.public_key().await.unwrap();
         let mut ret: Vec<Filter> = Vec::new();
         let my_msg_filter = Filter::new()
             .kind(Kind::EncryptedDirectMessage)
@@ -200,7 +172,7 @@ impl EncryptedEventPaginator<'_> {
             );
         let target_msg_filter = Filter::new()
             .kind(Kind::EncryptedDirectMessage)
-            .author(*self.target_pub_key)
+            .author(self.target_pub_key)
             .custom_tag(
                 SingleLetterTag::lowercase(Alphabet::P),
                 vec![public_key.to_hex()],
@@ -210,24 +182,39 @@ impl EncryptedEventPaginator<'_> {
         ret
     }
 
-    pub fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
-        let msg = if event.author() == *self.target_pub_key {
-            nip04::decrypt(self.private_key, event.author_ref(), event.content())?
-        } else {
-            nip04::decrypt(self.private_key, self.target_pub_key, event.content())?
-        };
+    pub async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
+        let signer = self.client.signer().await?;
+        let msg = signer
+            .nip04_decrypt(self.target_pub_key, &event.content)
+            .await?;
         Ok(msg)
     }
 
     pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
-        let filters = self.created_encrypted_direct_message_filters();
-        let mut paginator = EventPaginator::new(
-            self.event_paginator.client,
-            filters,
-            self.event_paginator.timeout,
-            self.event_paginator.page_size,
-        );
-        paginator.next_page().await
+        if self.done {
+            return None;
+        }
+
+        if self.paginator.is_none() {
+            let filters = self.created_encrypted_direct_message_filters().await;
+            self.paginator = Some(EventPaginator::new(
+                self.client,
+                filters,
+                self.timeout,
+                self.page_size,
+            ));
+        }
+
+        if let Some(ref mut paginator) = self.paginator {
+            let page = paginator.next_page().await;
+            if paginator.done {
+                console_log!("Paginator is done");
+                self.done = true;
+            }
+            return page;
+        }
+
+        None
     }
 }
 
@@ -454,32 +441,29 @@ mod tests {
             "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
         )
         .unwrap();
-        let self_pub_key = PublicKey::from_bech32(
-            "npub1xlt6t8nkxtp8r8h5g9gh249k2mu4esuu7xr0hae7fny7z0mstt8szx6xtq",
-        )
-        .unwrap();
+        let key = Keys::new(private_key);
         let target_pub_key = PublicKey::from_bech32(
             "npub155pujvquuuy47kpw4j3t49vq4ff9l0uxu97fhph9meuxvwc0r4hq5mdhkf",
         )
         .unwrap();
-        let filters = created_encrypted_direct_message_filters(&self_pub_key, &target_pub_key);
-        assert_eq!(filters.len(), 2);
-        let page_size = 11;
-        let timeout = Some(std::time::Duration::from_secs(5));
-        let client = Client::default();
+        let client = Client::new(&key);
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let mut paginator = EventPaginator::new(&client, filters, timeout, page_size);
+        let page_size = 6;
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let mut paginator =
+            EncryptedEventPaginator::new(&client, timeout, page_size, target_pub_key);
+
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
                 Ok(events) => {
-                    for event in events.clone() {
-                        let msg = decrypt_dm_event(&private_key, &target_pub_key, &event).unwrap();
-                        console_log!("Decrypted message: {:?}", msg);
-                    }
                     if paginator.done {
                         break;
+                    }
+                    for event in events.iter() {
+                        let msg = paginator.decrypt_dm_event(event).await.unwrap();
+                        console_log!("Decrypted message: {:?}", msg);
                     }
                     count += events.len();
                 }
@@ -489,6 +473,6 @@ mod tests {
                 }
             }
         }
-        assert!(count > 0);
+        assert!(count > 7);
     }
 }
