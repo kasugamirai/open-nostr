@@ -17,11 +17,11 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
     let sub_name = use_signal(|| sub.clone());
     let event_id = use_signal(|| id.clone());
 
-    let mut replytree = use_signal(|| ReplyTrees::default());
+    let mut replytree = use_signal(ReplyTrees::default);
     let mut element = use_signal(|| rsx! { div { "Loading..." } });
     let _ = use_resource(move || async move {
         let clients = multiclient();
-        let client = clients.get(&sub_name.read()).await.unwrap();
+        let client = clients.get(&sub_name.read()).unwrap();
 
         match get_event_by_id(&client, &EventId::from_hex(&event_id()).unwrap(), None).await {
             Ok(Some(event)) => {
@@ -68,7 +68,7 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
 
 #[component]
 fn Layer(replytree: Signal<ReplyTrees>, sub_name: String, event_id: String) -> Element {
-    let e_id = EventId::from_hex(&event_id.clone()).unwrap();
+    let e_id = EventId::from_hex(event_id.clone()).unwrap();
     let rt = replytree.read();
     tracing::info!("replytree: {:?}", rt);
     let event = rt.get_note_by_id(&e_id).unwrap();

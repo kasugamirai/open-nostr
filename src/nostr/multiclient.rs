@@ -4,12 +4,14 @@ use crate::store::CAPYBASTR_DBNAME;
 use futures::lock::Mutex;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::ClientBuilder;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: Arc<Mutex<HashMap<String, nostr_sdk::Client>>>,
+    clients: Rc<RefCell<HashMap<String, nostr_sdk::Client>>>,
 }
 
 impl Default for MultiClient {
@@ -21,23 +23,23 @@ impl Default for MultiClient {
 impl MultiClient {
     pub fn new() -> Self {
         Self {
-            clients: Arc::new(Mutex::new(HashMap::new())),
+            clients: Rc::new(RefCell::new(HashMap::new())),
         }
     }
 
-    pub async fn register(&self, name: String, client: nostr_sdk::Client) {
-        let mut clients = self.clients.lock().await;
+    pub fn register(&self, name: String, client: nostr_sdk::Client) {
+        let mut clients = self.clients.borrow_mut();
         clients.insert(name, client);
     }
 
-    pub async fn get(&self, name: &str) -> Option<nostr_sdk::Client> {
-        let clients = self.clients.lock().await;
+    pub fn get(&self, name: &str) -> Option<nostr_sdk::Client> {
+        let clients = self.clients.borrow();
         clients.get(name).cloned()
     }
 
     pub async fn get_or_create(&self, name: &str) -> nostr_sdk::Client {
         // Check if the client already exists
-        if let Some(client) = self.get(name).await {
+        if let Some(client) = self.get(name) {
             return client;
         }
 
@@ -50,7 +52,7 @@ impl MultiClient {
         client.add_relays(relay_set_info.relays).await.unwrap();
 
         // Insert the new client into the map
-        self.register(name.to_string(), client.clone()).await;
+        self.register(name.to_string(), client.clone());
         client
     }
 }
