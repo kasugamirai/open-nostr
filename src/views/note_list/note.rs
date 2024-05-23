@@ -23,6 +23,7 @@ pub struct NoteProps {
     pub is_expand: Option<bool>,
     pub relay_name: Option<String>,
     pub note_index: Option<usize>,
+    pub children: Option<Element>,
 }
 enum NoteAction {
     Replay,
@@ -96,7 +97,6 @@ pub fn Note(props: NoteProps) -> Element {
 
     let pk = use_signal(|| props.event.author().clone());
     let eid = use_signal(|| props.event.id().clone());
-    let mut emoji = use_signal(|| HashMap::new());
     let optional_str_ref: String = match props.relay_name.clone() {
         Some(s) => s,
         None => String::from("default"),
@@ -105,19 +105,9 @@ pub fn Note(props: NoteProps) -> Element {
     let is_repost = props.event.kind() == Kind::Repost;
     let _future = use_resource(move || async move {
         let clients = multiclient();
-        console::log_1(&"Fetching events...".into());
-
         let client = clients.get(&relay_name()).unwrap();
         // let repost_evnet =
 
-        match get_reactions(&client, &eid(), None).await {
-            Ok(emojis) => {
-                emoji.set(emojis);
-            }
-            Err(_) => {
-                tracing::info!("metadata not found");
-            }
-        }
 
         match get_replies(&client, &eid(), None).await {
             Ok(replies) => {
@@ -284,26 +274,7 @@ pub fn Note(props: NoteProps) -> Element {
                     span{
                         class: "note-action-wrapper-span ml-10",
                     }
-                    div {
-                        class: "note-action-item cursor-pointer flex items-center",
-                        span {
-                            class: "note-action-icon",
-                            dangerous_inner_html: "{ADD}"
-                        }
-                    }
-                    for (k, v) in emoji().iter() {
-                        div {
-                            class: "note-action-item cursor-pointer flex items-center",
-                            span {
-                                class: "note-action-icon",
-                                "{k}"
-                            }
-                            span {
-                                class: "note-action-count font-size-12 txt-1",
-                                "{v}"
-                            }
-                        }
-                    }
+                    
                 }
 
                 if props.is_expand.unwrap_or(false) {

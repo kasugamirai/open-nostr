@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use indextree::{Arena, NodeId};
 use nostr_sdk::{EventId, FromBech32};
 
@@ -43,19 +45,28 @@ pub fn get_ancestors<T>(arena: &Arena<T>, node_id: NodeId) -> Vec<&T> {
     ancestors
 }
 
-pub fn is_note_address(address: &str) -> bool {
+enum AddressType {
+    Note,
+    Mention,
+    Nostr, // unknown address type
+}
+
+pub fn is_note_address(address: &str) -> AddressType {
     let is_start_nostr = address.starts_with("nostr:");
-    if is_start_nostr || address.starts_with("note") {
-        let id = if is_start_nostr {
-            address.strip_prefix("nostr:").unwrap()
-        } else {
-            address
-        };
-        let is_note = match EventId::from_bech32(id) {
-            Ok(_) => true,
-            Err(_) => false,
-        };
-        return is_note;
-    }
+    // if is_start_nostr {
+        // let mention = 
+        // if address.starts_with("note") {
+        //     let is_note = match EventId::from_bech32(id) {
+        //         Ok(_) => AddressType::Note,
+        //         Err(_) => AddressType::Nostr,
+        //     };
+        // }
+        // let id = if is_start_nostr {
+        //     address.strip_prefix("nostr:").unwrap()
+        // } else {
+        //     address
+        // };
+        // return is_note;
+    // }
     return false;
 }
