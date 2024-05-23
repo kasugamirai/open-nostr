@@ -7,7 +7,7 @@ use web_sys::console;
 
 use crate::{
     components::{icons::*, Avatar}, nostr::{
-        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies}, multiclient::MultiClient, note::TextNote, utils::is_note_address
+        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies}, multiclient::MultiClient, note::{ReplyTrees, TextNote}, utils::is_note_address
     }, utils::format::{format_content, format_create_at}, views::note_list::reply::Reply, Route
 };
 
@@ -20,10 +20,13 @@ pub struct NoteProps {
     pub clsname: Option<String>,
     #[props(default = EventHandler::default())]
     pub on_expand: EventHandler<()>,
-    pub is_expand: Option<bool>,
+    #[props(default = false)]
+    pub is_expand: bool,
     pub relay_name: Option<String>,
     pub note_index: Option<usize>,
     pub children: Option<Element>,
+    #[props(default = false)]
+    pub is_tree: bool,
 }
 enum NoteAction {
     Replay,
@@ -58,6 +61,7 @@ pub fn Note(props: NoteProps) -> Element {
         ]
     });
 
+    let mut replytree = use_context::<Signal<ReplyTrees>>();
     let multiclient = use_context::<Signal<MultiClient>>();
 
     let mut show_detail = use_signal(|| false);
@@ -71,7 +75,6 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
     });
-    tracing::info!("note data: {:#?}", props.event.tags());
     let notetext = use_signal(|| props.event.content.clone());
     let repost_text = use_signal(|| if props.event.kind() == Kind::Repost {
         match Event::from_json(&props.event.content) {
@@ -113,6 +116,9 @@ pub fn Note(props: NoteProps) -> Element {
             Ok(replies) => {
                 let mut action_state = note_action_state.write();
                 action_state[0].count = replies.len();
+                if props.is_tree && !props.is_expand {
+                    replytree.write().accept(replies.clone());
+                }
             }
             Err(e) => {
                 tracing::error!("replies not found: {:?}", e);
@@ -179,7 +185,7 @@ pub fn Note(props: NoteProps) -> Element {
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
-        // nav.push(route);
+        nav.push(route);
     };
 
     rsx! {
@@ -237,7 +243,7 @@ pub fn Note(props: NoteProps) -> Element {
                         sub: urlencoding::encode(&props.sub_name.clone()).to_string(), 
                         id: event.read().id().to_string(), });
                 },
-                if is_reply() {
+                if is_reply() && !props.is_tree {
                     Reply {
                         event: event.read().clone(),
                         sub_name: props.sub_name.clone(),
@@ -277,7 +283,7 @@ pub fn Note(props: NoteProps) -> Element {
                     
                 }
 
-                if props.is_expand.unwrap_or(false) {
+                if props.is_expand {
                     div {
                         // "data-expand": props.event.id().to_string(),
                         class: "note-action-expand cursor-pointer",

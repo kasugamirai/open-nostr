@@ -202,6 +202,14 @@ impl ReplyTrees {
             vec![]
         }
     }
+    pub fn is_empty(&self) -> bool {
+        self.notes.is_empty()
+    }
+    pub fn clear(&mut self) {
+        self.id2id.clear();
+        self.arena.clear();
+        self.notes.clear();
+    }
 }
 
 #[cfg(test)]

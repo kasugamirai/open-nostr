@@ -1,3 +1,4 @@
+use crate::nostr::note::ReplyTrees;
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
 use crate::store::{
@@ -24,12 +25,11 @@ pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
     let _register = use_context_provider(|| Signal::new(Register::new()));
-
     let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
     let mut all_users: Signal<Vec<User>> = use_context_provider(|| Signal::new(Vec::<User>::new()));
-
+    let mut replytree = use_context_provider(|| Signal::new(ReplyTrees::default()));
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
 

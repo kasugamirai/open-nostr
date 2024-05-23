@@ -12200,6 +12200,10 @@ svg path {
   color: var(--txt-1);
   border: 1px solid var(--boc-1);
   word-wrap: break-word;
+  background-color: var(--bgc-0);
+}
+.com-post--active {
+  border-width: 3px;
 }
 
 .com-post-content {

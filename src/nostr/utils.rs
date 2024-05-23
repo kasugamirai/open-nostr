@@ -51,7 +51,7 @@ enum AddressType {
     Nostr, // unknown address type
 }
 
-pub fn is_note_address(address: &str) -> AddressType {
+pub fn is_note_address(address: &str) -> bool {
     let is_start_nostr = address.starts_with("nostr:");
     // if is_start_nostr {
         // let mention = 
