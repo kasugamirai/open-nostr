@@ -161,7 +161,7 @@ impl<'a> Stream for EventPaginator<'a> {
 }
 */
 #[derive(Debug)]
-pub struct EncryptedEvent {
+pub struct DecryptedMsg {
     /// Id
     pub id: EventId,
     /// Author
@@ -176,7 +176,7 @@ pub struct EncryptedEvent {
     pub content: String,
 }
 
-impl EncryptedEvent {
+impl DecryptedMsg {
     pub fn new(
         id: EventId,
         pubkey: PublicKey,
@@ -211,27 +211,27 @@ macro_rules! create_nip04_filters {
     }};
 }
 
-pub struct EncryptedEventPaginator<'a> {
+pub struct DecryptedMsgPaginator<'a> {
     signer: &'a NostrSigner,
     target_pub_key: PublicKey,
     paginator: EventPaginator<'a>,
 }
 
-impl<'a> EncryptedEventPaginator<'a> {
+impl<'a> DecryptedMsgPaginator<'a> {
     pub async fn new(
         signer: &'a NostrSigner,
         client: &'a Client,
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
-    ) -> EncryptedEventPaginator<'a> {
+    ) -> DecryptedMsgPaginator<'a> {
         let public_key = signer.public_key().await.unwrap();
         let (me, target) =
             create_nip04_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
         let filters = vec![me, target];
 
         let paginator = EventPaginator::new(client, filters, timeout, page_size);
-        EncryptedEventPaginator {
+        DecryptedMsgPaginator {
             signer,
             target_pub_key,
             paginator,
@@ -246,12 +246,12 @@ impl<'a> EncryptedEventPaginator<'a> {
         Ok(msg)
     }
 
-    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<EncryptedEvent>, Error> {
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
         let futures: Vec<_> = events
             .into_iter()
             .map(|event| async move {
                 match self.decrypt_dm_event(&event).await {
-                    Ok(msg) => Ok(EncryptedEvent::new(
+                    Ok(msg) => Ok(DecryptedMsg::new(
                         event.id,
                         event.author(),
                         event.created_at,
@@ -270,7 +270,7 @@ impl<'a> EncryptedEventPaginator<'a> {
             .collect()
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<EncryptedEvent>, Error>> {
+    pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>, Error>> {
         if self.paginator.done {
             return None;
         }
@@ -520,8 +520,7 @@ mod tests {
         let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
-            EncryptedEventPaginator::new(&singer, &client, target_pub_key, timeout, page_size)
-                .await;
+            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size).await;
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
