@@ -48,7 +48,9 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
     rsx! {
         div {
             class: "com-dtpicker",
-            input {
+            div{
+              class:"relative",
+              input {
                 r#type: "datetime-local",
                 value: "{start_value}",
                 oninput: move |event| {
@@ -64,31 +66,35 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
                         props.on_change.call((start_signal(), end_signal()));
                     }
                 }
+              }
+              span{
+                class:"data-start-icon",
+                dangerous_inner_html: "{LEFTICON}",
+              }
             }
-            span{
-              class:"data-start-icon",
-              dangerous_inner_html: "{LEFTICON}",
-            }
-            span{
-              class:"data-end-icon",
-              dangerous_inner_html: "{RIGHTICON}",
-            }
-            input {
-                class:"end_data",
-                r#type: "datetime-local",
-                value: "{end_value}",
-                oninput: move |event| {
-                    let v = event.value();
-                    if v.len() == 0 {
-                        end_signal.set(0);
-                        props.on_change.call((start_signal(), end_signal()));
-                    } else {
-                        let parsed_datetime = NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").unwrap();
-                        let timestamp = parsed_datetime.and_utc().timestamp() as u64;
-                        end_signal.set(timestamp);
-                        props.on_change.call((start_signal(), end_signal()));
-                    }
-                }
+            div{
+              class:"relative",
+              span{
+                class:"data-end-icon",
+                dangerous_inner_html: "{RIGHTICON}",
+              }
+              input {
+                  class:"end_data",
+                  r#type: "datetime-local",
+                  value: "{end_value}",
+                  oninput: move |event| {
+                      let v = event.value();
+                      if v.len() == 0 {
+                          end_signal.set(0);
+                          props.on_change.call((start_signal(), end_signal()));
+                      } else {
+                          let parsed_datetime = NaiveDateTime::parse_from_str(&v, "%Y-%m-%dT%H:%M").unwrap();
+                          let timestamp = parsed_datetime.and_utc().timestamp() as u64;
+                          end_signal.set(timestamp);
+                          props.on_change.call((start_signal(), end_signal()));
+                      }
+                  }
+              }
             }
         }
     }

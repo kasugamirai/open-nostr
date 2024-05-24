@@ -13,10 +13,10 @@
 }
 
 .sub-style {
-  width: 400px;
-  height: 100%;
   @include position(relative);
   @include flex-direction-column;
+  width: 400px;
+  height: 100%;
   gap: 10px;
 }
 
@@ -26,11 +26,14 @@
 
 .window-color {
   color: var(--txt-2);
+  font-size: 16px;
+  font-family: "Raleway";
+  font-weight: 500;
 }
 
 .custom-sub-header {
-  height: 44px;
   @include display-align-justify-flex(flex,center,space-between,null);
+  height: 44px;
   gap: 12px;
   border-bottom: 4px solid var(--boc-2);
   color: var(--txt-1);
@@ -48,9 +51,9 @@
 }
 
 .custom-sub-header .trigger {
+  @include display-align-justify-flex(flex,center,center,null);
   width: 32px;
   height: 32px;
-  @include display-align-justify-flex(flex,center,center,null);
   border-radius: var(--radius-circle);
   background: none;
   border: none;
@@ -108,17 +111,16 @@
 }
 
 .sub-input {
-  background-color: var(--bgc-3);
-  height: 31px;
+  @include display-align-justify-flex(flex,center,center,null);
+  background-color: var(--bgc-0);
   line-height: 19px;
-  padding: 15px 12px;
+  padding: 5px 12px;
   padding-right: 18px;
   border-radius: var(--radius-circle);
-  box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
-  color: #858585;
+  border: 1px solid var(--boc-1);
+  color: var(--txt-2);
   font-size: var(--textSize-14);
   font-family: "Source Sans Pro";
-  @include display-align-justify-flex(flex,center,center,null);
   white-space: nowrap;
 }
 
@@ -126,9 +128,8 @@
 .custom-sub-relays,
 .custom-sub-live,
 .custom-sub-filters {
-  padding: 0 18px;
   @include display-align-justify-flex(flex,center,null,null);
-
+  padding: 0 18px;
   .width-80-fontSize-16 {
     width: 80px;
     color: var(--txt-2);
@@ -151,19 +152,19 @@
 }
 
 .custom-sub-item {
+  @include flex-direction-column;
+  @include position(relative);
   padding: 9px 15px;
   border-radius: var(--radius-16);
   background-color: var(--bgc-2);
-  @include flex-direction-column;
   gap: 10px;
-  @include position(relative);
 }
 
 .custom-sub-item-remove {
   @include button-style;
+  @include position(absolute,(top,-16px),(left,-16px));
   height: 32px;
   width: 32px;
-  @include position(absolute,(top,-16px),(left,-16px));
   background-color: var(--col-error);
 }
 
@@ -179,23 +180,23 @@
 }
 
 .custom-sub-item-remove svg path {
-  fill: var(--bgc-4);
+  fill: var(--txt-1);
 }
 
 .custom-sub-filter-item {
+  @include display-align-justify-flex(flex,center,null,null);
   min-height: 44px;
   flex-wrap: wrap;
-  @include display-align-justify-flex(flex,center,null,null);
   color: var(--txt-1);
 }
 
 .sub-shadow {
+  @include display-align-justify-flex(flex,center,center,null);
   background-color: var(--bgc-0);
   height: 34px;
   padding: 0 20px;
   border-radius: var(--radius-circle);
   cursor: pointer;
-  @include display-align-justify-flex(flex,center,center,null);
   white-space: nowrap;
   box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
   margin-left: 6px;
@@ -217,21 +218,21 @@
 }
 
 .btn-add svg {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
 }
 
 .btn-add svg path {
-  fill: var(--bgc-4);
+  fill: var(--txt-1);
 }
 
 .btn-add-content {
+  @include flex-direction-column;
   transform: translateY(6px);
   background-color: var(--bgc-0);
   border: 1px solid var(--boc-1);
   border-radius: var(--radius-1);
   padding: 10px;
-  @include flex-direction-column;
   gap: 10px;
 }
 
@@ -250,8 +251,8 @@
 }
 
 .custom-sub-time {
-  padding: 0 18px;
   @include display-align-justify-flex(flex,center,null,null);
+  padding-left: 18px;
   gap: 5px;
 }
 
@@ -273,6 +274,11 @@
   @include pop-up-style;
   border-radius: 26px;
 }
+.custom-sub-family{
+  font-size: 20px;
+  font-family: "Raleway";
+  font-weight: 800;
+}
 
 .add-input {
   @include input-style;
@@ -282,7 +288,7 @@
   margin-left: 8px;
 }
 
-.add-input-76 {
+.add-input-width {
   width: 76px;
 }
 
@@ -322,7 +328,7 @@
   background-color: var(--bgc-1);
 
   svg path {
-    fill: var(--bgc-4);
+    fill: var(--txt-1);
   }
 }
 
@@ -330,7 +336,7 @@
   background-color: var(--col-error);
 
   svg path {
-    fill: var(--bgc-4);
+    fill: var(--txt-1);
   }
 }
 
@@ -338,23 +344,23 @@
   background-color: var(--col-success);
 
   svg path {
-    fill: var(--bgc-4);
+    fill: var(--txt-1);
   }
 }
 
 // input time Style
 .com-dtpicker {
+  @include position(relative);
   display: flex;
   gap: 5px;
   font-size: var(--textSize-14);
-  @include position(relative);
 
   input {
     padding: 0;
     letter-spacing: -1px;
-    box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
+    // box-shadow: 2px 2px 4px rgba(3, 3, 3, 0.1);
     background-color: var(--bgc-0);
-    border: 1px solid var(--bgc-4);
+    border: 1px solid var(--boc-1);
     color: var(--txt-1);
     padding-left: 12px;
     padding-right: 10px;
@@ -367,18 +373,18 @@
   }
 
   .data-start-icon {
-    @include position(absolute,(top,5px),(left,120px));
+    @include position(absolute,(top,5px),(right,0));
   }
 
   .data-end-icon {
-    @include position(absolute,(top,5px),(left,150px));
+    @include position(absolute,(top,5px),(left,0));
   }
 
   /* 隐藏所有<input>元素的向下箭头 */
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    width: 130px;
-    background: none;
     @include position(absolute);
+    width: 148px;
+    background: none;
     z-index: 99;
   }
 }

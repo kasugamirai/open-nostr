@@ -76,7 +76,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 class: "custom-sub-header",
                 div {
                     class: "sub-header",
-                    h2 { "Custom Sub" }
+                    h2 { 
+                      class:"custom-sub-family",
+                      "Custom Sub" 
+                    }
                     button {
                         class: "btn-icon purple small",
                         onclick: handle_reload,
@@ -162,7 +165,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     div {
                         class:"display-inline-block",
                         div {
-                            class:"display-align-gap",
+                            class:"flex-box-center",
                             Switch {
                                 value: sub_current().live,
                                 on_change: move |value: bool| {

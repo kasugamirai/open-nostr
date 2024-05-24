@@ -90,7 +90,7 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
                             props.on_click.call(FilterTemp::HashTag(CustomHashTag::empty()));
                             edit.set(false);
                         },
-                        "Only Tags"
+                        "Follow Hash Tags"
                     }
                     button {
                         class: "btn-add-item",
@@ -98,7 +98,7 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
                             props.on_click.call(FilterTemp::Accounts(CustomAccounts::empty()));
                             edit.set(false);
                         },
-                        "Follow People"
+                        "Follow Accounts"
                     }
                     button {
                         class: "btn-add-item",
