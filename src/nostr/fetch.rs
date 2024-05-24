@@ -56,6 +56,8 @@ pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
 pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
     events.iter().min_by_key(|event| event.created_at())
 }
+
+#[derive(Clone)]
 pub struct EventPaginator<'a> {
     client: &'a Client,
     filters: Vec<Filter>,
@@ -156,6 +158,7 @@ impl<'a> Stream for EventPaginator<'a> {
 }
 */
 
+#[derive(Clone)]
 pub struct EncryptedEventPaginator<'a> {
     signer: &'a NostrSigner,
     target_pub_key: PublicKey,
@@ -181,51 +184,51 @@ impl<'a> EncryptedEventPaginator<'a> {
         }
     }
 
+    async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
+        let msg = self
+            .signer
+            .nip04_decrypt(self.target_pub_key, &event.content)
+            .await?;
+        Ok(msg)
+    }
+
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<Event>, Error> {
+        let futures: Vec<_> = events
+            .into_iter()
+            .map(|event| async move {
+                match self.decrypt_dm_event(&event).await {
+                    Ok(msg) => Ok(Event::new(
+                        event.id,
+                        event.author(),
+                        event.created_at,
+                        event.kind,
+                        event.tags.clone(),
+                        msg,
+                        event.signature(),
+                    )),
+                    Err(err) => Err(err),
+                }
+            })
+            .collect();
+
+        futures::future::join_all(futures)
+            .await
+            .into_iter()
+            .collect()
+    }
+
     pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
         if self.paginator.done {
             return None;
         }
 
         if let Some(Ok(events)) = self.paginator.next_page().await {
-            let futures = events.into_iter().map(|event| {
-                let signer = self.signer;
-                let target_pub_key = self.target_pub_key;
-                async move {
-                    match decrypt_dm_event(signer, &target_pub_key, &event).await {
-                        Ok(msg) => Ok(Event::new(
-                            event.id,
-                            event.author(),
-                            event.created_at,
-                            event.kind,
-                            event.tags.clone(),
-                            msg,
-                            event.signature(),
-                        )),
-                        Err(err) => Err(err),
-                    }
-                }
-            });
-
-            let result: Result<Vec<_>, _> = futures::future::join_all(futures)
-                .await
-                .into_iter()
-                .collect();
-            return Some(result);
+            let decrypt_results = self.convert_events(events).await;
+            return Some(decrypt_results);
         }
 
         None
     }
-}
-
-async fn decrypt_dm_event(
-    signer: &NostrSigner,
-    target_pub_key: &PublicKey,
-    event: &Event,
-) -> Result<String, Error> {
-    let msg = signer
-        .nip04_decrypt(*target_pub_key, &event.content)
-        .await?;
-    Ok(msg)
 }
 
 async fn created_encrypted_direct_message_filters(
