@@ -1,7 +1,7 @@
 use std::ops::Add;
 
 use indextree::{Arena, NodeId};
-use nostr_sdk::{EventId, FromBech32};
+use nostr_sdk::{EventId, FromBech32, PublicKey};
 
 /// Utility function to get all children of a specified node in an Arena.
 ///
@@ -45,28 +45,23 @@ pub fn get_ancestors<T>(arena: &Arena<T>, node_id: NodeId) -> Vec<&T> {
     ancestors
 }
 
-enum AddressType {
+pub enum AddressType {
     Note,
     Mention,
     Nostr, // unknown address type
 }
 
-pub fn is_note_address(address: &str) -> bool {
+pub fn is_note_address(address: &str) -> AddressType {
     let is_start_nostr = address.starts_with("nostr:");
-    // if is_start_nostr {
-        // let mention = 
-        // if address.starts_with("note") {
-        //     let is_note = match EventId::from_bech32(id) {
-        //         Ok(_) => AddressType::Note,
-        //         Err(_) => AddressType::Nostr,
-        //     };
-        // }
-        // let id = if is_start_nostr {
-        //     address.strip_prefix("nostr:").unwrap()
-        // } else {
-        //     address
-        // };
-        // return is_note;
-    // }
-    return false;
+    if is_start_nostr {
+        let id = address.strip_prefix("nostr:").unwrap();
+        let is_note = id.starts_with("note") && EventId::from_bech32(id).is_ok();
+        let is_mention = id.starts_with("npub") && PublicKey::from_bech32(id).is_ok();
+         if is_note {
+            return AddressType::Note;
+        } else if is_mention {
+            return AddressType::Mention;
+        }
+    }
+    return AddressType::Nostr;
 }

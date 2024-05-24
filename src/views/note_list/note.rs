@@ -6,12 +6,10 @@ use regex::Regex;
 use web_sys::console;
 
 use crate::{
-    components::{icons::*, Avatar}, nostr::{
-        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies}, multiclient::MultiClient, note::{ReplyTrees, TextNote}, utils::is_note_address
-    }, utils::format::{format_content, format_create_at}, views::note_list::reply::Reply, Route
+    components::{icons::*, Avatar, Quote}, nostr::{
+        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies}, multiclient::MultiClient, note::{ReplyTrees, TextNote}, utils::{is_note_address, AddressType}
+    }, utils::format::{format_content, format_create_at, format_note_content}, views::note_list::reply::Reply, Route
 };
-
-use super::quote::Quote;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
@@ -129,58 +127,7 @@ pub fn Note(props: NoteProps) -> Element {
 
         let data = if is_repost { repost_text().clone() } else { notetext().clone() };
 
-        let mut parts = Vec::new();
-        let mut last_end = 0;
-
-        for mat in re.find_iter(&data) {
-            if mat.start() > last_end {
-                parts.push(&data[last_end..mat.start()]);
-            }
-            parts.push(mat.as_str());
-            last_end = mat.end();
-        }
-
-        if last_end < data.len() {
-            parts.push(&data[last_end..]);
-        }
-
-        let mut elements = vec![];
-        for i in parts {
-            if i.starts_with("nostr:note") {
-                let id = i.strip_prefix("nostr:").unwrap();
-                let is_note = is_note_address(i);
-                if is_note {
-                    let mut action_state = note_action_state.write();
-                    action_state[2].count += 1;
-                    elements.push(rsx! {
-                        Quote {
-                            event_id: EventId::from_bech32(id).unwrap().clone(),
-                            relay_name: relay_name.clone(),
-                            quote_nostr: i.to_string(),
-                        }
-                    })
-                } else {
-                    elements.push(rsx! {
-                        span {
-                            "{i}"
-                        }
-                    });
-                }
-            } else {
-                elements.push(rsx! {
-                    div {
-                        class: "text pl-52",
-                        dangerous_inner_html: "{format_content(i)}"
-                    }
-                });
-            }
-        }
-
-        element.set(rsx! {
-            for element in elements {
-                {element}
-            }
-        });
+        element.set(format_note_content(&data, &relay_name()));
     });
 
     let nav = navigator();
@@ -192,27 +139,6 @@ pub fn Note(props: NoteProps) -> Element {
         div {
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
             id: format!("note-{}", event.read().id().to_string()),
-            // detail modal
-            // if *show_detail.read() { 
-            //     div {
-            //         style: "position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999;",
-            //         div {
-            //             style: "width: 50%; height: 60%; max-width: 900px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
-            //             button {
-            //                 class: "btn-icon remove",
-            //                 style: "position: absolute; top: -12px; left: -12px;",
-            //                 onclick: move |_| {
-            //                     show_detail.set(false);
-            //                 },
-            //                 dangerous_inner_html: "{FALSE}",
-            //             }
-            //             pre {
-            //                 style: "height: 100%; overflow-y: auto; font-size: 16px;",
-            //                 "{detail}"
-            //             }
-            //         }
-            //     }
-            // }
             div {
                 class: "note-header flex items-start justify-between",
                 Avatar {

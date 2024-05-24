@@ -1,6 +1,5 @@
 mod custom_sub;
 pub mod note;
-pub mod quote;
 pub mod reply;
 pub mod note_wrapper;
 

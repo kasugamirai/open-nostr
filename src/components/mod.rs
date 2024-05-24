@@ -6,6 +6,8 @@ mod dtpicker;
 mod outside;
 mod switch;
 mod message;
+mod quote;
+mod mention;
 
 pub mod icons;
 
@@ -17,3 +19,5 @@ pub use dtpicker::DateTimePicker;
 pub use outside::ClickOutside;
 pub use switch::Switch;
 pub use message::Message;
+pub use quote::Quote;
+pub use mention::Mention;
