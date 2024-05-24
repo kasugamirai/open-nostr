@@ -2,11 +2,12 @@ use futures::stream::{self, StreamExt};
 use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::nips::nip04;
-use nostr_sdk::{client, Metadata};
+use nostr_sdk::{client, Metadata, Tag};
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{NostrSigner, PublicKey};
-use std::collections::HashMap;
+use std::collections::HashSet;
+use std::collections::{hash_map, HashMap};
 use std::time::Duration;
 /// Error enum to represent possible errors in the application.
 #[derive(Debug)]
@@ -57,7 +58,6 @@ pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
     events.iter().min_by_key(|event| event.created_at())
 }
 
-#[derive(Clone)]
 pub struct EventPaginator<'a> {
     client: &'a Client,
     filters: Vec<Filter>,
@@ -65,7 +65,7 @@ pub struct EventPaginator<'a> {
     done: bool,
     timeout: Option<Duration>,
     page_size: usize,
-    events: Option<Vec<Event>>,
+    last_event_ids: HashSet<EventId>,
 }
 
 impl<'a> EventPaginator<'a> {
@@ -82,8 +82,14 @@ impl<'a> EventPaginator<'a> {
             done: false,
             timeout,
             page_size,
-            events: None,
+            last_event_ids: HashSet::new(),
         }
+    }
+
+    pub fn are_all_event_ids_present(&self, events: &[Event]) -> bool {
+        events
+            .iter()
+            .all(|event| self.last_event_ids.contains(&event.id))
     }
 
     pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
@@ -112,10 +118,7 @@ impl<'a> EventPaginator<'a> {
             .await
         {
             Ok(events) => {
-                if events.is_empty()
-                    || events.len() < self.page_size
-                    || Some(events.clone()) == self.events
-                {
+                if events.is_empty() || self.are_all_event_ids_present(&events) {
                     self.done = true;
                     return None;
                 }
@@ -128,7 +131,7 @@ impl<'a> EventPaginator<'a> {
                 // Update the filters
                 self.filters = updated_filters;
 
-                self.events = Some(events.clone());
+                self.last_event_ids = events.iter().map(|event| event.id).collect();
 
                 Some(Ok(events))
             }
@@ -157,8 +160,57 @@ impl<'a> Stream for EventPaginator<'a> {
     }
 }
 */
+#[derive(Debug)]
+pub struct EncryptedEvent {
+    /// Id
+    pub id: EventId,
+    /// Author
+    pub pubkey: PublicKey,
+    /// Timestamp (seconds)
+    pub created_at: Timestamp,
+    /// Kind
+    pub kind: Kind,
+    /// Vector of [`Tag`]
+    pub tags: Vec<Tag>,
+    /// Content
+    pub content: String,
+}
 
-#[derive(Clone)]
+impl EncryptedEvent {
+    pub fn new(
+        id: EventId,
+        pubkey: PublicKey,
+        created_at: Timestamp,
+        kind: Kind,
+        tags: Vec<Tag>,
+        content: String,
+    ) -> Self {
+        Self {
+            id,
+            pubkey,
+            created_at,
+            kind,
+            tags,
+            content,
+        }
+    }
+}
+
+macro_rules! create_nip04_filters {
+    ($kind:expr, $author:expr, $public_key:expr) => {{
+        (
+            Filter::new().kind($kind).author($author).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![$author.to_hex()],
+            ),
+            Filter::new().kind($kind).author($author).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![$public_key.to_hex()],
+            ),
+        )
+    }};
+}
+
 pub struct EncryptedEventPaginator<'a> {
     signer: &'a NostrSigner,
     target_pub_key: PublicKey,
@@ -173,9 +225,11 @@ impl<'a> EncryptedEventPaginator<'a> {
         timeout: Option<Duration>,
         page_size: usize,
     ) -> EncryptedEventPaginator<'a> {
-        let filters = created_encrypted_direct_message_filters(signer, &target_pub_key)
-            .await
-            .unwrap();
+        let public_key = signer.public_key().await.unwrap();
+        let (me, target) =
+            create_nip04_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
+        let filters = vec![me, target];
+
         let paginator = EventPaginator::new(client, filters, timeout, page_size);
         EncryptedEventPaginator {
             signer,
@@ -192,19 +246,18 @@ impl<'a> EncryptedEventPaginator<'a> {
         Ok(msg)
     }
 
-    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<Event>, Error> {
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<EncryptedEvent>, Error> {
         let futures: Vec<_> = events
             .into_iter()
             .map(|event| async move {
                 match self.decrypt_dm_event(&event).await {
-                    Ok(msg) => Ok(Event::new(
+                    Ok(msg) => Ok(EncryptedEvent::new(
                         event.id,
                         event.author(),
                         event.created_at,
                         event.kind,
                         event.tags.clone(),
                         msg,
-                        event.signature(),
                     )),
                     Err(err) => Err(err),
                 }
@@ -217,7 +270,7 @@ impl<'a> EncryptedEventPaginator<'a> {
             .collect()
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
+    pub async fn next_page(&mut self) -> Option<Result<Vec<EncryptedEvent>, Error>> {
         if self.paginator.done {
             return None;
         }
@@ -229,31 +282,6 @@ impl<'a> EncryptedEventPaginator<'a> {
 
         None
     }
-}
-
-async fn created_encrypted_direct_message_filters(
-    signer: &NostrSigner,
-    target_pub_key: &PublicKey,
-) -> Result<Vec<Filter>, Error> {
-    let public_key = signer.public_key().await?;
-    let mut ret: Vec<Filter> = Vec::new();
-    let my_msg_filter = Filter::new()
-        .kind(Kind::EncryptedDirectMessage)
-        .author(*target_pub_key)
-        .custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![target_pub_key.to_hex()],
-        );
-    let target_msg_filter = Filter::new()
-        .kind(Kind::EncryptedDirectMessage)
-        .author(*target_pub_key)
-        .custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![public_key.to_hex()],
-        );
-    ret.push(my_msg_filter);
-    ret.push(target_msg_filter);
-    Ok(ret)
 }
 
 pub async fn get_event_by_id(
