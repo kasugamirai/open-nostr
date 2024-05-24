@@ -1,11 +1,9 @@
 use futures::{Future, Stream, StreamExt};
-use nostr_sdk::bitcoin::PrivateKey;
 use nostr_sdk::prelude::*;
 use nostr_sdk::Timestamp;
 use nostr_sdk::{client, Metadata};
 use std::collections::HashMap;
 use std::time::Duration;
-use wasm_bindgen_test::console_log;
 /// Error enum to represent possible errors in the application.
 #[derive(Debug)]
 pub enum Error {
@@ -48,6 +46,7 @@ pub struct EventPaginator<'a> {
     done: bool,
     timeout: Option<Duration>,
     page_size: usize,
+    event: Option<Vec<Event>>,
 }
 
 impl<'a> EventPaginator<'a> {
@@ -64,6 +63,7 @@ impl<'a> EventPaginator<'a> {
             done: false,
             timeout,
             page_size,
+            event: None,
         }
     }
 
@@ -105,6 +105,12 @@ impl<'a> EventPaginator<'a> {
 
                 // Update the filters
                 self.filters = updated_filters;
+
+                if Some(events.clone()) == self.event {
+                    self.done = true;
+                    return None;
+                }
+                self.event = Some(events.clone());
 
                 Some(Ok(events))
             }
@@ -211,7 +217,6 @@ impl EncryptedEventPaginator<'_> {
         if let Some(ref mut paginator) = self.paginator {
             let page = paginator.next_page().await;
             if paginator.done {
-                console_log!("Paginator is done");
                 self.done = true;
             }
             return page;
@@ -452,7 +457,7 @@ mod tests {
         let client = Client::new(&key);
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let page_size = 6;
+        let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
             EncryptedEventPaginator::new(&client, timeout, page_size, target_pub_key);
