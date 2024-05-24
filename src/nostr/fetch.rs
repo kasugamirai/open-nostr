@@ -1,7 +1,11 @@
-use futures::{Future, Stream, StreamExt};
-use nostr_sdk::prelude::*;
-use nostr_sdk::Timestamp;
+use futures::stream::{self, StreamExt};
+use futures::{Future, Stream};
+use nostr_indexeddb::database::Order;
+use nostr_sdk::nips::nip04;
 use nostr_sdk::{client, Metadata};
+use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
+use nostr_sdk::{JsonUtil, Timestamp};
+use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::time::Duration;
 /// Error enum to represent possible errors in the application.
@@ -153,89 +157,100 @@ impl<'a> Stream for EventPaginator<'a> {
 */
 
 pub struct EncryptedEventPaginator<'a> {
-    client: &'a Client,
-    timeout: Option<Duration>,
-    page_size: usize,
+    signer: &'a NostrSigner,
     target_pub_key: PublicKey,
-    done: bool,
-    paginator: Option<EventPaginator<'a>>,
+    paginator: EventPaginator<'a>,
 }
 
-impl EncryptedEventPaginator<'_> {
-    pub fn new(
-        client: &Client,
+impl<'a> EncryptedEventPaginator<'a> {
+    pub async fn new(
+        signer: &'a NostrSigner,
+        client: &'a Client,
+        target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
-        target_pub_key: PublicKey,
-    ) -> EncryptedEventPaginator<'_> {
+    ) -> EncryptedEventPaginator<'a> {
+        let filters = created_encrypted_direct_message_filters(signer, &target_pub_key)
+            .await
+            .unwrap();
+        let paginator = EventPaginator::new(client, filters, timeout, page_size);
         EncryptedEventPaginator {
-            client,
-            timeout,
-            page_size,
+            signer,
             target_pub_key,
-            done: false,
-            paginator: None,
+            paginator,
         }
-    }
-    pub async fn created_encrypted_direct_message_filters(&self) -> Result<Vec<Filter>, Error> {
-        let signer = self.client.signer().await?;
-        let public_key = signer.public_key().await?;
-        let mut ret: Vec<Filter> = Vec::new();
-        let my_msg_filter = Filter::new()
-            .kind(Kind::EncryptedDirectMessage)
-            .author(public_key)
-            .custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![self.target_pub_key.to_hex()],
-            );
-        let target_msg_filter = Filter::new()
-            .kind(Kind::EncryptedDirectMessage)
-            .author(self.target_pub_key)
-            .custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![public_key.to_hex()],
-            );
-        ret.push(my_msg_filter);
-        ret.push(target_msg_filter);
-        Ok(ret)
-    }
-
-    pub async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
-        let signer = self.client.signer().await?;
-        let msg = signer
-            .nip04_decrypt(self.target_pub_key, &event.content)
-            .await?;
-        Ok(msg)
     }
 
     pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
-        if self.done {
+        if self.paginator.done {
             return None;
         }
 
-        if self.paginator.is_none() {
-            let filters = self
-                .created_encrypted_direct_message_filters()
-                .await
-                .unwrap();
-            self.paginator = Some(EventPaginator::new(
-                self.client,
-                filters,
-                self.timeout,
-                self.page_size,
-            ));
-        }
+        if let Some(Ok(events)) = self.paginator.next_page().await {
+            let futures = events.into_iter().map(|event| {
+                let signer = self.signer;
+                let target_pub_key = self.target_pub_key;
+                async move {
+                    match decrypt_dm_event(signer, &target_pub_key, &event).await {
+                        Ok(msg) => Ok(Event::new(
+                            event.id,
+                            event.author(),
+                            event.created_at,
+                            event.kind,
+                            event.tags.clone(),
+                            msg,
+                            event.signature(),
+                        )),
+                        Err(err) => Err(err),
+                    }
+                }
+            });
 
-        if let Some(ref mut paginator) = self.paginator {
-            let page = paginator.next_page().await;
-            if paginator.done {
-                self.done = true;
-            }
-            return page;
+            let result: Result<Vec<_>, _> = futures::future::join_all(futures)
+                .await
+                .into_iter()
+                .collect();
+            return Some(result);
         }
 
         None
     }
+}
+
+async fn decrypt_dm_event(
+    signer: &NostrSigner,
+    target_pub_key: &PublicKey,
+    event: &Event,
+) -> Result<String, Error> {
+    let msg = signer
+        .nip04_decrypt(*target_pub_key, &event.content)
+        .await?;
+    Ok(msg)
+}
+
+async fn created_encrypted_direct_message_filters(
+    signer: &NostrSigner,
+    target_pub_key: &PublicKey,
+) -> Result<Vec<Filter>, Error> {
+    let public_key = signer.public_key().await?;
+    let mut ret: Vec<Filter> = Vec::new();
+    let my_msg_filter = Filter::new()
+        .kind(Kind::EncryptedDirectMessage)
+        .author(*target_pub_key)
+        .custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![target_pub_key.to_hex()],
+        );
+    let target_msg_filter = Filter::new()
+        .kind(Kind::EncryptedDirectMessage)
+        .author(*target_pub_key)
+        .custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![public_key.to_hex()],
+        );
+    ret.push(my_msg_filter);
+    ret.push(target_msg_filter);
+    Ok(ret)
 }
 
 pub async fn get_event_by_id(
@@ -243,8 +258,8 @@ pub async fn get_event_by_id(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Option<Event>, Error> {
-    let filter = Filter::new().id(*event_id).limit(1);
-    let events = client.get_events_of(vec![filter], timeout).await?;
+    let filters = Filter::new().id(*event_id).limit(1);
+    let events = client.get_events_of(vec![filters], timeout).await?;
     Ok(events.into_iter().next())
 }
 
@@ -263,8 +278,8 @@ pub async fn get_metadata(
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
 ) -> Result<Metadata, Error> {
-    let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
-    let events = client.get_events_of(vec![filter], timeout).await?;
+    let filters = Filter::new().author(*public_key).kind(Kind::Metadata);
+    let events = client.get_events_of(vec![filters], timeout).await?;
     if let Some(event) = get_newest_event(&events) {
         let metadata = Metadata::from_json(&event.content)?;
         Ok(metadata)
@@ -299,11 +314,11 @@ pub async fn get_replies(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>, Error> {
-    let filter = Filter::new().kind(Kind::TextNote).custom_tag(
+    let filters = Filter::new().kind(Kind::TextNote).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
     );
-    let events = client.get_events_of(vec![filter], timeout).await?;
+    let events = client.get_events_of(vec![filters], timeout).await?;
     // TODO: filter out the mentions if necessary
     Ok(events)
 }
@@ -327,6 +342,7 @@ mod tests {
     };
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::key::SecretKey;
+    use nostr_sdk::{ClientBuilder, FromBech32, Keys};
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -469,21 +485,22 @@ mod tests {
         let client = Client::new(&key);
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
+        let singer = client.signer().await.unwrap();
         let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
-            EncryptedEventPaginator::new(&client, timeout, page_size, target_pub_key);
-
+            EncryptedEventPaginator::new(&singer, &client, target_pub_key, timeout, page_size)
+                .await;
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
                 Ok(events) => {
-                    if paginator.done {
+                    if paginator.paginator.done {
                         break;
                     }
-                    for event in events.iter() {
-                        let msg = paginator.decrypt_dm_event(event).await.unwrap();
-                        console_log!("Decrypted message: {:?}", msg);
+                    console_log!("events are: {:?}", events);
+                    for e in &events {
+                        console_log!("event: {:?}", e.content);
                     }
                     count += events.len();
                 }
