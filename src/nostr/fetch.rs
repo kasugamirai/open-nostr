@@ -32,6 +32,19 @@ impl_from_error!(client::Error, Client);
 impl_from_error!(nostr_sdk::types::metadata::Error, MetadataConversion);
 impl_from_error!(nostr_indexeddb::IndexedDBError, Database);
 
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Client(e) => write!(f, "Client error: {}", e),
+            Self::MetadataConversion(e) => write!(f, "Metadata conversion error: {}", e),
+            Self::Database(e) => write!(f, "Database error: {}", e),
+            Self::Decryptor(e) => write!(f, "Decryptor error: {}", e),
+            Self::Signer(e) => write!(f, "Signer error: {}", e),
+            Self::NotFound => write!(f, "Not found"),
+            Self::UnableToSave => write!(f, "Unable to save"),
+        }
+    }
+}
 pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
     events.iter().max_by_key(|event| event.created_at())
 }
@@ -46,7 +59,7 @@ pub struct EventPaginator<'a> {
     done: bool,
     timeout: Option<Duration>,
     page_size: usize,
-    event: Option<Vec<Event>>,
+    events: Option<Vec<Event>>,
 }
 
 impl<'a> EventPaginator<'a> {
@@ -63,7 +76,7 @@ impl<'a> EventPaginator<'a> {
             done: false,
             timeout,
             page_size,
-            event: None,
+            events: None,
         }
     }
 
@@ -93,7 +106,10 @@ impl<'a> EventPaginator<'a> {
             .await
         {
             Ok(events) => {
-                if events.is_empty() || events.len() < self.page_size {
+                if events.is_empty()
+                    || events.len() < self.page_size
+                    || Some(events.clone()) == self.events
+                {
                     self.done = true;
                     return None;
                 }
@@ -106,11 +122,7 @@ impl<'a> EventPaginator<'a> {
                 // Update the filters
                 self.filters = updated_filters;
 
-                if Some(events.clone()) == self.event {
-                    self.done = true;
-                    return None;
-                }
-                self.event = Some(events.clone());
+                self.events = Some(events.clone());
 
                 Some(Ok(events))
             }
