@@ -1,13 +1,15 @@
 use futures::stream::{self, StreamExt};
 use futures::{Future, Stream};
+use nostr::event::kind;
+use nostr::nips::nip44;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::nips::nip04;
 use nostr_sdk::{client, Metadata, Tag};
-use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
+use nostr_sdk::{Alphabet, Client, Event, EventBuilder, EventId, Filter, Kind, SingleLetterTag};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{NostrSigner, PublicKey};
+use std::collections::HashMap;
 use std::collections::HashSet;
-use std::collections::{hash_map, HashMap};
 use std::time::Duration;
 /// Error enum to represent possible errors in the application.
 #[derive(Debug)]
@@ -196,7 +198,7 @@ impl DecryptedMsg {
     }
 }
 
-macro_rules! create_nip04_filters {
+macro_rules! create_encrypted_filters {
     ($kind:expr, $author:expr, $public_key:expr) => {{
         (
             Filter::new().kind($kind).author($author).custom_tag(
@@ -215,6 +217,7 @@ pub struct DecryptedMsgPaginator<'a> {
     signer: &'a NostrSigner,
     target_pub_key: PublicKey,
     paginator: EventPaginator<'a>,
+    nip44: bool,
 }
 
 impl<'a> DecryptedMsgPaginator<'a> {
@@ -224,10 +227,12 @@ impl<'a> DecryptedMsgPaginator<'a> {
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
+        nip44: bool,
     ) -> DecryptedMsgPaginator<'a> {
         let public_key = signer.public_key().await.unwrap();
+
         let (me, target) =
-            create_nip04_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
+            create_encrypted_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
         let filters = vec![me, target];
 
         let paginator = EventPaginator::new(client, filters, timeout, page_size);
@@ -235,14 +240,20 @@ impl<'a> DecryptedMsgPaginator<'a> {
             signer,
             target_pub_key,
             paginator,
+            nip44,
         }
     }
 
     async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
-        let msg = self
-            .signer
-            .nip04_decrypt(self.target_pub_key, &event.content)
-            .await?;
+        let msg = if self.nip44 {
+            self.signer
+                .nip44_decrypt(self.target_pub_key, &event.content)
+                .await?
+        } else {
+            self.signer
+                .nip04_decrypt(self.target_pub_key, &event.content)
+                .await?
+        };
         Ok(msg)
     }
 
@@ -520,7 +531,8 @@ mod tests {
         let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
-            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size).await;
+            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size, false)
+                .await;
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
@@ -542,4 +554,47 @@ mod tests {
         }
         assert!(count > 7);
     }
+    /*
+    #[wasm_bindgen_test]
+    async fn test_nip44_encrypted_direct_message_filters_iterator() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let target_pub_key = PublicKey::from_bech32(
+            "npub155pujvquuuy47kpw4j3t49vq4ff9l0uxu97fhph9meuxvwc0r4hq5mdhkf",
+        )
+        .unwrap();
+        let client = Client::new(&key);
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let singer = client.signer().await.unwrap();
+        let page_size = 3;
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let mut paginator =
+            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size, true)
+                .await;
+        let mut count = 0;
+        while let Some(result) = paginator.next_page().await {
+            match result {
+                Ok(events) => {
+                    if paginator.paginator.done {
+                        break;
+                    }
+                    console_log!("events are: {:?}", events);
+                    for e in &events {
+                        console_log!("event: {:?}", e.content);
+                    }
+                    count += events.len();
+                }
+                Err(e) => {
+                    console_log!("Error fetching events: {:?}", e);
+                    break;
+                }
+            }
+        }
+        assert!(count > 1);
+    }
+    */
 }
