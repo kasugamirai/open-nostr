@@ -9,6 +9,32 @@ use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::time::Duration;
+
+macro_rules! impl_from_error {
+    ($src:ty, $variant:ident) => {
+        impl From<$src> for Error {
+            fn from(err: $src) -> Self {
+                Self::$variant(err)
+            }
+        }
+    };
+}
+
+macro_rules! create_encrypted_filters {
+    ($kind:expr, $author:expr, $public_key:expr) => {{
+        (
+            Filter::new().kind($kind).author($author).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![$author.to_hex()],
+            ),
+            Filter::new().kind($kind).author($author).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![$public_key.to_hex()],
+            ),
+        )
+    }};
+}
+
 /// Error enum to represent possible errors in the application.
 #[derive(Debug)]
 pub enum Error {
@@ -19,16 +45,6 @@ pub enum Error {
     Signer(nostr_sdk::signer::Error),
     NotFound,
     UnableToSave,
-}
-
-macro_rules! impl_from_error {
-    ($src:ty, $variant:ident) => {
-        impl From<$src> for Error {
-            fn from(err: $src) -> Self {
-                Self::$variant(err)
-            }
-        }
-    };
 }
 
 impl_from_error!(nostr_sdk::signer::Error, Signer);
@@ -47,6 +63,42 @@ impl std::fmt::Display for Error {
             Self::Signer(e) => write!(f, "Signer error: {}", e),
             Self::NotFound => write!(f, "Not found"),
             Self::UnableToSave => write!(f, "Unable to save"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct DecryptedMsg {
+    /// Id
+    pub id: EventId,
+    /// Author
+    pub pubkey: PublicKey,
+    /// Timestamp (seconds)
+    pub created_at: Timestamp,
+    /// Kind
+    pub kind: Kind,
+    /// Vector of [`Tag`]
+    pub tags: Vec<Tag>,
+    /// Content
+    pub content: String,
+}
+
+impl DecryptedMsg {
+    pub fn new(
+        id: EventId,
+        pubkey: PublicKey,
+        created_at: Timestamp,
+        kind: Kind,
+        tags: Vec<Tag>,
+        content: String,
+    ) -> Self {
+        Self {
+            id,
+            pubkey,
+            created_at,
+            kind,
+            tags,
+            content,
         }
     }
 }
@@ -153,56 +205,6 @@ impl<'a> Stream for EventPaginator<'a> {
     }
 }
 */
-#[derive(Debug)]
-pub struct DecryptedMsg {
-    /// Id
-    pub id: EventId,
-    /// Author
-    pub pubkey: PublicKey,
-    /// Timestamp (seconds)
-    pub created_at: Timestamp,
-    /// Kind
-    pub kind: Kind,
-    /// Vector of [`Tag`]
-    pub tags: Vec<Tag>,
-    /// Content
-    pub content: String,
-}
-
-impl DecryptedMsg {
-    pub fn new(
-        id: EventId,
-        pubkey: PublicKey,
-        created_at: Timestamp,
-        kind: Kind,
-        tags: Vec<Tag>,
-        content: String,
-    ) -> Self {
-        Self {
-            id,
-            pubkey,
-            created_at,
-            kind,
-            tags,
-            content,
-        }
-    }
-}
-
-macro_rules! create_encrypted_filters {
-    ($kind:expr, $author:expr, $public_key:expr) => {{
-        (
-            Filter::new().kind($kind).author($author).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![$author.to_hex()],
-            ),
-            Filter::new().kind($kind).author($author).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![$public_key.to_hex()],
-            ),
-        )
-    }};
-}
 
 pub struct DecryptedMsgPaginator<'a> {
     signer: &'a NostrSigner,
