@@ -73,14 +73,27 @@ pub struct DecryptedMsg {
     pub id: EventId,
     /// Author
     pub pubkey: PublicKey,
-    /// Timestamp (seconds)
+    /// Timestamp (seconds):
     pub created_at: Timestamp,
     /// Kind
     pub kind: Kind,
     /// Vector of [`Tag`]
     pub tags: Vec<Tag>,
     /// Content
-    pub content: String,
+    pub content: Option<String>,
+}
+
+impl From<Event> for DecryptedMsg {
+    fn from(event: Event) -> Self {
+        Self {
+            id: event.id,
+            pubkey: event.author(),
+            created_at: event.created_at,
+            kind: event.kind,
+            tags: event.tags.clone(),
+            content: None,
+        }
+    }
 }
 
 impl DecryptedMsg {
@@ -90,7 +103,7 @@ impl DecryptedMsg {
         created_at: Timestamp,
         kind: Kind,
         tags: Vec<Tag>,
-        content: String,
+        content: Option<String>,
     ) -> Self {
         Self {
             id,
@@ -243,27 +256,21 @@ impl<'a> DecryptedMsgPaginator<'a> {
     }
 
     async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
-        let futures: Vec<_> = events
-            .into_iter()
-            .map(|event| async move {
-                match self.decrypt_dm_event(&event).await {
-                    Ok(msg) => Ok(DecryptedMsg::new(
-                        event.id,
-                        event.author(),
-                        event.created_at,
-                        event.kind,
-                        event.tags.clone(),
-                        msg,
-                    )),
+        let futures = events.into_iter().map(|event| {
+            let self_ref = self;
+            async move {
+                match self_ref.decrypt_dm_event(&event).await {
+                    Ok(msg) => {
+                        let mut decrypted_msg: DecryptedMsg = event.into();
+                        decrypted_msg.content = Some(msg);
+                        Ok(decrypted_msg)
+                    }
                     Err(err) => Err(err),
                 }
-            })
-            .collect();
+            }
+        });
 
-        futures::future::join_all(futures)
-            .await
-            .into_iter()
-            .collect()
+        futures::future::try_join_all(futures).await
     }
 
     pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>, Error>> {
