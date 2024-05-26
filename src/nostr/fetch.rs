@@ -285,8 +285,8 @@ pub async fn get_event_by_id(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Option<Event>, Error> {
-    let filters = Filter::new().id(*event_id).limit(1);
-    let events = client.get_events_of(vec![filters], timeout).await?;
+    let filter = Filter::new().id(*event_id).limit(1);
+    let events = client.get_events_of(vec![filter], timeout).await?;
     Ok(events.into_iter().next())
 }
 
@@ -305,8 +305,8 @@ pub async fn get_metadata(
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
 ) -> Result<Metadata, Error> {
-    let filters = Filter::new().author(*public_key).kind(Kind::Metadata);
-    let events = client.get_events_of(vec![filters], timeout).await?;
+    let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
+    let events = client.get_events_of(vec![filter], timeout).await?;
     if let Some(event) = get_newest_event(&events) {
         let metadata = Metadata::from_json(&event.content)?;
         Ok(metadata)
@@ -341,11 +341,11 @@ pub async fn get_replies(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>, Error> {
-    let filters = Filter::new().kind(Kind::TextNote).custom_tag(
+    let filter = Filter::new().kind(Kind::TextNote).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
     );
-    let events = client.get_events_of(vec![filters], timeout).await?;
+    let events = client.get_events_of(vec![filter], timeout).await?;
     // TODO: filter out the mentions if necessary
     Ok(events)
 }
