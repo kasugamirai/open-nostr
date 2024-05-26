@@ -96,6 +96,26 @@ impl From<Event> for DecryptedMsg {
     }
 }
 
+impl DecryptedMsg {
+    pub fn new(
+        id: EventId,
+        pubkey: PublicKey,
+        created_at: Timestamp,
+        kind: Kind,
+        tags: Vec<Tag>,
+        content: Option<String>,
+    ) -> Self {
+        Self {
+            id,
+            pubkey,
+            created_at,
+            kind,
+            tags,
+            content,
+        }
+    }
+}
+
 pub struct EventPaginator<'a> {
     client: &'a Client,
     filters: Vec<Filter>,
