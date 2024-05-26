@@ -1,7 +1,5 @@
 use futures::stream::{self, StreamExt};
 use futures::{Future, Stream};
-use nostr::event::kind;
-use nostr::nips::nip44;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::nips::nip04;
 use nostr_sdk::{client, Metadata, Tag};
@@ -51,13 +49,6 @@ impl std::fmt::Display for Error {
             Self::UnableToSave => write!(f, "Unable to save"),
         }
     }
-}
-pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().max_by_key(|event| event.created_at())
-}
-
-pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().min_by_key(|event| event.created_at())
 }
 
 pub struct EventPaginator<'a> {
@@ -217,7 +208,6 @@ pub struct DecryptedMsgPaginator<'a> {
     signer: &'a NostrSigner,
     target_pub_key: PublicKey,
     paginator: EventPaginator<'a>,
-    nip44: bool,
 }
 
 impl<'a> DecryptedMsgPaginator<'a> {
@@ -227,7 +217,6 @@ impl<'a> DecryptedMsgPaginator<'a> {
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
-        nip44: bool,
     ) -> DecryptedMsgPaginator<'a> {
         let public_key = signer.public_key().await.unwrap();
 
@@ -240,20 +229,14 @@ impl<'a> DecryptedMsgPaginator<'a> {
             signer,
             target_pub_key,
             paginator,
-            nip44,
         }
     }
 
     async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
-        let msg = if self.nip44 {
-            self.signer
-                .nip44_decrypt(self.target_pub_key, &event.content)
-                .await?
-        } else {
-            self.signer
-                .nip04_decrypt(self.target_pub_key, &event.content)
-                .await?
-        };
+        let msg = self
+            .signer
+            .nip04_decrypt(self.target_pub_key, &event.content)
+            .await?;
         Ok(msg)
     }
 
@@ -371,6 +354,14 @@ pub async fn query_events_from_db(
 ) -> Result<Vec<Event>, Error> {
     let events = client.database().query(filters, Order::Desc).await;
     events.map_err(|e| Error::Database(nostr_indexeddb::IndexedDBError::Database(e)))
+}
+
+pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
+    events.iter().max_by_key(|event| event.created_at())
+}
+
+pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
+    events.iter().min_by_key(|event| event.created_at())
 }
 
 #[cfg(test)]
@@ -531,8 +522,7 @@ mod tests {
         let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
-            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size, false)
-                .await;
+            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size).await;
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
@@ -554,47 +544,4 @@ mod tests {
         }
         assert!(count > 7);
     }
-    /*
-    #[wasm_bindgen_test]
-    async fn test_nip44_encrypted_direct_message_filters_iterator() {
-        let private_key = SecretKey::from_bech32(
-            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
-        )
-        .unwrap();
-        let key = Keys::new(private_key);
-        let target_pub_key = PublicKey::from_bech32(
-            "npub155pujvquuuy47kpw4j3t49vq4ff9l0uxu97fhph9meuxvwc0r4hq5mdhkf",
-        )
-        .unwrap();
-        let client = Client::new(&key);
-        client.add_relay("wss://relay.damus.io").await.unwrap();
-        client.connect().await;
-        let singer = client.signer().await.unwrap();
-        let page_size = 3;
-        let timeout = Some(std::time::Duration::from_secs(5));
-        let mut paginator =
-            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size, true)
-                .await;
-        let mut count = 0;
-        while let Some(result) = paginator.next_page().await {
-            match result {
-                Ok(events) => {
-                    if paginator.paginator.done {
-                        break;
-                    }
-                    console_log!("events are: {:?}", events);
-                    for e in &events {
-                        console_log!("event: {:?}", e.content);
-                    }
-                    count += events.len();
-                }
-                Err(e) => {
-                    console_log!("Error fetching events: {:?}", e);
-                    break;
-                }
-            }
-        }
-        assert!(count > 1);
-    }
-    */
 }
