@@ -48,7 +48,7 @@ pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
     let mut parts = Vec::new();
     let mut last_end = 0;
 
-    let re: Regex = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
+    let re: Regex = Regex::new(r"(nostr:[a-zA-Z0-9]{63})").unwrap();
     for mat in re.find_iter(data) {
         if mat.start() > last_end {
             parts.push(&data[last_end..mat.start()]);
@@ -65,6 +65,7 @@ pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
         if i.starts_with("nostr:") {
             let id = i.strip_prefix("nostr:").unwrap();
             let is_note = is_note_address(i);
+            tracing::info!("is_note: {:#?} {}", is_note, i);
             match is_note {
                 AddressType::Note => {
                     elements.push(rsx! {

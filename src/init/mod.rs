@@ -1,4 +1,6 @@
-use crate::nostr::note::ReplyTrees;
+use std::collections::HashMap;
+
+use crate::nostr::note::{ReplyTreeManager, ReplyTrees};
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
 use crate::store::{
@@ -12,7 +14,8 @@ use crate::{
 };
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder, Filter, Kind};
+use nostr_sdk::hashes::hash160::Hash;
+use nostr_sdk::{ClientBuilder, EventId, Filter, Kind};
 use wasm_bindgen_test::console_log;
 
 pub const EXAMPLE_SUB_KEY: &str = "#nostr";
@@ -29,7 +32,6 @@ pub fn App() -> Element {
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
     let mut all_users: Signal<Vec<User>> = use_context_provider(|| Signal::new(Vec::<User>::new()));
-    let replytree = use_context_provider(|| Signal::new(ReplyTrees::default()));
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
 
@@ -139,6 +141,7 @@ pub fn App() -> Element {
             router.set(rsx! {Router::<Route> {}});
         });
     };
+    
 
     let mut root_click_pos = use_context_provider(|| Signal::new((0.0, 0.0)));
 

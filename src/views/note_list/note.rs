@@ -6,9 +6,16 @@ use regex::Regex;
 use web_sys::console;
 
 use crate::{
-    components::{icons::*, Avatar, Quote}, nostr::{
-        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies}, multiclient::MultiClient, note::{ReplyTrees, TextNote}, utils::{is_note_address, AddressType}
-    }, utils::format::{format_content, format_create_at, format_note_content}, views::note_list::reply::Reply, Route
+    components::{icons::*, Avatar, Quote},
+    nostr::{
+        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies},
+        multiclient::MultiClient,
+        note::{ReplyTreeManager, ReplyTrees, TextNote},
+        utils::{is_note_address, AddressType},
+    },
+    utils::format::{format_content, format_create_at, format_note_content},
+    views::note_list::reply::Reply,
+    Route,
 };
 
 #[derive(PartialEq, Clone, Props)]
@@ -59,7 +66,7 @@ pub fn Note(props: NoteProps) -> Element {
         ]
     });
 
-    let mut replytree = use_context::<Signal<ReplyTrees>>();
+    // let mut replytree = use_context::<Signal<ReplyTrees>>();
     let multiclient = use_context::<Signal<MultiClient>>();
 
     let mut show_detail = use_signal(|| false);
@@ -74,25 +81,25 @@ pub fn Note(props: NoteProps) -> Element {
         }
     });
     let notetext = use_signal(|| props.event.content.clone());
-    let repost_text = use_signal(|| if props.event.kind() == Kind::Repost {
-        match Event::from_json(&props.event.content) {
-            Ok(event) => event.content.to_string(),
-            Err(e) => {
-                tracing::error!("parse event error: {:?}", e);
-                // props.data.content.clone()
-                String::new()
+    let repost_text = use_signal(|| {
+        if props.event.kind() == Kind::Repost {
+            match Event::from_json(&props.event.content) {
+                Ok(event) => event.content.to_string(),
+                Err(e) => {
+                    tracing::error!("parse event error: {:?}", e);
+                    // props.data.content.clone()
+                    String::new()
+                }
             }
+        } else {
+            String::new()
         }
-    } else {
-        String::new()
     });
-    let is_reply = use_signal(|| {
-        match TextNote::try_from(props.event.clone()) {
-            Ok(text_note) => text_note.is_reply(),
-            Err(e) => {
-                tracing::error!("parse event error: {:?}", e);
-                false
-            }
+    let is_reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
+        Ok(text_note) => text_note.is_reply(),
+        Err(e) => {
+            tracing::error!("parse event error: {:?}", e);
+            false
         }
     });
 
@@ -105,29 +112,58 @@ pub fn Note(props: NoteProps) -> Element {
     let relay_name = use_signal(|| optional_str_ref.clone());
     let is_repost = props.event.kind() == Kind::Repost;
     let _future = use_resource(move || async move {
-        let clients = multiclient();
-        let client = clients.get(&relay_name()).unwrap();
-        // let repost_evnet =
-
-
-        match get_replies(&client, &eid(), None).await {
-            Ok(replies) => {
-                let mut action_state = note_action_state.write();
-                action_state[0].count = replies.len();
-                if props.is_tree && !props.is_expand {
-                    replytree.write().accept(replies.clone());
+        spawn(async move {
+            let data = if is_repost {
+                repost_text().clone()
+            } else {
+                notetext().clone()
+            };
+            element.set(format_note_content(&data, &relay_name()));
+        });
+        spawn(async move {
+            let clients = multiclient();
+            let client = clients.get(&relay_name()).unwrap();
+            // let manager = use_context::<Signal<ReplyTreeManager>>();
+            if !props.is_tree {
+                match get_replies(&client, &eid(), None).await {
+                    Ok(replies) => {
+                        let mut action_state = note_action_state.write();
+                        action_state[0].count = replies.len();
+                    }
+                    Err(e) => {
+                        tracing::error!("replies not found: {:?}", e);
+                    }
                 }
+            } else {
+                // get reply count from manager
+                // let mut manager = manager.read();
+                // let mut action_state = note_action_state.manager();
+                // let tree = manager.get(&eid());
+                // if let Some(tree) = tree {
+                //     action_state[0].count = tree.len();
+                // }
             }
-            Err(e) => {
-                tracing::error!("replies not found: {:?}", e);
-            }
-        }
-
-        let re: Regex = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
-
-        let data = if is_repost { repost_text().clone() } else { notetext().clone() };
-
-        element.set(format_note_content(&data, &relay_name()));
+            // match get_reactions(&client, &eid()).await {
+            //     Ok(reactions) => {
+            //         let mut action_state = note_action_state.write();
+            //         for reaction in reactions {
+            //             match reaction.reaction.as_str() {
+            //                 "replay" => action_state[0].count = reaction.count,
+            //                 "share" => action_state[1].count = reaction.count,
+            //                 "qoute" => action_state[2].count = reaction.count,
+            //                 "zap" => action_state[3].count = reaction.count,
+            //                 _ => {}
+            //             }
+            //         }
+            //     }
+            //     Err(e) => {
+            //         tracing::error!("reactions not found: {:?}", e);
+            //     }
+            // }
+        });
+        // let clients = multiclient();
+        // let client = clients.get(&relay_name()).unwrap();
+        // let repost_evnet =
     });
 
     let nav = navigator();
@@ -165,8 +201,8 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
                 onclick: move |_| {
-                    handle_nav(Route::NoteDetail { 
-                        sub: urlencoding::encode(&props.sub_name.clone()).to_string(), 
+                    handle_nav(Route::NoteDetail {
+                        sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
                         id: event.read().id().to_string(), });
                 },
                 if is_reply() && !props.is_tree {
@@ -206,7 +242,7 @@ pub fn Note(props: NoteProps) -> Element {
                     span{
                         class: "note-action-wrapper-span ml-10",
                     }
-                    
+
                 }
 
                 if props.is_expand {
