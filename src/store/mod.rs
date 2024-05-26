@@ -235,7 +235,7 @@ impl CBWebDatabase {
                 from_value(sub_value.clone()).map_err(CBwebDatabaseError::DeserializationError)?;
 
             if custom_sub.relay_set == old_name {
-                custom_sub.relay_set = new_name.clone();
+                custom_sub.relay_set.clone_from(&new_name);
                 let updated_sub_value =
                     to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
 
