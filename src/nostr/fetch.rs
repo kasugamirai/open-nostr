@@ -1,5 +1,5 @@
-use futures::stream::{self, StreamExt};
-use futures::{Future, Stream};
+//use futures::stream::{self, StreamExt};
+//use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::nips::nip04;
 use nostr_sdk::{client, Metadata, Tag};
