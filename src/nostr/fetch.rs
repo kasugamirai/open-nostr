@@ -3,7 +3,7 @@ use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::nips::nip04;
 use nostr_sdk::{client, Metadata, Tag};
-use nostr_sdk::{Alphabet, Client, Event, EventBuilder, EventId, Filter, Kind, SingleLetterTag};
+use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
@@ -217,19 +217,19 @@ impl<'a> DecryptedMsgPaginator<'a> {
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
-    ) -> DecryptedMsgPaginator<'a> {
-        let public_key = signer.public_key().await.unwrap();
+    ) -> Result<DecryptedMsgPaginator<'a>, Error> {
+        let public_key = signer.public_key().await?;
 
         let (me, target) =
             create_encrypted_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
         let filters = vec![me, target];
 
         let paginator = EventPaginator::new(client, filters, timeout, page_size);
-        DecryptedMsgPaginator {
+        Ok(DecryptedMsgPaginator {
             signer,
             target_pub_key,
             paginator,
-        }
+        })
     }
 
     async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
@@ -522,7 +522,9 @@ mod tests {
         let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
-            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size).await;
+            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size)
+                .await
+                .unwrap();
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
