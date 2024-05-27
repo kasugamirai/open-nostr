@@ -55,8 +55,7 @@ impl TextNote {
                 Some(tag) => tag.clone(),
                 None => match normalize_e_tag(tag) {
                     Ok(Some(normalized_tag)) => normalized_tag,
-                    Ok(None) => continue,
-                    Err(_) => return Err(Error::NormalizationFailed),
+                    _ => continue,
                 },
             };
 
@@ -388,5 +387,15 @@ mod tests {
         );
         assert!(r_a_children.len() == 1);
         assert!(r_a_children.first().unwrap().inner.content == "R -> A -> B");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_failed_process_tags() {
+        let event = event_from(ERROR_EVENT);
+        let mut text_note = TextNote::new(event);
+        let event = text_note.inner.clone();
+        let result = TextNote::process_tags(&event, &mut text_note);
+        assert!(result.is_err());
+        assert!(result.err().unwrap() == Error::NotEnoughElements);
     }
 }
