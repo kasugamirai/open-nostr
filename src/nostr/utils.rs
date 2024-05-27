@@ -1,4 +1,7 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+
 use indextree::{Arena, NodeId};
+use serde::Serialize;
 
 /// Utility function to get all children of a specified node in an Arena.
 ///
@@ -40,4 +43,11 @@ pub fn get_ancestors<T>(arena: &Arena<T>, node_id: NodeId) -> Vec<&T> {
     }
 
     ancestors
+}
+
+pub fn hash_filter<T: Serialize>(filter: &T) -> u64 {
+    let serialized = serde_json::to_string(filter).unwrap();
+    let mut hasher = DefaultHasher::new();
+    serialized.hash(&mut hasher);
+    hasher.finish()
 }
