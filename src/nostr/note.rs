@@ -14,6 +14,7 @@ pub enum Error {
     KindNotMatch,
     NotEnoughElements,
     NormalizationFailed,
+    NodeIdNotFound,
 }
 
 impl fmt::Display for Error {
@@ -22,6 +23,7 @@ impl fmt::Display for Error {
             Error::KindNotMatch => write!(f, "Kind does not match"),
             Error::NotEnoughElements => write!(f, "Not enough elements in no_marker_array"),
             Error::NormalizationFailed => write!(f, "Normalization failed"),
+            Error::NodeIdNotFound => write!(f, "Node ID not found"),
         }
     }
 }
@@ -156,7 +158,7 @@ impl Default for ReplyTrees {
 }
 
 impl ReplyTrees {
-    pub fn accept(&mut self, events: Vec<Event>) {
+    pub fn accept(&mut self, events: Vec<Event>) -> Result<(), Error> {
         let text_notes: Vec<TextNote> = events
             .into_iter()
             .filter_map(|e| TextNote::try_from(e).ok())
@@ -169,13 +171,17 @@ impl ReplyTrees {
         }
 
         for tn in &self.notes {
-            let node_id = self.id2id.get(&tn.inner.id).unwrap();
-            if let Some(reply_to) = &tn.reply_to {
-                if let Some(p_node_id) = self.id2id.get(reply_to) {
-                    p_node_id.append(*node_id, &mut self.arena);
+            if let Some(node_id) = self.id2id.get(&tn.inner.id) {
+                if let Some(reply_to) = &tn.reply_to {
+                    if let Some(p_node_id) = self.id2id.get(reply_to) {
+                        p_node_id.append(*node_id, &mut self.arena);
+                    }
                 }
+            } else {
+                return Err(Error::NodeIdNotFound);
             }
         }
+        Ok(())
     }
 
     pub fn get_note_by_id(&self, id: &EventId) -> Option<&TextNote> {
@@ -294,7 +300,7 @@ mod tests {
     fn test_get_note() {
         let event = event_from(ROOT_NOTE);
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(vec![event]);
+        reply_tree.accept(vec![event]).unwrap();
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
                 .unwrap();
@@ -309,7 +315,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events);
+        reply_tree.accept(events).unwrap();
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
@@ -335,7 +341,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events);
+        reply_tree.accept(events).unwrap();
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
@@ -352,7 +358,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events);
+        reply_tree.accept(events).unwrap();
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
@@ -371,8 +377,8 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(root);
-        reply_tree.accept(replies);
+        reply_tree.accept(root).unwrap();
+        reply_tree.accept(replies).unwrap();
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),

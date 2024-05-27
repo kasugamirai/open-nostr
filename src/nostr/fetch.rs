@@ -260,8 +260,8 @@ mod tests {
         let replies = get_replies(&client, &event_id, timeout).await.unwrap();
         assert_eq!(replies.len(), 3);
         let mut tree = ReplyTrees::default();
-        tree.accept(vec![root]);
-        tree.accept(replies);
+        tree.accept(vec![root]).unwrap();
+        tree.accept(replies).unwrap();
         let lv1_replies = tree.get_replies(&event_id, Some(DisplayOrder::NewestFirst));
         console_log!("lv1_replies {:?}", lv1_replies);
         assert!(lv1_replies.len() == 3);
