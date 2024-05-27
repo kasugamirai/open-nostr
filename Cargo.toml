@@ -37,6 +37,7 @@ anyhow = "1.0.40"
 thiserror = "1.0.29"
 wasm-bindgen-test = "0.3"
 js-sys = "0.3.69"
+cached = "0.51.3"
 
 [features]
 default = []
