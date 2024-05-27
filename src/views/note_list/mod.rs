@@ -97,7 +97,14 @@ pub fn List(props: ListProps) -> Element {
             let clients = multiclient();
 
             tracing::info!("Subscription xxxxxxxxxxx: {:?}", sub.clone());
-            let c = clients.get(&sub.name).unwrap();
+            let c = match clients.get(&sub.name) {
+                Some(client) => client,
+                None => {
+                    // Handle the case when the client is not found
+                    log::error!("Client not found for subscription: {:?}", sub.name);
+                    return;
+                }
+            };
 
             let filters = sub.get_filters();
 

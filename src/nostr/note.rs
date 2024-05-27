@@ -13,6 +13,7 @@ use super::utils::{self, get_children};
 pub enum Error {
     KindNotMatch,
     NotEnoughElements,
+    NormalizationFailed,
 }
 
 impl fmt::Display for Error {
@@ -20,6 +21,7 @@ impl fmt::Display for Error {
         match self {
             Error::KindNotMatch => write!(f, "Kind does not match"),
             Error::NotEnoughElements => write!(f, "Not enough elements in no_marker_array"),
+            Error::NormalizationFailed => write!(f, "Normalization failed"),
         }
     }
 }
@@ -46,12 +48,18 @@ impl TextNote {
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-        event.iter_tags().for_each(|tag| {
+
+        for tag in event.iter_tags() {
             let tag_standard = tag.as_standardized();
             let new_tag = match tag_standard {
                 Some(tag) => tag.clone(),
-                None => normalize_e_tag(tag).unwrap(),
+                None => match normalize_e_tag(tag) {
+                    Ok(Some(normalized_tag)) => normalized_tag,
+                    Ok(None) => continue,
+                    Err(_) => return Err(Error::NormalizationFailed),
+                },
             };
+
             if let TagStandard::Event {
                 event_id, marker, ..
             } = new_tag
@@ -63,7 +71,8 @@ impl TextNote {
                     _ => {}
                 }
             }
-        });
+        }
+
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
             text_note.root = Some(*reply);
         }
@@ -92,7 +101,7 @@ impl TextNote {
     }
 }
 
-fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
+fn normalize_e_tag(t: &Tag) -> Result<Option<TagStandard>, Error> {
     match t.kind() {
         TagKind::SingleLetter(SingleLetterTag {
             character: Alphabet::E,
@@ -102,11 +111,11 @@ fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
             let at_most_4 = &t_vec[..min(4, t_vec.len())];
             let normalized_t = at_most_4.to_vec();
             match TagStandard::parse(&normalized_t) {
-                Ok(tag) => Some(tag),
-                Err(_) => None,
+                Ok(tag) => Ok(Some(tag)),
+                Err(_) => Err(Error::NormalizationFailed),
             }
         }
-        _ => None,
+        _ => Ok(None),
     }
 }
 
