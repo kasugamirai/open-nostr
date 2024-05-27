@@ -2,6 +2,9 @@ use std::ops::Add;
 
 use indextree::{Arena, NodeId};
 use nostr_sdk::{EventId, FromBech32, PublicKey};
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use serde::Serialize;
 
 /// Utility function to get all children of a specified node in an Arena.
 ///
@@ -67,4 +70,11 @@ pub fn is_note_address(address: &str) -> AddressType {
         }
     }
     return AddressType::Nostr;
+}
+
+pub fn hash_filter<T: Serialize>(filter: &T) -> u64 {
+    let serialized = serde_json::to_string(filter).unwrap();
+    let mut hasher = DefaultHasher::new();
+    serialized.hash(&mut hasher);
+    hasher.finish()
 }

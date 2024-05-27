@@ -45,26 +45,6 @@ struct NoteActionState {
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    let mut note_action_state = use_signal(|| {
-        vec![
-            NoteActionState {
-                action: NoteAction::Replay,
-                count: 0,
-            },
-            NoteActionState {
-                action: NoteAction::Share,
-                count: 0,
-            },
-            NoteActionState {
-                action: NoteAction::Qoute,
-                count: 0,
-            },
-            NoteActionState {
-                action: NoteAction::Zap,
-                count: 0,
-            },
-        ]
-    });
 
     // let mut replytree = use_context::<Signal<ReplyTrees>>();
     let multiclient = use_context::<Signal<MultiClient>>();
@@ -72,14 +52,14 @@ pub fn Note(props: NoteProps) -> Element {
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
     let event = use_signal(|| props.event.clone());
-    let mut element = use_signal(|| {
-        rsx! {
-            div {
-                class: "pl-52",
-               "Loading..."
-            }
-        }
-    });
+    // let element = use_signal(|| {
+    //     rsx! {
+    //         div {
+    //             class: "pl-52",
+    //            "Loading..."
+    //         }
+    //     }
+    // });
     let notetext = use_signal(|| props.event.content.clone());
     let repost_text = use_signal(|| {
         if props.event.kind() == Kind::Repost {
@@ -95,13 +75,13 @@ pub fn Note(props: NoteProps) -> Element {
             String::new()
         }
     });
-    let is_reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
+    let is_reply = match TextNote::try_from(props.event.clone()) {
         Ok(text_note) => text_note.is_reply(),
         Err(e) => {
             tracing::error!("parse event error: {:?}", e);
             false
         }
-    });
+    };
 
     let pk = use_signal(|| props.event.author().clone());
     let eid = use_signal(|| props.event.id().clone());
@@ -111,66 +91,21 @@ pub fn Note(props: NoteProps) -> Element {
     };
     let relay_name = use_signal(|| optional_str_ref.clone());
     let is_repost = props.event.kind() == Kind::Repost;
-    let _future = use_resource(move || async move {
-        spawn(async move {
-            let data = if is_repost {
-                repost_text().clone()
-            } else {
-                notetext().clone()
-            };
-            element.set(format_note_content(&data, &relay_name()));
-        });
-        spawn(async move {
-            let clients = multiclient();
-            let client = clients.get(&relay_name()).unwrap();
-            // let manager = use_context::<Signal<ReplyTreeManager>>();
-            if !props.is_tree {
-                match get_replies(&client, &eid(), None).await {
-                    Ok(replies) => {
-                        let mut action_state = note_action_state.write();
-                        action_state[0].count = replies.len();
-                    }
-                    Err(e) => {
-                        tracing::error!("replies not found: {:?}", e);
-                    }
-                }
-            } else {
-                // get reply count from manager
-                // let mut manager = manager.read();
-                // let mut action_state = note_action_state.manager();
-                // let tree = manager.get(&eid());
-                // if let Some(tree) = tree {
-                //     action_state[0].count = tree.len();
-                // }
-            }
-            // match get_reactions(&client, &eid()).await {
-            //     Ok(reactions) => {
-            //         let mut action_state = note_action_state.write();
-            //         for reaction in reactions {
-            //             match reaction.reaction.as_str() {
-            //                 "replay" => action_state[0].count = reaction.count,
-            //                 "share" => action_state[1].count = reaction.count,
-            //                 "qoute" => action_state[2].count = reaction.count,
-            //                 "zap" => action_state[3].count = reaction.count,
-            //                 _ => {}
-            //             }
-            //         }
-            //     }
-            //     Err(e) => {
-            //         tracing::error!("reactions not found: {:?}", e);
-            //     }
-            // }
-        });
-        // let clients = multiclient();
-        // let client = clients.get(&relay_name()).unwrap();
-        // let repost_evnet =
-    });
+    // let _future = use_resource(move || async move {
+    //     spawn(async move {
+    //         let data = if is_repost {
+    //             repost_text().clone()
+    //         } else {
+    //             notetext().clone()
+    //         };
+    //         // element.set(format_note_content(&data, &relay_name()));
+    //     });
+    // });
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
         nav.push(route);
     };
-
     rsx! {
         div {
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
@@ -189,14 +124,14 @@ pub fn Note(props: NoteProps) -> Element {
                         _=> None
                     },
                 }
-                MoreInfo {
-                    on_detail: move |_| {
-                        let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
-                        let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
-                        detail.set(formatted_json);
-                        show_detail.set(!show_detail());
-                    },
-                }
+                // MoreInfo {
+                //     on_detail: move |_| {
+                //         let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
+                //         let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                //         detail.set(formatted_json);
+                //         show_detail.set(!show_detail());
+                //     },
+                // }
             }
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
@@ -205,40 +140,36 @@ pub fn Note(props: NoteProps) -> Element {
                         sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
                         id: event.read().id().to_string(), });
                 },
-                if is_reply() && !props.is_tree {
-                    Reply {
-                        event: event.read().clone(),
-                        sub_name: props.sub_name.clone(),
-                        relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
-                    }
-                }
-                {element}
+                // if is_reply() && !props.is_tree {
+                //     Reply {
+                //         event: event.read().clone(),
+                //         sub_name: props.sub_name.clone(),
+                //         relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                //     }
+                // }
+                // {element}
             }
 
             div {
                 class: "note-action-wrapper flex items-center justify-between pl-52 pr-12",
                 div {
                     class: "note-action flex items-center",
-                    {note_action_state.iter().map(|_state| {
-                        rsx! {
-                            div {
-                                class: "note-action-item cursor-pointer flex items-center",
-                                span {
-                                    class: "note-action-icon",
-                                    dangerous_inner_html: match _state.action {
-                                        NoteAction::Replay => TURN_LEFT.to_string(),
-                                        NoteAction::Share => TURN_RIGHT.to_string(),
-                                        NoteAction::Qoute => QUTE.to_string(),
-                                        NoteAction::Zap => ZAP.to_string(),
-                                    }
-                                }
-                                span {
-                                    class: "note-action-count font-size-12 txt-1",
-                                    {format!("{}", _state.count)}
-                                }
-                            }
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            // dangerous_inner_html: match _state.action {
+                            //     NoteAction::Replay => TURN_LEFT.to_string(),
+                            //     NoteAction::Share => TURN_RIGHT.to_string(),
+                            //     NoteAction::Qoute => QUTE.to_string(),
+                            //     NoteAction::Zap => ZAP.to_string(),
+                            // }
                         }
-                    })}
+                        // span {
+                        //     class: "note-action-count font-size-12 txt-1",
+                        //     {format!("{}", _state.count)}
+                        // }
+                    }
                     span{
                         class: "note-action-wrapper-span ml-10",
                     }

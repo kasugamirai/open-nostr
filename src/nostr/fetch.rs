@@ -1,18 +1,14 @@
-use futures::{Future, Stream, StreamExt};
-use nostr_sdk::prelude::*;
-use nostr_sdk::Timestamp;
-use nostr_sdk::{client, Metadata};
+use futures::stream::{self, StreamExt};
+use futures::{Future, Stream};
+use nostr_indexeddb::database::Order;
+use nostr_sdk::nips::nip04;
+use nostr_sdk::{client, Metadata, Tag};
+use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
+use nostr_sdk::{JsonUtil, Timestamp};
+use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::time::Duration;
-/// Error enum to represent possible errors in the application.
-#[derive(Debug)]
-pub enum Error {
-    Client(client::Error),
-    MetadataConversion(nostr_sdk::types::metadata::Error),
-    Database(nostr_indexeddb::IndexedDBError),
-    NotFound,
-    UnableToSave,
-}
 
 macro_rules! impl_from_error {
     ($src:ty, $variant:ident) => {
@@ -24,16 +20,80 @@ macro_rules! impl_from_error {
     };
 }
 
+macro_rules! create_encrypted_filters {
+    ($kind:expr, $author:expr, $public_key:expr) => {{
+        (
+            Filter::new().kind($kind).author($author).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![$author.to_hex()],
+            ),
+            Filter::new().kind($kind).author($author).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![$public_key.to_hex()],
+            ),
+        )
+    }};
+}
+
+/// Error enum to represent possible errors in the application.
+#[derive(Debug)]
+pub enum Error {
+    Client(client::Error),
+    MetadataConversion(nostr_sdk::types::metadata::Error),
+    Database(nostr_indexeddb::IndexedDBError),
+    Decryptor(nip04::Error),
+    Signer(nostr_sdk::signer::Error),
+    NotFound,
+    UnableToSave,
+}
+
+impl_from_error!(nostr_sdk::signer::Error, Signer);
+impl_from_error!(nip04::Error, Decryptor);
 impl_from_error!(client::Error, Client);
 impl_from_error!(nostr_sdk::types::metadata::Error, MetadataConversion);
 impl_from_error!(nostr_indexeddb::IndexedDBError, Database);
 
-pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().max_by_key(|event| event.created_at())
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Self::Client(e) => write!(f, "Client error: {}", e),
+            Self::MetadataConversion(e) => write!(f, "Metadata conversion error: {}", e),
+            Self::Database(e) => write!(f, "Database error: {}", e),
+            Self::Decryptor(e) => write!(f, "Decryptor error: {}", e),
+            Self::Signer(e) => write!(f, "Signer error: {}", e),
+            Self::NotFound => write!(f, "Not found"),
+            Self::UnableToSave => write!(f, "Unable to save"),
+        }
+    }
 }
 
-pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().min_by_key(|event| event.created_at())
+#[derive(Debug)]
+pub struct DecryptedMsg {
+    /// Id
+    pub id: EventId,
+    /// Author
+    pub pubkey: PublicKey,
+    /// Timestamp (seconds):
+    pub created_at: Timestamp,
+    /// Kind
+    pub kind: Kind,
+    /// Vector of [`Tag`]
+    pub tags: Vec<Tag>,
+    /// Content
+    pub content: Option<String>,
+}
+
+impl From<Event> for DecryptedMsg {
+    fn from(event: Event) -> Self {
+        Self {
+            id: event.id,
+            pubkey: event.author(),
+            created_at: event.created_at,
+            kind: event.kind,
+            tags: event.tags.clone(),
+            content: None,
+        }
+    }
 }
 
 pub struct EventPaginator<'a> {
@@ -43,6 +103,7 @@ pub struct EventPaginator<'a> {
     done: bool,
     timeout: Option<Duration>,
     page_size: usize,
+    last_event_ids: HashSet<EventId>,
 }
 
 impl<'a> EventPaginator<'a> {
@@ -59,7 +120,14 @@ impl<'a> EventPaginator<'a> {
             done: false,
             timeout,
             page_size,
+            last_event_ids: HashSet::new(),
         }
+    }
+
+    pub fn are_all_event_ids_present(&self, events: &[Event]) -> bool {
+        events
+            .iter()
+            .all(|event| self.last_event_ids.contains(&event.id))
     }
 
     pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
@@ -88,7 +156,7 @@ impl<'a> EventPaginator<'a> {
             .await
         {
             Ok(events) => {
-                if events.is_empty() || events.len() < self.page_size {
+                if events.is_empty() || self.are_all_event_ids_present(&events) {
                     self.done = true;
                     return None;
                 }
@@ -100,6 +168,9 @@ impl<'a> EventPaginator<'a> {
 
                 // Update the filters
                 self.filters = updated_filters;
+
+                self.last_event_ids = events.iter().map(|event| event.id).collect();
+
                 Some(Ok(events))
             }
             Err(e) => {
@@ -109,6 +180,7 @@ impl<'a> EventPaginator<'a> {
         }
     }
 }
+
 
 impl<'a> Stream for EventPaginator<'a> {
     type Item = Result<Vec<Event>, Error>;
@@ -123,6 +195,74 @@ impl<'a> Stream for EventPaginator<'a> {
             std::task::Poll::Ready(res) => std::task::Poll::Ready(res),
             std::task::Poll::Pending => std::task::Poll::Pending,
         }
+    }
+}
+
+pub struct DecryptedMsgPaginator<'a> {
+    signer: &'a NostrSigner,
+    target_pub_key: PublicKey,
+    paginator: EventPaginator<'a>,
+}
+
+impl<'a> DecryptedMsgPaginator<'a> {
+    pub async fn new(
+        signer: &'a NostrSigner,
+        client: &'a Client,
+        target_pub_key: PublicKey,
+        timeout: Option<Duration>,
+        page_size: usize,
+    ) -> Result<DecryptedMsgPaginator<'a>, Error> {
+        let public_key = signer.public_key().await?;
+
+        let (me, target) =
+            create_encrypted_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
+        let filters = vec![me, target];
+
+        let paginator = EventPaginator::new(client, filters, timeout, page_size);
+        Ok(DecryptedMsgPaginator {
+            signer,
+            target_pub_key,
+            paginator,
+        })
+    }
+
+    async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
+        let msg = self
+            .signer
+            .nip04_decrypt(self.target_pub_key, &event.content)
+            .await?;
+        Ok(msg)
+    }
+
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
+        let futures = events.into_iter().map(|event| {
+            let self_ref = self;
+            async move {
+                match self_ref.decrypt_dm_event(&event).await {
+                    Ok(msg) => {
+                        let mut decrypted_msg: DecryptedMsg = event.into();
+                        decrypted_msg.content = Some(msg);
+                        Ok(decrypted_msg)
+                    }
+                    Err(err) => Err(err),
+                }
+            }
+        });
+
+        futures::future::try_join_all(futures).await
+    }
+
+    pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>, Error>> {
+        if self.paginator.done {
+            return None;
+        }
+
+        if let Some(Ok(events)) = self.paginator.next_page().await {
+            let decrypt_results = self.convert_events(events).await;
+            return Some(decrypt_results);
+        }
+
+        None
     }
 }
 
@@ -205,6 +345,14 @@ pub async fn query_events_from_db(
     events.map_err(|e| Error::Database(nostr_indexeddb::IndexedDBError::Database(e)))
 }
 
+pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
+    events.iter().max_by_key(|event| event.created_at())
+}
+
+pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
+    events.iter().min_by_key(|event| event.created_at())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -215,6 +363,8 @@ mod tests {
         testhelper::event_from,
     };
     use nostr_indexeddb::WebDatabase;
+    use nostr_sdk::key::SecretKey;
+    use nostr_sdk::{ClientBuilder, FromBech32, Keys};
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -315,7 +465,10 @@ mod tests {
         )
         .unwrap();
 
-        let filter = Filter::new().kind(Kind::TextNote).author(public_key);
+        let filter: Filter = Filter::new()
+            .kind(Kind::EncryptedDirectMessage)
+            .author(public_key);
+
         let page_size = 100;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator = EventPaginator::new(&client, vec![filter], timeout, page_size);
@@ -338,5 +491,48 @@ mod tests {
         }
 
         assert!(count > 100);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_encrypted_direct_message_filters_iterator() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let target_pub_key = PublicKey::from_bech32(
+            "npub155pujvquuuy47kpw4j3t49vq4ff9l0uxu97fhph9meuxvwc0r4hq5mdhkf",
+        )
+        .unwrap();
+        let client = Client::new(&key);
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        let singer = client.signer().await.unwrap();
+        let page_size = 3;
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let mut paginator =
+            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size)
+                .await
+                .unwrap();
+        let mut count = 0;
+        while let Some(result) = paginator.next_page().await {
+            match result {
+                Ok(events) => {
+                    if paginator.paginator.done {
+                        break;
+                    }
+                    console_log!("events are: {:?}", events);
+                    for e in &events {
+                        console_log!("event: {:?}", e.content);
+                    }
+                    count += events.len();
+                }
+                Err(e) => {
+                    console_log!("Error fetching events: {:?}", e);
+                    break;
+                }
+            }
+        }
+        assert!(count > 7);
     }
 }

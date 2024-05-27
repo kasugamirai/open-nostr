@@ -1,7 +1,7 @@
 mod custom_sub;
 pub mod note;
-pub mod reply;
 pub mod note_wrapper;
+pub mod reply;
 
 use std::time::Duration;
 
@@ -17,14 +17,13 @@ use custom_sub::CustomSubscription;
 use note::Note;
 use note_wrapper::Note_wrapper;
 
-
 #[component]
 pub fn NoteList(name: String) -> Element {
     tracing::info!("NoteList: {:?}", name);
     // all custom subscriptions
     let mut all_sub = use_context::<Signal<Vec<CustomSub>>>();
 
-    let mut sub_current = use_signal(|| CustomSub::empty());
+    let mut sub_current = use_signal(CustomSub::empty);
     let mut sub_index = use_signal(|| 0);
     let mut cb_database_db = use_context::<Signal<CBWebDatabase>>();
 
@@ -101,7 +100,7 @@ pub struct ListProps {
 pub fn List(props: ListProps) -> Element {
     let mut sub_current = use_signal(|| props.subscription.clone());
 
-    let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
+    let mut notes: Signal<Vec<Event>> = use_signal(std::vec::Vec::new);
     let mut index = use_signal(|| 1);
 
     let multiclient = use_context::<Signal<MultiClient>>();
@@ -111,20 +110,18 @@ pub fn List(props: ListProps) -> Element {
         spawn(async move {
             let sub = sub_current.read().clone();
             let filters = sub.get_filters();
-            tracing::info!("Subscription: {:#?}", filters);
             let clients = multiclient();
-            let client: &nostr_sdk::Client = &clients.get_or_create(&sub.relay_set).await;
-            // TODO: use global client by this subscription
-            tracing::info!("Filters: {:#?}", filters);
-            // TODO: use the 'subscribe' function if this sub requires subscription
-            let events = client
-                .get_events_of(filters, Some(Duration::from_secs(180)))
-                .await
-                .unwrap();
-            // TODO: add or append to database
+            if let Some(client) = clients.get_client(&sub.relay_set) {
+                let client = client.client();
+                let events = client
+                    .get_events_of(filters, Some(Duration::from_secs(180)))
+                    .await
+                    .unwrap();
+                // TODO: add or append to database
 
-            notes.clear();
-            notes.extend(events);
+                notes.clear();
+                notes.extend(events);
+            }
         })
     };
 
@@ -172,10 +169,9 @@ pub fn List(props: ListProps) -> Element {
                 //     sub_name: props.subscription.name.clone(),
                 //     event: note.clone(),
                 //     relay_name: props.subscription.relay_set.clone(),
-                
+
                 // }
             }
         }
     }
 }
-

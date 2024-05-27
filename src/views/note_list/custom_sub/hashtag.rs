@@ -110,7 +110,7 @@ pub fn HashTagAdd(props: HashTagAddProps) -> Element {
     let mut edit = use_signal(|| *allow_edit.read());
 
     // current value
-    let mut value = use_signal(|| String::new());
+    let mut value = use_signal(String::new);
 
     // cancel editing status when the parent does not allow editing
     use_effect(use_reactive((&edit,), move |(mut edit,)| {

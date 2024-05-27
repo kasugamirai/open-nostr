@@ -32,7 +32,8 @@ pub fn Mention(props: MentionProps) -> Element {
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
             let multiclient = multiclient();
-            if let Some(client) = multiclient.get(&relay_name) {
+            if let Some(client) = multiclient.get_client(&relay_name) {
+                let client = client.client();
                 // client.send_event_builder(builder)
                 spawn(async move {
                     let filter = Filter::new().author(pubkey).kind(Kind::Metadata);

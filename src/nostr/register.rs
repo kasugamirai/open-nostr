@@ -111,12 +111,12 @@ impl Register {
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use crate::testhelper::{sleep, test_hander::create_console_log_handler};
 
     use super::*;
-    use js_sys::Promise;
-    use wasm_bindgen::prelude::*;
-    use wasm_bindgen_futures::{spawn_local, JsFuture};
+    use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -195,7 +195,7 @@ mod tests {
         let event_id =
             EventId::from_hex("770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b")
                 .unwrap();
-        let client = Arc::new(Client::default());
+        let client = Rc::new(Client::default());
         client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
         let register = Register::default();
@@ -214,7 +214,7 @@ mod tests {
             .await
             .unwrap();
 
-        let cc = Arc::clone(&client);
+        let cc = Rc::clone(&client);
         spawn_local(async move {
             register.handle_notifications(&cc).await.unwrap();
         });

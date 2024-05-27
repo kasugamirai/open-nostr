@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::nostr::note::{ReplyTreeManager, ReplyTrees};
+use crate::nostr::multiclient::HashedClient;
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
 use crate::store::{
@@ -70,13 +71,14 @@ pub fn App() -> Element {
             if !relay_sets.is_empty() {
                 let mut _multiclient = multiclient.write();
                 for rs in relay_sets {
-                    let client = _multiclient.get(&rs.name);
+                    let client = _multiclient.get_client(&rs.name);
                     if client.is_none() {
                         let client_builder = ClientBuilder::new().database(nostr_db.clone());
                         let c: nostr_sdk::Client = client_builder.build();
                         c.add_relays(rs.relays).await.unwrap();
                         c.connect().await;
-                        _multiclient.register(rs.name, c);
+                        let hc = HashedClient::new(c).await;
+                        _multiclient.register(rs.name, hc);
                     }
                 }
             }

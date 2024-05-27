@@ -39,10 +39,11 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
                     let clients = multiclient.read();
                     let sub_current = all_sub.read();
                     let sub = sub_current.iter().find(|s| s.name == sub_name()).unwrap();
-                    let client = clients.get(&sub.relay_set).clone().map(Arc::new);
+                    
                     let eventid = EventId::from_hex(&event_id()).unwrap();
 
-                    if let Some(client) = client {
+                    if let Some(client) = clients.get_client(&sub.relay_set) {
+                        let client = client.client();
                         match fetch_event_and_replies(&client, &eventid).await {
                             Ok(event) => {
                                 element.set(rsx! {
@@ -100,7 +101,7 @@ pub fn NoteDetail(sub: String, id: String) -> Element {
     }
 }
 
-async fn fetch_event_and_replies(client: &Arc<Client>, event_id: &EventId) -> Result<Event, Error> {
+async fn fetch_event_and_replies(client: &Client, event_id: &EventId) -> Result<Event, Error> {
     let mut replytree_manager = use_context::<Signal<ReplyTreeManager>>();
     match get_event_by_id(client, event_id, None).await {
         Ok(Some(event)) => {

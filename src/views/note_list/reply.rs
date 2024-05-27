@@ -40,8 +40,8 @@ pub fn Reply(props: ReplyProps) -> Element {
         
         spawn(async move {
             let clients = multiclient();
-            let client = clients.get_or_create(&relay_name).await;
-            match get_event_by_id(&client, &text_note.root.unwrap(), None).await {
+            let client = clients.get_client(&relay_name).unwrap();
+            match get_event_by_id(&client.client(), &text_note.root.unwrap(), None).await {
                 Ok(root) => {
                     if let Some(root_event) = root {
                         root_rsx.set(rsx! {

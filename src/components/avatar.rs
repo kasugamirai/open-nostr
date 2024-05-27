@@ -35,7 +35,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
             let multiclient = multiclient();
-            if let Some(client) = multiclient.get(&relay_name) {
+            if let Some(client) = multiclient.get_client(&relay_name) {
+                let client = client.client();
                 // client.send_event_builder(builder)
                 spawn(async move {
                     let filter = Filter::new().author(pubkey).kind(Kind::Metadata);
@@ -78,9 +79,9 @@ pub fn Avatar(props: AvatarProps) -> Element {
             let multiclient = multiclient();
             spawn(async move {
                 if let Some(event) = repost_event {
-                    if let Some(client) = multiclient.get(&relay_name) {
+                    if let Some(client) = multiclient.get_client(&relay_name) {
                         let filter = Filter::new().author(event.pubkey).kind(Kind::Metadata);
-                        let event_result = client
+                        let event_result = client.client()
                             .database()
                             .query(vec![filter], Order::Desc)
                             .await
@@ -93,7 +94,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
                             }));
                             root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
                         }
-                        match get_metadata(&client, &event.pubkey, None).await {
+                        match get_metadata(&client.client(), &event.pubkey, None).await {
                             Ok(metadata) => {
                                 root_pic.set(metadata.picture.unwrap_or_else(|| {
                                     "https://avatars.githubusercontent.com/u/1024025?v=4"

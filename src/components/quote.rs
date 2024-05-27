@@ -27,8 +27,8 @@ pub fn Quote(props: QouteProps) -> Element {
     use_effect(use_reactive((&props.event_id, &props.relay_name, &props.quote_nostr), move |(event_id, relay_name, quote_nostr)| {
         spawn(async move {
             let clients = multiclient();
-            let client = clients.get(&relay_name).unwrap();
-            match get_event_by_id(&client, &event_id, None).await {
+            let client = clients.get_client(&relay_name).unwrap();
+            match get_event_by_id(&client.client(), &event_id, None).await {
                 Ok(Some(event)) => {
                     let pk = event.author();
                     let content = event.content.to_string();
