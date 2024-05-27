@@ -19,7 +19,7 @@ pub fn NoteList(name: String) -> Element {
     // all custom subscriptions
     let mut sub_all = use_context::<Signal<Vec<CustomSub>>>();
 
-    let mut sub_current = use_signal(|| CustomSub::empty());
+    let mut sub_current = use_signal(CustomSub::empty);
     let mut sub_index = use_signal(|| 0);
 
     use_effect(use_reactive((&name,), move |(s,)| {
@@ -82,7 +82,7 @@ pub struct ListProps {
 pub fn List(props: ListProps) -> Element {
     let mut sub_current = use_signal(|| props.subscription.clone());
 
-    let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
+    let mut notes: Signal<Vec<Event>> = use_signal(std::vec::Vec::new);
     let mut index = use_signal(|| 1);
 
     // let multiclient = use_context::<Signal<MultiClient>>();

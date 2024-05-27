@@ -86,7 +86,7 @@ pub fn Note(props: NoteProps) -> Element {
     let multiclient = use_context::<Signal<MultiClient>>();
 
     let mut show_detail = use_signal(|| false);
-    let mut detail = use_signal(|| String::new());
+    let mut detail = use_signal(String::new);
 
     let mut element = use_signal(|| {
         rsx! {
@@ -98,11 +98,11 @@ pub fn Note(props: NoteProps) -> Element {
     });
     let notetext = use_signal(|| props.data.content.clone());
     let sub_name = use_signal(|| props.sub_name.clone());
-    let pk = use_signal(|| props.data.event.author().clone());
-    let eid = use_signal(|| props.data.event.id().clone());
+    let pk = use_signal(|| props.data.event.author());
+    let eid = use_signal(|| props.data.event.id());
     let mut root_avatar = use_signal(|| None);
     let mut root_nickname = use_signal(|| None);
-    let mut emoji = use_signal(|| HashMap::new());
+    let mut emoji = use_signal(HashMap::new);
     let _future = use_resource(move || async move {
         let clients = multiclient();
         let client = clients.get_client(&sub_name.read()).unwrap().client();

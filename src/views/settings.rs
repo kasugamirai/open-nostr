@@ -20,7 +20,7 @@ use crate::{
 //   }
 #[component]
 pub fn Settings() -> Element {
-    let mut data = use_signal(|| vec![]);
+    let mut data = use_signal(vec::Vec::new);
     let get_events = move || {
         let n = r#"
         qwetgsss http://1/2.jpg #Dog
