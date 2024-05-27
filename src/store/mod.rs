@@ -9,6 +9,7 @@ use indexed_db_futures::web_sys::IdbTransactionMode;
 use indexed_db_futures::{IdbDatabase, IdbKeyPath, IdbQuerySource, IdbVersionChangeEvent};
 use serde_wasm_bindgen::{from_value, to_value};
 use std::future::IntoFuture;
+use std::rc::Rc;
 use std::sync::Arc;
 use subscription::{CustomSub, RelaySet};
 pub use user::{AccountType, User};
@@ -28,7 +29,7 @@ pub const DEFAULT_RELAY_SET_KEY: &str = "default"; // This record cannot be remo
 
 #[derive(Clone)]
 pub struct CBWebDatabase {
-    db: Arc<IdbDatabase>,
+    db: Rc<IdbDatabase>,
 }
 
 impl CBWebDatabase {
@@ -121,7 +122,7 @@ impl CBWebDatabase {
             },
         ));
 
-        self.db = Arc::new(db_req.into_future().await?);
+        self.db = Rc::new(db_req.into_future().await?);
 
         Ok(())
     }
@@ -131,7 +132,7 @@ impl CBWebDatabase {
         S: AsRef<str>,
     {
         let mut this = Self {
-            db: Arc::new(IdbDatabase::open(name.as_ref())?.into_future().await?),
+            db: Rc::new(IdbDatabase::open(name.as_ref())?.into_future().await?),
         };
 
         this.migration().await?;
@@ -216,7 +217,7 @@ impl CBWebDatabase {
                 .map_err(CBwebDatabaseError::DeserializationError)?;
 
             // Update the name
-            relay_set.name = new_name.clone();
+            relay_set.name.clone_from(&new_name);
             relay_set_value =
                 to_value(&relay_set).map_err(CBwebDatabaseError::DeserializationError)?;
 
