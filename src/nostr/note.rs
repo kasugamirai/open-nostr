@@ -13,6 +13,8 @@ use super::utils::{self, get_children};
 pub enum Error {
     KindNotMatch,
     NotEnoughElements,
+    NormalizationFailed,
+    NodeIdNotFound,
 }
 
 impl fmt::Display for Error {
@@ -20,6 +22,8 @@ impl fmt::Display for Error {
         match self {
             Error::KindNotMatch => write!(f, "Kind does not match"),
             Error::NotEnoughElements => write!(f, "Not enough elements in no_marker_array"),
+            Error::NormalizationFailed => write!(f, "Normalization failed"),
+            Error::NodeIdNotFound => write!(f, "Node ID not found"),
         }
     }
 }
@@ -46,12 +50,17 @@ impl TextNote {
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
-        event.iter_tags().for_each(|tag| {
+
+        for tag in event.iter_tags() {
             let tag_standard = tag.as_standardized();
             let new_tag = match tag_standard {
                 Some(tag) => tag.clone(),
-                None => normalize_e_tag(tag).unwrap(),
+                None => match normalize_e_tag(tag) {
+                    Ok(Some(normalized_tag)) => normalized_tag,
+                    _ => continue,
+                },
             };
+
             if let TagStandard::Event {
                 event_id, marker, ..
             } = new_tag
@@ -63,7 +72,8 @@ impl TextNote {
                     _ => {}
                 }
             }
-        });
+        }
+
         if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
             text_note.root = Some(*reply);
         }
@@ -92,7 +102,7 @@ impl TextNote {
     }
 }
 
-fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
+fn normalize_e_tag(t: &Tag) -> Result<Option<TagStandard>, Error> {
     match t.kind() {
         TagKind::SingleLetter(SingleLetterTag {
             character: Alphabet::E,
@@ -102,11 +112,11 @@ fn normalize_e_tag(t: &Tag) -> Option<TagStandard> {
             let at_most_4 = &t_vec[..min(4, t_vec.len())];
             let normalized_t = at_most_4.to_vec();
             match TagStandard::parse(&normalized_t) {
-                Ok(tag) => Some(tag),
-                Err(_) => None,
+                Ok(tag) => Ok(Some(tag)),
+                Err(_) => Err(Error::NormalizationFailed),
             }
         }
-        _ => None,
+        _ => Ok(None),
     }
 }
 
@@ -148,7 +158,7 @@ impl Default for ReplyTrees {
 }
 
 impl ReplyTrees {
-    pub fn accept(&mut self, events: Vec<Event>) {
+    pub fn accept(&mut self, events: Vec<Event>) -> Result<(), Error> {
         let text_notes: Vec<TextNote> = events
             .into_iter()
             .filter_map(|e| TextNote::try_from(e).ok())
@@ -161,13 +171,17 @@ impl ReplyTrees {
         }
 
         for tn in &self.notes {
-            let node_id = self.id2id.get(&tn.inner.id).unwrap();
-            if let Some(reply_to) = &tn.reply_to {
-                if let Some(p_node_id) = self.id2id.get(reply_to) {
-                    p_node_id.append(*node_id, &mut self.arena);
+            if let Some(node_id) = self.id2id.get(&tn.inner.id) {
+                if let Some(reply_to) = &tn.reply_to {
+                    if let Some(p_node_id) = self.id2id.get(reply_to) {
+                        p_node_id.append(*node_id, &mut self.arena);
+                    }
                 }
+            } else {
+                return Err(Error::NodeIdNotFound);
             }
         }
+        Ok(())
     }
 
     pub fn get_note_by_id(&self, id: &EventId) -> Option<&TextNote> {
@@ -286,7 +300,7 @@ mod tests {
     fn test_get_note() {
         let event = event_from(ROOT_NOTE);
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(vec![event]);
+        reply_tree.accept(vec![event]).unwrap();
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
                 .unwrap();
@@ -301,7 +315,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events);
+        reply_tree.accept(events).unwrap();
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
@@ -327,7 +341,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events);
+        reply_tree.accept(events).unwrap();
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
@@ -344,7 +358,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events);
+        reply_tree.accept(events).unwrap();
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
@@ -363,8 +377,8 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(root);
-        reply_tree.accept(replies);
+        reply_tree.accept(root).unwrap();
+        reply_tree.accept(replies).unwrap();
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
@@ -379,5 +393,15 @@ mod tests {
         );
         assert!(r_a_children.len() == 1);
         assert!(r_a_children.first().unwrap().inner.content == "R -> A -> B");
+    }
+
+    #[wasm_bindgen_test]
+    fn test_failed_process_tags() {
+        let event = event_from(ERROR_EVENT);
+        let mut text_note = TextNote::new(event);
+        let event = text_note.inner.clone();
+        let result = TextNote::process_tags(&event, &mut text_note);
+        assert!(result.is_err());
+        assert!(result.err().unwrap() == Error::NotEnoughElements);
     }
 }
