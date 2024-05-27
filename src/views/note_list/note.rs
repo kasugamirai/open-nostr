@@ -105,7 +105,13 @@ pub fn Note(props: NoteProps) -> Element {
     let mut emoji = use_signal(HashMap::new);
     let _future = use_resource(move || async move {
         let clients = multiclient();
-        let client = clients.get(&sub_name.read()).unwrap();
+        let client = match clients.get(&sub_name.read()) {
+            Some(client) => client,
+            None => {
+                tracing::error!("Client not found for the subscription name.");
+                return;
+            }
+        };
 
         match get_reactions(&client, &eid(), None).await {
             Ok(emojis) => {
