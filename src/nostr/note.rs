@@ -219,7 +219,7 @@ impl ReplyTrees {
 #[derive(Debug)]
 pub struct ReplyTreeManager {
     trees: HashMap<EventId, ReplyTrees>,
-    order: VecDeque<EventId>, // 用来记录添加顺序
+    order: VecDeque<EventId>,
     max_entries: usize,
 }
 impl ReplyTreeManager {
@@ -232,7 +232,6 @@ impl ReplyTreeManager {
     }
 
     pub fn add_tree(&mut self, root_id: EventId, tree: ReplyTrees) {
-        // 如果超过最大条目，删除最早的
         if self.order.len() >= self.max_entries {
             if let Some(oldest_id) = self.order.pop_front() {
                 self.trees.remove(&oldest_id);
@@ -244,7 +243,6 @@ impl ReplyTreeManager {
     }
 
     pub fn get_or_create_tree(&mut self, root_id: EventId) -> &mut ReplyTrees {
-        // 如果存在就返回，如果不存在则创建
         if !self.trees.contains_key(&root_id) {
             let new_tree = ReplyTrees::default();
             self.add_tree(root_id.clone(), new_tree);
