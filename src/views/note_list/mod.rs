@@ -82,7 +82,7 @@ pub struct ListProps {
 pub fn List(props: ListProps) -> Element {
     let mut sub_current = use_signal(|| props.subscription.clone());
 
-    let mut notes: Signal<Vec<Event>> = use_signal(|| vec![]);
+    let mut notes: Signal<Vec<Event>> = use_signal(std::vec::Vec::new);
     let mut index = use_signal(|| 1);
 
     // let multiclient = use_context::<Signal<MultiClient>>();
