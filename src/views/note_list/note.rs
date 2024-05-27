@@ -13,7 +13,10 @@ use crate::{
         note::{ReplyTreeManager, ReplyTrees, TextNote},
         utils::{is_note_address, AddressType},
     },
-    utils::format::{format_content, format_create_at, format_note_content},
+    utils::{
+        format::{format_content, format_create_at, format_note_content},
+        js::note_srcoll_into_view,
+    },
     views::note_list::reply::Reply,
     Route,
 };
@@ -45,21 +48,20 @@ struct NoteActionState {
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-
     // let mut replytree = use_context::<Signal<ReplyTrees>>();
     let multiclient = use_context::<Signal<MultiClient>>();
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
     let event = use_signal(|| props.event.clone());
-    // let element = use_signal(|| {
-    //     rsx! {
-    //         div {
-    //             class: "pl-52",
-    //            "Loading..."
-    //         }
-    //     }
-    // });
+    let mut element = use_signal(|| {
+        rsx! {
+            div {
+                class: "pl-52",
+               "Loading..."
+            }
+        }
+    });
     let notetext = use_signal(|| props.event.content.clone());
     let repost_text = use_signal(|| {
         if props.event.kind() == Kind::Repost {
@@ -75,13 +77,13 @@ pub fn Note(props: NoteProps) -> Element {
             String::new()
         }
     });
-    let is_reply = match TextNote::try_from(props.event.clone()) {
-        Ok(text_note) => text_note.is_reply(),
+    let reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
+        Ok(text_note) => (text_note.is_reply(), Some(text_note)),
         Err(e) => {
             tracing::error!("parse event error: {:?}", e);
-            false
+            (false, None)
         }
-    };
+    });
 
     let pk = use_signal(|| props.event.author().clone());
     let eid = use_signal(|| props.event.id().clone());
@@ -91,16 +93,29 @@ pub fn Note(props: NoteProps) -> Element {
     };
     let relay_name = use_signal(|| optional_str_ref.clone());
     let is_repost = props.event.kind() == Kind::Repost;
-    // let _future = use_resource(move || async move {
-    //     spawn(async move {
-    //         let data = if is_repost {
-    //             repost_text().clone()
-    //         } else {
-    //             notetext().clone()
-    //         };
-    //         // element.set(format_note_content(&data, &relay_name()));
-    //     });
-    // });
+    let e_id = use_signal(|| eid().to_hex());
+    let is_highlight = use_signal(|| {
+        props.is_tree
+            && props
+                .clsname.clone()
+                .unwrap_or("".to_string())
+                .contains("com-post--active")
+    });
+    let _future = use_resource(move || async move {
+        spawn(async move {
+            let data = if is_repost {
+                repost_text().clone()
+            } else {
+                notetext().clone()
+            };
+            element.set(format_note_content(&data, &relay_name()));
+        });
+    });
+    spawn(async move {
+        if is_highlight() {
+            note_srcoll_into_view(&e_id()).await;
+        };
+    });
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
@@ -108,7 +123,7 @@ pub fn Note(props: NoteProps) -> Element {
     };
     rsx! {
         div {
-            class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
+            class: format!("com-post p-6 {}", props.clsname.clone().unwrap_or("".to_string())),
             id: format!("note-{}", event.read().id().to_string()),
             div {
                 class: "note-header flex items-start justify-between",
@@ -124,30 +139,42 @@ pub fn Note(props: NoteProps) -> Element {
                         _=> None
                     },
                 }
-                // MoreInfo {
-                //     on_detail: move |_| {
-                //         let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
-                //         let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
-                //         detail.set(formatted_json);
-                //         show_detail.set(!show_detail());
-                //     },
-                // }
+                MoreInfo {
+                    on_detail: move |_| {
+                        let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
+                        let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                        detail.set(formatted_json);
+                        show_detail.set(!show_detail());
+                    },
+                }
             }
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
                 onclick: move |_| {
-                    handle_nav(Route::NoteDetail {
-                        sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
-                        id: event.read().id().to_string(), });
+                    let _reply = reply();
+                    if _reply.0 {
+                        let text_note = _reply.1.as_ref().unwrap();
+                        handle_nav(Route::NoteDetail {
+                            sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
+                            root_id: text_note.get_root().unwrap().to_hex(),
+                            note_id: event.read().id().to_hex(), // 使用克隆的 event
+                        });
+                    } else {
+                        handle_nav(Route::NoteDetail {
+                            sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
+                            root_id: event.read().id().to_hex(), // 使用克隆的 event
+                            note_id: event.read().id().to_hex(), // 使用克隆的 event
+                        });
+                    }
                 },
-                // if is_reply() && !props.is_tree {
-                //     Reply {
-                //         event: event.read().clone(),
-                //         sub_name: props.sub_name.clone(),
-                //         relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
-                //     }
-                // }
-                // {element}
+                if reply().0 && !props.is_tree {
+                    Reply {
+                        event: event.read().clone(),
+                        sub_name: props.sub_name.clone(),
+                        relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                    }
+                }
+                {element}
             }
 
             div {
@@ -158,22 +185,45 @@ pub fn Note(props: NoteProps) -> Element {
                         class: "note-action-item cursor-pointer flex items-center",
                         span {
                             class: "note-action-icon",
+                            dangerous_inner_html: "{TURN_LEFT}"
+                        }
+                    }
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+
                             // dangerous_inner_html: match _state.action {
                             //     NoteAction::Replay => TURN_LEFT.to_string(),
                             //     NoteAction::Share => TURN_RIGHT.to_string(),
                             //     NoteAction::Qoute => QUTE.to_string(),
                             //     NoteAction::Zap => ZAP.to_string(),
                             // }
+                            dangerous_inner_html: "{TURN_RIGHT}"
                         }
                         // span {
                         //     class: "note-action-count font-size-12 txt-1",
                         //     {format!("{}", _state.count)}
                         // }
                     }
-                    span{
-                        class: "note-action-wrapper-span ml-10",
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            dangerous_inner_html: "{QUTE}"
+                        }
+                    }
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            dangerous_inner_html: "{ZAP}"
+                        }
                     }
 
+                    // span{
+                    //     class: "note-action-wrapper-span ml-10",
+                    // }
                 }
 
                 if props.is_expand {

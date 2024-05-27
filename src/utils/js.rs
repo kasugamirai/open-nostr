@@ -54,22 +54,20 @@ pub async fn alert(msg: String) {
 
 
 
-pub async fn node_add_class(node_id: &str,cls: &str) {
+pub async fn note_srcoll_into_view(node_id: &str) {
     let eval: UseEval = eval(
         r#"
         let data = await dioxus.recv();
-        let node = document.querySelector(`#${data.nodeId}`);
+        let node = document.querySelector(`#note-${data.get("nodeId")}`);
         if (!node) {
             console.error('Node not found');
             return false;
         }
-        node.classList.add(data.cls);
         node.scrollIntoView({ behavior: 'smooth', block: 'start'});
         "#,
     );
     eval.send({
         let mut map = serde_json::Map::new();
-        map.insert("cls".into(), cls.into());
         map.insert("nodeId".into(), node_id.into());
         Value::Object(map)
     }).unwrap();

@@ -237,7 +237,7 @@ pub fn Layout() -> Element {
                                 active_class: "active",
                                 class: "nav-item",
                                 to: Route::NoteList { name: urlencoding::encode(&sub.name.clone()).to_string() },
-                                "{sub.name}"
+                                "#{sub.name}"
                             }
                         }
                     }
