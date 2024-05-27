@@ -1,5 +1,5 @@
-//use futures::stream::{self, StreamExt};
-//use futures::{Future, Stream};
+use futures::stream::{self, StreamExt};
+use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::nips::nip04;
 use nostr_sdk::{client, Metadata, Tag};
@@ -181,7 +181,7 @@ impl<'a> EventPaginator<'a> {
     }
 }
 
-/*
+
 impl<'a> Stream for EventPaginator<'a> {
     type Item = Result<Vec<Event>, Error>;
 
@@ -197,7 +197,6 @@ impl<'a> Stream for EventPaginator<'a> {
         }
     }
 }
-*/
 
 pub struct DecryptedMsgPaginator<'a> {
     signer: &'a NostrSigner,
