@@ -97,7 +97,7 @@ pub fn List(props: ListProps) -> Element {
             let clients = multiclient();
 
             tracing::info!("Subscription xxxxxxxxxxx: {:?}", sub.clone());
-            let c = clients.get(&sub.name).unwrap();
+            let c = clients.get_client(&sub.name).unwrap().client();
 
             let filters = sub.get_filters();
 

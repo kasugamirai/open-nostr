@@ -1,17 +1,73 @@
-use crate::init::NOSTR_DB_NAME;
-use crate::store::CBWebDatabase;
-use crate::store::CAPYBASTR_DBNAME;
-use futures::lock::Mutex;
-use nostr_indexeddb::WebDatabase;
-use nostr_sdk::ClientBuilder;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::Arc;
+use std::hash::{DefaultHasher, Hash, Hasher};
+use nostr_sdk::client::Error;
+
+#[derive(Debug, Clone)]
+pub struct HashedClient {
+    client: nostr_sdk::Client,
+    hash: u64,
+}
+
+impl HashedClient {
+    pub async fn new(client: nostr_sdk::Client) -> Self {
+        let hash = Self::_hash(&client).await;
+        Self { client, hash }
+    }
+    
+    async fn _hash(client: &nostr_sdk::Client) -> u64 {
+        let relays = client.relays().await;
+        if relays.is_empty() {
+            return 0;
+        }
+        let mut sorted_keys: Vec<_> = relays.keys().collect();
+        sorted_keys.sort();
+        let mut hasher = DefaultHasher::new();
+        for key in sorted_keys {
+            key.hash(&mut hasher);
+        }
+        hasher.finish()
+    }
+
+    pub fn client(&self) -> nostr_sdk::Client {
+        self.client.clone()
+    }
+
+    pub fn hash(&self) -> u64 {
+        self.hash
+    }
+
+    pub async fn add_relay(&mut self, url: &str) -> Result<bool, Error> {
+        let result = self.client.add_relay(url).await?;
+        if result {
+            self.hash = Self::_hash(&self.client).await;
+        }
+        Ok(result)
+    }
+
+    pub async fn add_relays(&mut self, urls: Vec<&str>) -> Result<(), Error> {
+        self.client.add_relays(urls).await?;
+        self.hash = Self::_hash(&self.client).await;
+        Ok(())
+    }
+
+    pub async fn remove_relay(&mut self, url: &str) -> Result<(), Error> {
+        self.client.remove_relay(url).await?;
+        self.hash = Self::_hash(&self.client).await;
+        Ok(())
+    }
+
+    pub async fn remove_all_relays(&mut self) -> Result<(), Error> {
+        self.client.remove_all_relays().await?;
+        Ok(())
+    }
+
+}
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: Rc<RefCell<HashMap<String, nostr_sdk::Client>>>,
+    clients: Rc<RefCell<HashMap<String, HashedClient>>>, 
 }
 
 impl Default for MultiClient {
@@ -27,32 +83,13 @@ impl MultiClient {
         }
     }
 
-    pub fn register(&self, name: String, client: nostr_sdk::Client) {
+    pub fn register(&self, name: String, hc: HashedClient) {
         let mut clients = self.clients.borrow_mut();
-        clients.insert(name, client);
+        clients.insert(name, hc);
     }
 
-    pub fn get(&self, name: &str) -> Option<nostr_sdk::Client> {
+    pub fn get_client(&self, name: &str) -> Option<HashedClient> {
         let clients = self.clients.borrow();
         clients.get(name).cloned()
-    }
-
-    pub async fn get_or_create(&self, name: &str) -> nostr_sdk::Client {
-        // Check if the client already exists
-        if let Some(client) = self.get(name) {
-            return client;
-        }
-
-        // Create a new client if it doesn't exist
-        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-        let db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
-        let client_builder = ClientBuilder::new().database(db);
-        let client: nostr_sdk::Client = client_builder.build();
-        let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
-        client.add_relays(relay_set_info.relays).await.unwrap();
-
-        // Insert the new client into the map
-        self.register(name.to_string(), client.clone());
-        client
     }
 }
