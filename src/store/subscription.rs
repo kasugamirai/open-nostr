@@ -79,6 +79,15 @@ pub struct RelaySet {
     pub name: String,
     pub relays: Vec<String>,
 }
+impl RelaySet {
+    pub fn new(key: &usize) -> Self {
+        Self {
+            name: format!("RelaySet-{}", key),
+            relays: vec![],
+        }
+    }
+    
+}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum FilterTemp {
@@ -91,6 +100,7 @@ pub enum FilterTemp {
 impl FilterTemp {
     pub fn to_filter(&self, since: u64, until: u64) -> Filter {
         let mut filter = Filter::new();
+        
         match self {
             FilterTemp::HashTag(hashtag) => {
                 filter = filter
@@ -116,13 +126,10 @@ impl FilterTemp {
             }
             FilterTemp::Events(events) => {
                 for x in &events.events {
-                    match EventId::from_hex(&x.nevent) {
-                        Ok(event_id) => {
-                            filter = filter.event(event_id);
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to parse event id from hex: {}", e);
-                        }
+                    if let Ok(event_id) = EventId::from_hex(&x.nevent) {
+                        filter = filter.event(event_id);
+                    } else {
+                        eprintln!("Failed to parse event id from hex");
                     }
                 }
             }
@@ -138,12 +145,8 @@ impl FilterTemp {
                 }
                 if !customize.accounts.is_empty() {
                     filter = filter.authors(
-                        customize
-                            .accounts
-                            .iter()
-                            .map(|x| PublicKey::parse(&x.npub).unwrap())
-                            .collect::<Vec<PublicKey>>(),
-                    )
+                        customize.accounts.iter().map(|x| PublicKey::parse(&x.npub).unwrap()).collect::<Vec<PublicKey>>(),
+                    );
                 }
                 if customize.since > 0 {
                     filter = filter.since(Timestamp::from(customize.since));
@@ -155,18 +158,32 @@ impl FilterTemp {
                     filter = filter.limit(customize.limit);
                 }
                 for tag in &customize.tags {
-                    let k: SingleLetterTag = tag.tag.parse().unwrap();
-                    let parts: Vec<&str> = tag.value.split(',').map(|s| s.trim()).collect();
-                    filter = filter.custom_tag(k, parts);
+                    if let Ok(k) = tag.tag.parse::<SingleLetterTag>() {
+                        let parts: Vec<&str> = tag.value.split(',').map(|s| s.trim()).collect();
+                        filter = filter.custom_tag(k, parts);
+                    } else {
+                        eprintln!("Failed to parse single letter tag: {}", tag.tag);
+                    }
                 }
             }
         }
-        filter = filter
-            .since(Timestamp::from(since))
-            .until(Timestamp::from(until));
+        
+        filter = if since == 0 {
+            filter.remove_since()
+        } else {
+            filter.since(Timestamp::from(since))
+        };
+        
+        filter = if until == 0 {
+            filter.remove_until()
+        } else {
+            filter.until(Timestamp::from(until))
+        };
+        
         filter
     }
 }
+
 
 impl Serialize for FilterTemp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

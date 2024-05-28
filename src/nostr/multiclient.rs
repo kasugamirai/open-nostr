@@ -2,10 +2,13 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use nostr_indexeddb::WebDatabase;
 use nostr_sdk::client::Error;
 use cached::{TimedCache, Cached};
-use nostr_sdk::{Event, Filter};
+use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::time::Duration;
+
+use crate::store::{CBWebDatabase, CAPYBASTR_DBNAME};
 
 use super::utils::hash_filter;
 
@@ -120,6 +123,18 @@ impl MultiClient {
     pub fn get_client(&self, name: &str) -> Option<HashedClient> {
         let clients = self.clients.borrow();
         clients.get(name).cloned()
+    }
+
+    pub async fn get_or_create(&mut self, name: &str) -> Option<HashedClient> {
+        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let db = WebDatabase::open("nostr-idb").await.unwrap();
+        let client_builder = ClientBuilder::new().database(db);
+        let client = client_builder.build();
+        let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
+        client.add_relays(relay_set_info.relays).await.unwrap();
+        let hc = HashedClient::new(client).await;
+        self.register(name.to_string(), hc);
+        self.get_client(name)
     }
 
     pub async fn cached_get_events_of(

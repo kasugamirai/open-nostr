@@ -1,5 +1,5 @@
 use std::cmp::min;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 use indextree::{Arena, NodeId};
 use nostr::nips::nip10::Marker;
@@ -28,11 +28,11 @@ impl fmt::Display for Error {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TextNote {
     pub inner: Event,
-    root: Option<EventId>,
-    reply_to: Option<EventId>,
+    pub root: Option<EventId>,
+    pub reply_to: Option<EventId>,
 }
 
 impl TextNote {
@@ -46,6 +46,10 @@ impl TextNote {
 
     pub fn is_root(&self) -> bool {
         matches!((&self.root, &self.reply_to), (None, None))
+    }
+    pub fn is_reply(&self) -> bool {
+        matches!((&self.root, &self.reply_to), (Some(_), Some(_)))
+            || matches!((&self.root, &self.reply_to), (Some(_), None))
     }
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
@@ -212,13 +216,83 @@ impl ReplyTrees {
             vec![]
         }
     }
+    pub fn is_empty(&self) -> bool {
+        self.notes.is_empty()
+    }
+    pub fn clear(&mut self) {
+        self.id2id.clear();
+        self.arena.clear();
+        self.notes.clear();
+    }
 }
+
+// use std::collections::{HashMap, VecDeque};
+// use std::time::{SystemTime, UNIX_EPOCH};
+// use nostr_sdk::{Event, EventId};
+
+#[derive(Debug)]
+pub struct ReplyTreeManager {
+    trees: HashMap<EventId, ReplyTrees>,
+    order: VecDeque<EventId>, // 用来记录添加顺序
+    max_entries: usize,
+}
+impl ReplyTreeManager {
+    pub fn new(max_entries: usize) -> Self {
+        ReplyTreeManager {
+            trees: HashMap::new(),
+            order: VecDeque::new(),
+            max_entries,
+        }
+    }
+
+    pub fn add_tree(&mut self, root_id: EventId, tree: ReplyTrees) {
+        // 如果超过最大条目，删除最早的
+        if self.order.len() >= self.max_entries {
+            if let Some(oldest_id) = self.order.pop_front() {
+                self.trees.remove(&oldest_id);
+            }
+        }
+        
+        self.trees.insert(root_id, tree);
+        self.order.push_back(root_id);
+    }
+
+    pub fn get_or_create_tree(&mut self, root_id: EventId) -> &mut ReplyTrees {
+        // 如果存在就返回，如果不存在则创建
+        if !self.trees.contains_key(&root_id) {
+            let new_tree = ReplyTrees::default();
+            self.add_tree(root_id.clone(), new_tree);
+        }
+        self.trees.get_mut(&root_id).unwrap()
+    }
+    pub fn get_tree(&self, root_id: &EventId) -> Option<&ReplyTrees> {
+        self.trees.get(root_id)
+    }
+
+    pub fn clear(&mut self) {
+        self.trees.clear();
+        self.order.clear();
+    }
+
+    pub fn accept_event(&mut self, root_id: EventId, events: Vec<Event>) {
+        let tree = self.get_or_create_tree(root_id.clone());
+        tree.accept(events);
+    }
+
+    pub fn modify_tree_with_event<F>(&mut self, root_id: &EventId, event: Event, modify: F)
+    where
+        F: FnOnce(&mut ReplyTrees, Event),
+    {
+        let tree = self.get_or_create_tree(root_id.clone());
+        modify(tree, event);
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {
-
     use crate::testhelper::{event_from, test_data::*};
-
     use super::*;
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);

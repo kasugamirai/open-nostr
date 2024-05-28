@@ -1,0 +1,80 @@
+@mixin input-style{
+  border: none;
+  border-bottom: 1px solid var(--boc-1);
+  background-color: var(--bgc-0);
+  color: var(--txt-1);
+  text-indent: 6px;
+}
+@mixin button-style{
+  cursor: pointer;
+  border-radius: var(--radius-circle);
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+@mixin pop-up-style{
+  @include position(absolute,(left,50%));
+  transform: translateX(-50%);
+  background-color: var(--bgc-0);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--boc-1);
+  z-index: 100;
+}
+
+@mixin absolute-auto{
+  @include position(absolute,(top,0),(right,0),(left,0),(bottom,0));
+  margin: auto;
+}
+@mixin flex-direction-column{
+  display: flex;
+  flex-direction: column;
+}
+@mixin fixed-z-index{
+  @include position(fixed);
+  z-index: 99;
+}
+@mixin fixed-auto{
+  @include position(fixed,(top,0),(right,0),(left,0),(bottom,0));
+}
+@mixin display-align-justify-flex($display, $align: null,$justify: null, $flex: null){
+  display: $display;
+  @if $align != null {
+    align-items: $align;
+  }
+  @if $justify != null {
+    justify-content: $justify;
+  }
+  @if $flex != null {
+    flex-direction: $flex;
+  }
+}
+
+@mixin position($position, $args...) {
+  // 设置 position 属性
+  position: $position;
+
+  // 有效的定位属性列表
+  $valid-properties: top, right, bottom, left;
+
+  // 循环处理可变参数
+  @each $arg in $args {
+    @if type-of($arg) == list and length($arg) == 2 {
+      $property: nth($arg, 1);
+      $value: nth($arg, 2);
+
+      @if index($valid-properties, $property) {
+        #{$property}: $value;
+      }
+      @else {
+        @warn "Unsupported property: #{$property}. Supported properties are top, right, bottom, left.";
+      }
+    }
+    @else {
+      @warn "Arguments must be lists with two elements: property and value.";
+    }
+  }
+}

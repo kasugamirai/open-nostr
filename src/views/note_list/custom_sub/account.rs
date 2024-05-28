@@ -31,7 +31,7 @@ pub fn AccountInput(props: AccountInputProps) -> Element {
 
     rsx! {
         div {
-            style: "position: relative;",
+            class: "relative",
             div {
                 class:"sub-shadow",
                 onclick: move |_| {
@@ -50,12 +50,12 @@ pub fn AccountInput(props: AccountInputProps) -> Element {
                 }
             }
             div {
-                class: "show-{edit} addPopUpStyle",
+                class: "show-{edit} add-pop-up-style",
                 label {
-                    style: "display: flex; align-items: center; gap: 10px;",
+                    class:"display-align-gap",
                     input {
                         r#type: "text",
-                        class:"addInput",
+                        class:"add-input",
                         placeholder: "pubkey/npub",
                         value: "{value().npub}",
                         oninput: move |event| {
@@ -64,7 +64,7 @@ pub fn AccountInput(props: AccountInputProps) -> Element {
                     }
                     input {
                         r#type: "text",
-                        class:"addInput addInput76",
+                        class:"add-input add-input-76",
                         placeholder: "alt name",
                         value: "{value().alt_name}",
                         oninput: move |event| {

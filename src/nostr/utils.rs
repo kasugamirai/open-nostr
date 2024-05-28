@@ -1,7 +1,10 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+use std::ops::Add;
+
 use indextree::{Arena, NodeId};
 use serde::Serialize;
+use nostr_sdk::{EventId, FromBech32, PublicKey};
 
 /// Utility function to get all children of a specified node in an Arena.
 ///
@@ -50,4 +53,28 @@ pub fn hash_filter<T: Serialize>(filter: &T) -> u64 {
     let mut hasher = DefaultHasher::new();
     serialized.hash(&mut hasher);
     hasher.finish()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AddressType {
+    Note,
+    Mention,
+    Nostr, // unknown address type
+}
+
+pub fn is_note_address(address: &str) -> AddressType {
+    let is_start_nostr = address.starts_with("nostr:");
+    if is_start_nostr {
+        let id = address.strip_prefix("nostr:").unwrap();
+        let is_note = id.starts_with("note") && EventId::from_bech32(id).is_ok();
+        let is_mention = id.starts_with("npub") && PublicKey::from_bech32(id).is_ok();
+        tracing::info!("is_note: {:#?} {}", is_note, id);
+        tracing::info!("is_mention: {:#?} {}", is_mention, id);
+         if is_note {
+            return AddressType::Note;
+        } else if is_mention {
+            return AddressType::Mention;
+        }
+    }
+    return AddressType::Nostr;
 }

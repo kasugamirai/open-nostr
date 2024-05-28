@@ -1,5 +1,11 @@
+use dioxus::prelude::*;
+use nostr_sdk::{EventId, FromBech32, PublicKey};
 use regex::Regex;
+use web_sys::Element;
 
+use crate::nostr::utils::{is_note_address, AddressType};
+use crate::components::Quote;
+use crate::components::Mention;
 /// format public key
 ///
 /// # Parameters
@@ -24,6 +30,84 @@ pub fn format_public_key(public_key: &str, len: Option<usize>) -> String {
     let len = len.unwrap_or(6);
     public_key.truncate(len);
     public_key
+}
+
+
+
+/// 
+/// format note content
+pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
+    let mut element: Option<VNode> = rsx! {
+        div {
+            class: "text pl-52",
+            "Note Loading..."
+        }
+    };
+    let mut elements = vec![];
+
+    let mut parts = Vec::new();
+    let mut last_end = 0;
+
+    let re: Regex = Regex::new(r"(nostr:[a-zA-Z0-9]{63})").unwrap();
+    for mat in re.find_iter(data) {
+        if mat.start() > last_end {
+            parts.push(&data[last_end..mat.start()]);
+        }
+        parts.push(mat.as_str());
+        last_end = mat.end();
+    }
+
+    if last_end < data.len() {
+        parts.push(&data[last_end..]);
+    }
+
+    for i in parts {
+        if i.starts_with("nostr:") {
+            let id = i.strip_prefix("nostr:").unwrap();
+            let is_note = is_note_address(i);
+            tracing::info!("is_note: {:#?} {}", is_note, i);
+            match is_note {
+                AddressType::Note => {
+                    elements.push(rsx! {
+                        Quote {
+                            event_id: EventId::from_bech32(id).unwrap().clone(),
+                            relay_name: relay_name,
+                            quote_nostr: i.to_string(),
+                        }
+                    })
+                },
+                AddressType::Mention => {
+                    elements.push(rsx! {
+                        Mention {
+                            pubkey: PublicKey::from_bech32(id).unwrap(),
+                            relay_name: relay_name.to_string(),
+                        }
+                    });
+                },
+                _ => {
+                    elements.push(rsx! {
+                        span {
+                            "{i}"
+                        }
+                    });
+                }
+            }
+        } else {
+            elements.push(rsx! {
+                div {
+                    class: "text pl-52",
+                    dangerous_inner_html: "{format_content(i)}"
+                }
+            });
+        }
+    }
+
+    element = rsx! {
+        for element in elements {
+            {element}
+        }
+    };
+    element
 }
 
 /// format timestamp

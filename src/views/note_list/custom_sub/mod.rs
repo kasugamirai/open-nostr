@@ -8,7 +8,7 @@ mod limit;
 mod relays;
 mod tag;
 
-use dioxus::prelude::*;
+use dioxus::{html::tr, prelude::*};
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, Switch},
@@ -35,7 +35,6 @@ pub struct CustomSubscriptionProps {
 #[component]
 pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     let mut sub_current = use_signal(|| props.subscription.clone());
-
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
@@ -51,7 +50,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_save = move |_| {
-        props.on_save.call(sub_current.read().clone());
+        props.on_save.call(sub_current().clone());
         edit.set(false);
     };
 
@@ -60,14 +59,14 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_import = move || {
-        spawn(async move {
-            let value = import_from_clipboard().await;
-            sub_current.set(CustomSub::from(&value));
-        });
+        // spawn(async move {
+        //     let value = import_from_clipboard().await;
+        //     sub_current.set(CustomSub::from(&value));
+        // });
     };
 
     let handle_export = move || {
-        export_to_clipboard(sub_current.read().json());
+        // export_to_clipboard(sub_current.read().json());
     };
 
     rsx! {
@@ -77,7 +76,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 class: "custom-sub-header",
                 div {
                     class: "sub-header",
-                    h2 { "Custom Sub" }
+                    h2 { 
+                      class:"custom-sub-family",
+                      "Custom Sub" 
+                    }
                     button {
                         class: "btn-icon purple small",
                         onclick: handle_reload,
@@ -114,33 +116,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                     }
                                     "Export"
                                 }
-                                if edit() {
-                                    button {
-                                        class: "content-btn",
-                                        onclick: handle_save,
-                                        span{
-                                          dangerous_inner_html: "{SAVEICON}",
-                                        }
-                                        "Save"
-                                    }
-                                    button {
-                                        class: "content-btn",
-                                        onclick: handle_reset,
-                                        span{
-                                          dangerous_inner_html: "{RESTART}",
-                                        }
-                                        "Reset"
-                                    }
-                                } else {
-                                    button {
-                                        class: "content-btn",
-                                        onclick: move |_| edit.set(true),
-                                        span{
-                                          dangerous_inner_html: "{EDITICON}",
-                                        }
-                                        "Edit"
-                                    }
-                                }
+                                
                             }
                         }
                     }
@@ -152,10 +128,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     class: "custom-sub-name",
                     div {
                         class: "width-80-fontSize-16",
-                        "Name:"
+                        "1Name:"
                     }
                     Input {
-                        edit: false,
+                        edit: true,
                         on_change: move |v| {
                             let mut sub = sub_current.write();
                             sub.name = v;
@@ -170,14 +146,14 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         "Relays:"
                     }
                     div {
-                        style: "display: inline-block;",
-                        // RelaysInput {
-                        //     on_change: move |v: RelaySet| {
-                        //         let mut sub = sub_current.write();
-                        //         sub.relay_set = v;
-                        //     },
-                        //     relay_set: sub_current.read().relay_set.clone(),
-                        // }
+                        class:"display-inline-block",
+                        RelaysInput {
+                            on_change: move |v: RelaySet| {
+                                let mut sub = sub_current.write();
+                                sub.relay_set = v.name.clone();
+                            },
+                            relay_name: &sub_current.read().relay_set,
+                        }
                     }
                 }
                 div {
@@ -187,9 +163,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         "Live:"
                     }
                     div {
-                        style: "display: inline-block;",
+                        class:"display-inline-block",
                         div {
-                            style: "display: flex; align-items: center; gap: 10px;",
+                            class:"flex-box-center",
                             Switch {
                                 value: sub_current().live,
                                 on_change: move |value: bool| {
@@ -198,8 +174,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                 },
                             }
                             button {
-                                class: "btn-icon purple small",
-                                style: format!("display: {};", if sub_current().live { "none" } else { "inline-block" }),
+                                class: format!("btn-icon purple small {}", if sub_current().live { "display-none-important" } else { "display-inline-block" }),
                                 onclick: handle_reload,
                                 dangerous_inner_html: "{RELOAD}",
                             }
@@ -207,14 +182,17 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                 }
                 div {
-                    class: "custom-sub-time",
-                    style: format!("display: {}; align-items: center; gap: 10px;", if sub_current().live { "none" } else { "flex" }),
+                    class: format!("custom-sub-time {}", if sub_current().live { "display-none-important" } else { "display-flex-box" }),
                     div {
-                        class: "width-80-fontSize-16",
+                        class: "width-80-fontSize-16 window-color relative ti-12",
+                        span{
+                          class:"sub-window-icon",
+                          dangerous_inner_html: "{ARROWRIGHT}",
+                        }
                         "Window:"
                     }
                     div {
-                        style: "display: inline-block;",
+                        class:"display-inline-block",
                         DateTimePicker {
                             value: sub_current().since,
                             end: sub_current().until,
@@ -225,6 +203,38 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             },
                         }
                     }
+                }
+                div {
+                  class: "custom-sub-name",
+                  div {
+                      class: "width-80-fontSize-16",
+                      "Filters:"
+                  }
+                  div {
+                    class:"display-inline-block",
+                    div {
+                        class:"sub-edit-button",
+                        
+                        if edit() {
+                            button {
+                              class: "btn-circle btn-circle-true",
+                              onclick: handle_save,
+                              dangerous_inner_html: "{TRUE}"
+                            }
+                            button {
+                                class: "btn-circle btn-circle-false ml-5",
+                                onclick: handle_reset,
+                                dangerous_inner_html: "{FALSE}"
+                            }
+                        } else {
+                          button {
+                            class: format!("btn-icon purple small {}", if sub_current().live { "display-none-important" } else { "display-inline-block" }),
+                            onclick: move |_| edit.set(true),
+                            dangerous_inner_html: "{SUBEDIT}",
+                          }
+                        }
+                    }
+                  }
                 }
             }
             for (i, filter) in sub_current.read().filters.iter().enumerate() {

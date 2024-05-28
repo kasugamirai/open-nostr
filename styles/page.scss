@@ -1,0 +1,220 @@
+// Content Feed style
+.content-feed {
+  width: calc(100vw - 230px);
+  padding: 20px;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+}
+
+.post-link {
+  color: var(--link);
+}
+
+.post-tag-link {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.post-tag-link:hover {
+  text-decoration: underline;
+}
+
+.post-media-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  // gap: 5px;
+}
+
+.post-media-wrap::after {
+  content: '';
+  flex-grow: 99;
+}
+
+.post-image {
+  display: block;
+  height: 160px;
+  flex-grow: 1;
+  max-width: 100%;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.post-video {
+  display: block;
+  height: 160px;
+  max-width: 100%;
+}
+
+
+// relay style
+
+.relay-contnet {
+  padding: 15px 5px;
+  display: flex;
+
+  .built-in-function {
+    width: 144px;
+    text-align: center;
+    background-color: var(--bgc-0);
+    box-sizing: border-box;
+    font-family: "Raleway";
+    color: var(--txt-1);
+  }
+
+  .built-li {
+    border: 1px solid var(--txt-2);
+    height: 30px;
+  }
+
+  .built-li-checked {
+    background-color: var(--bgc-5);
+    color: #000000;
+  }
+
+  .set-content {
+    width: 100%;
+    flex-direction: column;
+    border: 1px solid var(--boc-1);
+
+    .modal-content {
+      margin: 0;
+    }
+
+    .modal-content {
+      width: 100%;
+      border: none !important;
+      height: auto;
+    }
+
+    .relay-url-item {
+      gap: 20px;
+    }
+
+    .relay-ipt {
+      width: calc(100% - 56px);
+    }
+
+    .relay-name-ipt {
+      width: calc(70% - 56px);
+    }
+  }
+}
+//Parent style
+.parent-box{
+  @include display-align-justify-flex(flex,null,null,column);
+  width: 100%; 
+  height: 100%; 
+  gap: 20px; 
+  overflow-y: auto;
+}
+.parent-content-box{
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 20px;
+}
+.parent-content-li{
+  border: 1px solid #333; 
+  border-radius: 10px; 
+  padding: 10px; 
+  flex: 1; 
+  word-wrap:break-word;
+}
+
+//settings style
+.settings-box{
+  height: 100%; 
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px; 
+  overflow-y: auto;
+}
+
+//qt style
+
+.qt-box{
+  flex: 1; 
+  border-radius: 20px; 
+  overflow: hidden; 
+  padding: 4px; 
+  gap: 12px;
+  color: var(--txt-1);
+  border: 1px solid var(--boc-1);
+  // height: 50px;
+}
+.qt-img-box{
+  width: 140px;
+  @include display-align-justify-flex(flex,center,null,null);
+  gap: 12px;
+}
+.qt-content-box{
+  flex: 1; 
+  line-height: 20px; 
+  border-left: 2px solid #b4b4b4; 
+  padding: 0 12px;
+}
+
+// note style
+.btn-icon-position{
+  @include position(absolute,(top,-12px),(left,-12px));
+}
+.btn-icon-pre{
+  height: 100%; 
+  overflow-y: auto; 
+  font-size: 16px;
+}
+.note-action-wrapper-span{
+  height: 24px; 
+  width: 3px; 
+  background-color: var(--txt-3);
+}
+.note-more-box{
+  @include position(absolute,(right,0));
+  background-color: var(--bgc-0);
+  border-radius: var(--radius-1);
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px; 
+  padding: 10px; 
+  border: 1px solid var(--boc-1); 
+  z-index: 100;
+}
+
+.note-more-content-box{
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px; 
+  padding: 10px;
+  width: 140px;
+}
+.note-more-button{
+  @include display-align-justify-flex(flex,center,null,null);
+  gap: 5px; 
+  cursor: pointer;
+}
+
+.note-more-mod-box{
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px; 
+  width: 100%;
+}
+
+// addFilter style
+.add-filter-more-box{
+  @include position(absolute);
+  background-color: var(--bgc-0);
+  border-radius: var(--radius-1);
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px; 
+  padding: 10px; 
+  border: 1px solid var(--boc-1); 
+  z-index: 100;
+}
+.add-filter-more-mod-box{
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px;
+  padding: 10px;
+}
+
+// layout subscriptions
+.subscriptions-text{
+  color:var(--txt-1)
+}

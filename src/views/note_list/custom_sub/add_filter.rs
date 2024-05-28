@@ -72,28 +72,25 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
 
     rsx! {
         div {
-            class: "{cn}",
-            style: "position: relative;",
+            class: "{cn} relative",
             button {
-                class: "btn-circle btn-circle-true",
-                style: format!("display: {}", if *allow_edit.read() { "flex" } else { "none" }),
+                class: format!("btn-circle btn-circle-true {}", if *allow_edit.read() { "display-flex-box" } else { "display-none-important" }),
                 onclick: move |_| {
                     edit.set(!edit());
                 },
                 dangerous_inner_html: "{ADD}"
             }
             div {
-                class: "show-{edit}",
-                style: "position: absolute; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                class: "show-{edit} add-filter-more-box",
                 div {
-                    style: "display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px;",
+                    class: "add-filter-more-mod-box",
                     button {
                         class: "btn-add-item",
                         onclick: move |_| {
                             props.on_click.call(FilterTemp::HashTag(CustomHashTag::empty()));
                             edit.set(false);
                         },
-                        "Only Tags"
+                        "Follow Hash Tags"
                     }
                     button {
                         class: "btn-add-item",
@@ -101,7 +98,7 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
                             props.on_click.call(FilterTemp::Accounts(CustomAccounts::empty()));
                             edit.set(false);
                         },
-                        "Follow People"
+                        "Follow Accounts"
                     }
                     button {
                         class: "btn-add-item",
@@ -111,14 +108,14 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
                         },
                         "Follow Notes"
                     }
-                    button {
-                        class: "btn-add-item",
-                        onclick: move |_| {
-                            props.on_click.call(FilterTemp::Customize(CustomFilter::empty()));
-                            edit.set(false);
-                        },
-                        "Customize"
-                    }
+                    // button {
+                    //     class: "btn-add-item",
+                    //     onclick: move |_| {
+                    //         props.on_click.call(FilterTemp::Customize(CustomFilter::empty()));
+                    //         edit.set(false);
+                    //     },
+                    //     "Customize"
+                    // }
                 }
             }
         }

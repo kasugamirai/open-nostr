@@ -1,9 +1,12 @@
-@import "./common.scss";
-@import "./app.scss";
+
 @import "./reset.scss";
+@import "./mixins/variable.scss";
+@import "./mixins/mixins.scss";
+@import "./common.scss";
 @import "./components.scss";
-@import "./layout-left.scss";
-@import "./layout-right.scss";
-@import "./layout-main.scss";
+@import "./navigation-bar.scss";
+@import "./custom-sub.scss";
+@import "./author.scss";
 @import "./notification.scss";
+@import "./page.scss";
 

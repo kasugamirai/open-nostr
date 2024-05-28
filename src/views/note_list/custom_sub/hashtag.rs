@@ -48,7 +48,7 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                 edit.set(false);
             },
             div {
-                style: "position: relative;",
+                class: "relative",
                 div {
                     class: "sub-shadow",
                     onclick: move |_| {
@@ -59,12 +59,12 @@ pub fn HashTagInput(props: HashTagInputProps) -> Element {
                     "{props.tag}"
                 }
                 div {
-                    class: "show-{edit} addPopUpStyle",
+                    class: "show-{edit} add-pop-up-style",
                     label {
-                        style: "display: flex; align-items: center; gap: 10px;",
+                        class:"display-align-gap",
                         input {
                             r#type: "text",
-                            class:"addInput",
+                            class:"add-input",
                             placeholder: "hashtag",
                             value: "{value}",
                             oninput: move |event| {
@@ -129,7 +129,7 @@ pub fn HashTagAdd(props: HashTagAddProps) -> Element {
                 }
             },
             div {
-                style: "position: relative;",
+                class: "relative",
                 button {
                     class: "btn-add",
                     onclick: move |_| {
@@ -140,12 +140,12 @@ pub fn HashTagAdd(props: HashTagAddProps) -> Element {
                     dangerous_inner_html: "{ADD}",
                 }
                 div {
-                    class: "show-{edit} addPopUpStyle",
+                    class: "show-{edit} add-pop-up-style",
                     label {
-                        style: "display: flex; align-items: center; gap: 10px;",
+                        class:"display-align-gap",
                         input {
                             r#type: "text",
-                            class: "addInput",
+                            class: "add-input",
                             placeholder: "hashtag",
                             value: "{value}",
                             oninput: move |event| {

@@ -1,16 +1,24 @@
-use crate::store::subscription::CustomSub;
+use crate::{nostr::note::ReplyTreeManager, store::subscription::CustomSub};
 use dioxus::prelude::*;
+use wasm_bindgen::closure;
 struct UserItem {
     avatar: &'static str,
     username: &'static str,
 }
+use crate::{
+  utils::format::{splite_by_replys},
+};
+// use crate::views::
 
 use crate::components::icons::*;
 use crate::components::Button;
+use crate::components::Message;
 use crate::router::*;
+
 #[component]
 pub fn Layout() -> Element {
     let subs = use_context::<Signal<Vec<CustomSub>>>();
+    let mut edit = use_signal(|| false);
     let mut theme = use_context::<Signal<String>>();
     let toggle_theme = move |_| {
         if theme() == "light" {
@@ -19,7 +27,9 @@ pub fn Layout() -> Element {
             theme.set("light".to_string());
         }
     };
+    let mut messageContent = use_signal(||String::from(""));
 
+    let replytree_manager = use_context_provider(|| Signal::new(ReplyTreeManager::new(200)));
     let users = [UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
             username: "James LisaLisaLisaLisaLisaLisaLisa"
@@ -31,11 +41,16 @@ pub fn Layout() -> Element {
         UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
             username: "Lisa"
-        }];
+        },
+    ];
+
+    let mut contentText = use_signal(|| String::from(""));
+
     let mut show = use_signal(|| false);
+
     rsx! {
         div{
-            class: "layout-left",
+            class: "menu-bar",
             div {
                 class: "menu",
                 h1 {
@@ -132,13 +147,87 @@ pub fn Layout() -> Element {
                     }
                     div {
                         class: "nav-item-content add-note-btn cursor-pointer text-center",
+                    onclick: move |_| {
+                          edit.set(!edit());
+                        },
                         "New Note"
+                    }
+                    div{
+                      class:"show-{edit}",
+                      div{
+                        class:"relay-edit-mask",
+                        onclick: move |_| {
+                            edit.set(false);
+                        },
+                      }
+                      div{
+                        class:"note-pop-up",
+                        textarea{
+                          class:"text-area-style",
+                          value:"{contentText}",
+                          onchange: move |event| {
+                            contentText.set(event.value());
+                          }
+  
+                        }
+                        span{
+                          class:"img-svg-style",
+                          dangerous_inner_html: "{IMGICON}",
+                        }
+                        div{
+                          class:"preview",
+                          div{
+                            "Preview:"
+                            div{
+                              class:"preview-content",
+                              // NoteEdit {
+                              //   content: contentText.read().clone()
+                              // }
+                              div {
+                                class: "event-note",
+                                for i in splite_by_replys(&contentText()) {
+                                  if i.starts_with("nostr:") {
+                                      div {
+                                          class: "quote",
+                                          div {
+                                              class: "title",
+                                              "Qt:"
+                                          }
+                                          div {
+                                              class: "note",
+                                              EventLess {content: i }
+                                          }
+                                      }
+                                  } else {
+                                      div {
+                                          class: "content",
+                                          dangerous_inner_html: "{i}"
+                                      }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                        button{
+                          class:"note-button send-style",
+                          "Send"
+                        }
+                        button{
+                          class:"note-button cancel-style",
+                          onclick: move |_| {
+                            edit.set(false);
+                          },
+                          "Cancel"
+                        }
+                      }
+                  
                     }
                 }
                 div {
                     class: "subscriptions",
                     h1{
-                        style: "color:var(--txt-1)",
+                        class:"subscriptions-text",
                         "Subscriptions:"
                     }
                     div{
@@ -147,18 +236,59 @@ pub fn Layout() -> Element {
                             Link {
                                 active_class: "active",
                                 class: "nav-item",
-                                to: Route::NoteList { name: sub.name.clone() },
-                                "#{sub.name}"
+                                to: Route::NoteList { name: urlencoding::encode(&sub.name.clone()).to_string() },
+                                "{sub.name}"
                             }
                         }
                     }
                 }
+                // div{
+                //   h1{
+                //     style: "color:var(--txt-1)",
+                //     onclick: move |event| {
+                //       messageContent.set("Received 10 New Events !!".to_string());
+                //     },
+                //     "获取新消息"
+                //   }
+                // }
                 Button { on_click: toggle_theme, "{theme}" }
             }
+            Message{content:"{messageContent.clone()}"}
         }
         div {
-            class: "layout-main",
+            class: "content-feed",
             Outlet::<Route> {}
+        }
+    }
+}
+#[component]
+fn EventLess(content: String) -> Element {
+    rsx! {
+        div {
+            class: "event-less",
+            div {
+              class: "post-avatar flex items-center",
+              img {
+                  class: "square-40 radius-20 mr-12",
+                  src: "https://avatars.githubusercontent.com/u/1024025?v=4",
+                  alt: "avatar",
+              }
+              div {
+                  class: "profile flex flex-col",
+                    span {
+                        class: "nickname font-size-16 txt-1",
+                        "dioxus"
+                    }
+                    span {
+                        class: "created txt-3 font-size-12",
+                      "123"
+                    }
+                }
+            }
+            div {
+                class: "text",
+                dangerous_inner_html: "{content}",
+            }
         }
     }
 }

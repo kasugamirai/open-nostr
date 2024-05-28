@@ -99,7 +99,10 @@ impl CBWebDatabase {
 
                     {
                         // Init misc store
-                        let _misc_store = evt.db().create_object_store(MISC_CF).unwrap();
+                        let _misc_store = evt
+                            .db()
+                            .create_object_store(MISC_CF)
+                            .unwrap();
                     }
                 }
                 Ok(())
@@ -191,10 +194,10 @@ impl CBWebDatabase {
         Ok(())
     }
 
-    pub async fn relay_set_change_name(
+    pub async fn relay_set_change(
         &self,
         old_name: String,
-        new_name: String,
+        new_relay_set: RelaySet,
     ) -> Result<(), CBwebDatabaseError> {
         if old_name == DEFAULT_RELAY_SET_KEY {
             return Err(CBwebDatabaseError::InvalidOperation(
@@ -217,7 +220,8 @@ impl CBWebDatabase {
                 .map_err(CBwebDatabaseError::DeserializationError)?;
 
             // Update the name
-            relay_set.name.clone_from(&new_name);
+            relay_set.name = new_relay_set.name.clone();
+            relay_set.relays = new_relay_set.relays.clone();
             relay_set_value =
                 to_value(&relay_set).map_err(CBwebDatabaseError::DeserializationError)?;
 
@@ -236,7 +240,7 @@ impl CBWebDatabase {
                 from_value(sub_value.clone()).map_err(CBwebDatabaseError::DeserializationError)?;
 
             if custom_sub.relay_set == old_name {
-                custom_sub.relay_set.clone_from(&new_name);
+                custom_sub.relay_set = new_relay_set.name.clone();
                 let updated_sub_value =
                     to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
 
@@ -249,6 +253,7 @@ impl CBWebDatabase {
         tx.await.into_result()?;
         Ok(())
     }
+
 
     pub async fn get_relay_set(&self, name: String) -> Result<RelaySet, CBwebDatabaseError> {
         let tx = self
@@ -316,7 +321,25 @@ impl CBWebDatabase {
         tx.await.into_result()?;
         Ok(())
     }
+    pub async fn update_custom_sub(&self, old_name: String, custom_sub: CustomSub) -> Result<(), CBwebDatabaseError> {
+        tracing::info!("Update custom sub: {:?}", custom_sub);
+        let old_custom_sub = self.get_custom_sub(old_name.clone()).await?;
+        if old_custom_sub.name != custom_sub.name {
+            self.remove_custom_sub(old_name.clone()).await?;
+            self.save_custom_sub(custom_sub).await?;
+        } else {
+            let tx = self
+                .db
+                .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)?;
 
+            let store = tx.object_store(CUSTOM_SUB_CF)?;
+            let value = to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
+            store.put_val(&value)?;
+
+            tx.await.into_result()?;
+        }
+        Ok(())
+    }
     pub async fn get_custom_sub(&self, name: String) -> Result<CustomSub, CBwebDatabaseError> {
         let tx = self
             .db
@@ -463,7 +486,7 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(MISC_CF)?;
-        let key = to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
+        let key =  to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
         let value = to_value(&value).map_err(CBwebDatabaseError::DeserializationError)?;
         store.put_key_val(&key, &value)?;
         tx.await.into_result()?;

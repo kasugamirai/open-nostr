@@ -1,54 +1,37 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use nostr_sdk::{EventId, FromBech32, JsonUtil};
+use nostr_sdk::{Event, EventId, FromBech32, JsonUtil, Kind};
 use regex::Regex;
+use web_sys::console;
 
 use crate::{
-    components::{icons::*, Avatar},
+    components::{icons::*, Avatar, Quote},
     nostr::{
         fetch::{get_event_by_id, get_metadata, get_reactions, get_replies},
         multiclient::MultiClient,
+        note::{ReplyTreeManager, ReplyTrees, TextNote},
+        utils::{is_note_address, AddressType},
     },
-    utils::format::{format_content, format_create_at},
+    utils::format::{format_content, format_create_at, format_note_content},
+    views::note_list::reply::Reply,
     Route,
 };
-
-#[derive(PartialEq, Clone)]
-pub struct NoteData {
-    pub id: String,
-    pub author: String,
-    pub created_at: u64,
-    pub kind: String,
-    pub tags: Vec<String>,
-    pub content: String,
-    pub index: usize,
-    pub event: nostr_sdk::Event,
-}
-
-impl NoteData {
-    pub fn from(event: &nostr_sdk::Event, index: usize) -> Self {
-        NoteData {
-            id: event.id().to_hex(),
-            author: event.author().to_hex(),
-            created_at: event.created_at().as_u64(),
-            kind: "".to_string(),
-            tags: vec![],
-            content: event.content.to_string(),
-            index,
-            event: event.clone(),
-        }
-    }
-}
 
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {
     pub sub_name: String,
-    pub data: NoteData,
+    pub event: Event,
     pub clsname: Option<String>,
     #[props(default = EventHandler::default())]
     pub on_expand: EventHandler<()>,
-    pub is_expand: Option<bool>,
+    #[props(default = false)]
+    pub is_expand: bool,
+    pub relay_name: Option<String>,
+    pub note_index: Option<usize>,
+    pub children: Option<Element>,
+    #[props(default = false)]
+    pub is_tree: bool,
 }
 enum NoteAction {
     Replay,
@@ -83,11 +66,12 @@ pub fn Note(props: NoteProps) -> Element {
         ]
     });
 
+    // let mut replytree = use_context::<Signal<ReplyTrees>>();
     let multiclient = use_context::<Signal<MultiClient>>();
 
     let mut show_detail = use_signal(|| false);
-    let mut detail = use_signal(String::new);
-
+    let mut detail = use_signal(|| String::new());
+    let event = use_signal(|| props.event.clone());
     let mut element = use_signal(|| {
         rsx! {
             div {
@@ -96,166 +80,90 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
     });
-    let notetext = use_signal(|| props.data.content.clone());
-    let sub_name = use_signal(|| props.sub_name.clone());
-    let pk = use_signal(|| props.data.event.author());
-    let eid = use_signal(|| props.data.event.id());
-    let mut root_avatar = use_signal(|| None);
-    let mut root_nickname = use_signal(|| None);
-    let mut emoji = use_signal(HashMap::new);
+    let notetext = use_signal(|| props.event.content.clone());
+    let repost_text = use_signal(|| {
+        if props.event.kind() == Kind::Repost {
+            match Event::from_json(&props.event.content) {
+                Ok(event) => event.content.to_string(),
+                Err(e) => {
+                    tracing::error!("parse event error: {:?}", e);
+                    // props.data.content.clone()
+                    String::new()
+                }
+            }
+        } else {
+            String::new()
+        }
+    });
+    let is_reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
+        Ok(text_note) => text_note.is_reply(),
+        Err(e) => {
+            tracing::error!("parse event error: {:?}", e);
+            false
+        }
+    });
+
+    let pk = use_signal(|| props.event.author().clone());
+    let eid = use_signal(|| props.event.id().clone());
+    let optional_str_ref: String = match props.relay_name.clone() {
+        Some(s) => s,
+        None => String::from("default"),
+    };
+    let relay_name = use_signal(|| optional_str_ref.clone());
+    let is_repost = props.event.kind() == Kind::Repost;
     let _future = use_resource(move || async move {
-        let clients = multiclient();
-        let client = match clients.get_client(&sub_name.read()) {
-            Some(c) => c.client(),
-            None => {
-                tracing::error!("client not found for {}", &sub_name.read());
-                return;
-            }
-        };
-        match get_reactions(&client, &eid(), None).await {
-            Ok(emojis) => {
-                emoji.set(emojis);
-            }
-            Err(_) => {
-                tracing::info!("metadata not found");
-            }
-        }
-
-        match get_replies(&client, &eid(), None).await {
-            Ok(replies) => {
-                let mut action_state = note_action_state.write();
-                action_state[0].count = replies.len();
-            }
-            Err(e) => {
-                tracing::error!("replies not found: {:?}", e);
-            }
-        }
-
-        match get_metadata(&client, &pk(), None).await {
-            Ok(metadata) => {
-                root_avatar.set(metadata.picture);
-                root_nickname.set(metadata.name);
-            }
-            Err(_) => {
-                tracing::info!("metadata not found");
-            }
-        }
-
-        let re = Regex::new(r"(nostr:note[a-zA-Z0-9]{59})").unwrap();
-
-        let data = &notetext();
-
-        let mut parts = Vec::new();
-        let mut last_end = 0;
-
-        for mat in re.find_iter(data) {
-            if mat.start() > last_end {
-                parts.push(&data[last_end..mat.start()]);
-            }
-            parts.push(mat.as_str());
-            last_end = mat.end();
-        }
-
-        if last_end < data.len() {
-            parts.push(&data[last_end..]);
-        }
-
-        let mut elements = vec![];
-        for i in parts {
-            if i.starts_with("nostr:note") {
-                let id = i.strip_prefix("nostr:").unwrap();
-
-                match get_event_by_id(&client, &EventId::from_bech32(id).unwrap(), None).await {
-                    Ok(Some(event)) => {
+        spawn(async move {
+            let data = if is_repost {
+                repost_text().clone()
+            } else {
+                notetext().clone()
+            };
+            element.set(format_note_content(&data, &relay_name()));
+        });
+        spawn(async move {
+            let clients = multiclient();
+            let client = clients.get_client(&relay_name()).unwrap();
+            // let manager = use_context::<Signal<ReplyTreeManager>>();
+            if !props.is_tree {
+                match get_replies(&client.client(), &eid(), None).await {
+                    Ok(replies) => {
                         let mut action_state = note_action_state.write();
-                        action_state[2].count += 1;
-                        let pk = event.author();
-                        let content = event.content.to_string();
-                        let timestamp = event.created_at.as_u64();
-
-                        let mut nickname = "".to_string();
-                        let mut avatar = "".to_string();
-
-                        match get_metadata(&client, &pk, None).await {
-                            Ok(metadata) => {
-                                nickname = metadata.name.unwrap_or("Default".to_string());
-                                avatar = match metadata.picture {
-                                    Some(picture) => {
-                                        if picture.is_empty() {
-                                            "https://avatars.githubusercontent.com/u/1024025?v=4"
-                                                .to_string()
-                                        } else {
-                                            picture
-                                        }
-                                    }
-                                    None => "https://avatars.githubusercontent.com/u/1024025?v=4"
-                                        .to_string(),
-                                }
-                            }
-                            Err(_) => {
-                                tracing::info!("metadata not found");
-                            }
-                        }
-
-                        elements.push(rsx! {
-                        div {
-                            class: "quote",
-                            style: "display: flex; align-items: center;",
-                            div {
-                                style: "font-weight: bold; width: 52px; display: flex; align-items: center; justify-content: center;",
-                                "Qt:"
-                            }
-                            div {
-                                style: "flex: 1; border: 1px solid #333; border-radius: 20px; overflow: hidden; padding: 4px; display: flex; gap: 12px; background: #fff; height: 50px;",
-                                div {
-                                    style: "width: 140px; display: flex; align-items: center; gap: 12px;",
-                                    img {
-                                        class: "square-40 radius-20 mr-12",
-                                        src: avatar,
-                                        alt: "avatar",
-                                    }
-                                    div {
-                                        class: "profile flex flex-col",
-                                        span {
-                                            class: "nickname font-size-16 txt-1",
-                                            {nickname}
-                                        }
-                                        span {
-                                            class: "created txt-3 font-size-12",
-                                            {format_create_at(timestamp)}
-                                        }
-                                    }
-                                }
-                                div {
-                                    style: "flex: 1; font-size: 14px; line-height: 20px; border-left: 2px solid #b4b4b4; padding: 0 12px;",
-                                    dangerous_inner_html: "{content}"
-                                }
-                            }
-                        }
-                    });
-                    }
-                    Ok(None) => {
-                        tracing::info!("event not found");
+                        action_state[0].count = replies.len();
                     }
                     Err(e) => {
-                        tracing::error!("{:?}", e);
+                        tracing::error!("replies not found: {:?}", e);
                     }
                 }
             } else {
-                elements.push(rsx! {
-                    div {
-                        class: "text pl-52",
-                        dangerous_inner_html: "{format_content(i)}"
-                    }
-                });
+                // get reply count from manager
+                // let mut manager = manager.read();
+                // let mut action_state = note_action_state.manager();
+                // let tree = manager.get(&eid());
+                // if let Some(tree) = tree {
+                //     action_state[0].count = tree.len();
+                // }
             }
-        }
-
-        element.set(rsx! {
-            for element in elements {
-                {element}
-            }
+            // match get_reactions(&client, &eid()).await {
+            //     Ok(reactions) => {
+            //         let mut action_state = note_action_state.write();
+            //         for reaction in reactions {
+            //             match reaction.reaction.as_str() {
+            //                 "replay" => action_state[0].count = reaction.count,
+            //                 "share" => action_state[1].count = reaction.count,
+            //                 "qoute" => action_state[2].count = reaction.count,
+            //                 "zap" => action_state[3].count = reaction.count,
+            //                 _ => {}
+            //             }
+            //         }
+            //     }
+            //     Err(e) => {
+            //         tracing::error!("reactions not found: {:?}", e);
+            //     }
+            // }
         });
+        // let clients = multiclient();
+        // let client = clients.get(&relay_name()).unwrap();
+        // let repost_evnet =
     });
 
     let nav = navigator();
@@ -266,37 +174,24 @@ pub fn Note(props: NoteProps) -> Element {
     rsx! {
         div {
             class: format!("com-post p-6 {}", props.clsname.as_deref().unwrap_or("")),
-            id: format!("note-{}", props.data.id),
-            // detail modal
-            div {
-                style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
-                div {
-                    style: "width: 50%; height: 60%; max-width: 900px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
-                    button {
-                        class: "btn-icon remove",
-                        style: "position: absolute; top: -12px; left: -12px;",
-                        onclick: move |_| {
-                            show_detail.set(false);
-                        },
-                        dangerous_inner_html: "{FALSE}",
-                    }
-                    pre {
-                        style: "height: 100%; overflow-y: auto; font-size: 16px;",
-                        "{detail}"
-                    }
-                }
-            }
+            id: format!("note-{}", event.read().id().to_string()),
             div {
                 class: "note-header flex items-start justify-between",
                 Avatar {
-                    pubkey: props.data.author.clone(),
-                    timestamp: props.data.created_at,
-                    avatar: root_avatar(),
-                    nickname: root_nickname(),
+                    pubkey: pk.read().clone(),
+                    timestamp: props.event.created_at.as_u64(),
+                    relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                    repost_event: match props.event.kind() {
+                        Kind::Repost => {
+                            let repost_event = Event::from_json(&props.event.content).unwrap();
+                            Some(repost_event)
+                        }
+                        _=> None
+                    },
                 }
                 MoreInfo {
                     on_detail: move |_| {
-                        let json_value: serde_json::Value = serde_json::from_str(&props.data.event.as_json()).unwrap();
+                        let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
                         let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
                         detail.set(formatted_json);
                         show_detail.set(!show_detail());
@@ -306,8 +201,17 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-content font-size-16 word-wrap lh-26",
                 onclick: move |_| {
-                    handle_nav(Route::NoteDetail { sub: props.sub_name.clone(), id: props.data.id.clone() });
+                    handle_nav(Route::NoteDetail {
+                        sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
+                        id: event.read().id().to_string(), });
                 },
+                if is_reply() && !props.is_tree {
+                    Reply {
+                        event: event.read().clone(),
+                        sub_name: props.sub_name.clone(),
+                        relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                    }
+                }
                 {element}
             }
 
@@ -336,33 +240,14 @@ pub fn Note(props: NoteProps) -> Element {
                         }
                     })}
                     span{
-                        style: "height: 24px; width: 3px; background-color: var(--txt-3); margin-left: 10px;",
+                        class: "note-action-wrapper-span ml-10",
                     }
-                    div {
-                        class: "note-action-item cursor-pointer flex items-center",
-                        span {
-                            class: "note-action-icon",
-                            dangerous_inner_html: "{ADD}"
-                        }
-                    }
-                    for (k, v) in emoji().iter() {
-                        div {
-                            class: "note-action-item cursor-pointer flex items-center",
-                            span {
-                                class: "note-action-icon",
-                                "{k}"
-                            }
-                            span {
-                                class: "note-action-count font-size-12 txt-1",
-                                "{v}"
-                            }
-                        }
-                    }
+
                 }
 
-                if props.is_expand.unwrap_or(false) {
+                if props.is_expand {
                     div {
-                        "data-expand": props.data.id.clone(),
+                        // "data-expand": props.event.id().to_string(),
                         class: "note-action-expand cursor-pointer",
                         onclick: move |_| {
                             props.on_expand.call(());
@@ -404,7 +289,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                 // Save the coordinates of the event relative to the screen
                 pos.set(event.screen_coordinates().to_tuple());
             },
-            style: "position: relative;",
+            class: "relative",
             div {
                 class: "more-trigger",
                 div {
@@ -415,12 +300,11 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                 }
             }
             div {
-                class: "show-{edit}",
-                style: "position: absolute; right: 0; background-color: var(--bgc-0); border-radius: var(--radius-1); display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; border: 1px solid var(--boc-1); z-index: 100;",
+                class: "show-{edit} note-more-box",
                 div {
-                    style: "display: flex; flex-direction: column; gap: 10px; padding: 10px; 20px; width: 140px;",
+                    class:"note-more-content-box",
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             edit.set(false);
                         },
@@ -430,7 +314,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                         "Share"
                     }
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             edit.set(false);
                         },
@@ -440,7 +324,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                         "Book Mark"
                     }
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             edit.set(false);
                         },
@@ -450,7 +334,7 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                         "Broadcast"
                     }
                     div {
-                        style: "display: flex; align-items: center; gap: 5px; cursor: pointer;",
+                        class: "note-more-button",
                         onclick: move |_| {
                             on_detail.call(());
                             edit.set(false);
