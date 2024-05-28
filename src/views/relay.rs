@@ -1,16 +1,13 @@
 use dioxus::prelude::*;
 
-use crate::views::note_list::custom_sub::relays::{RelaysInput};
+use crate::views::note_list::custom_sub::relays::RelaysInput;
 
-use crate::{
-  store::subscription::{CustomSub,RelaySet},
-};
+use crate::store::subscription::{CustomSub,RelaySet};
 
 
 
 #[component]
 pub fn Relay() -> Element {
-    let mut edit = use_context_provider(|| Signal::new(false));
    
 
     let subs = use_context::<Signal<Vec<CustomSub>>>();

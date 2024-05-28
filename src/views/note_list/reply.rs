@@ -48,7 +48,7 @@ pub fn Reply(props: ReplyProps) -> Element {
                             div {
                                 class: "quote flex items-center display-flex-box items-center",
                                 div {
-                                    class:"font-weight-bold display-flex-box items-center justify-content-center wh-52",
+                                    class:"font-weight-bold display-flex-box items-center justify-content-center w-52",
                                     "Re:"
                                 }
                                 div {

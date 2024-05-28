@@ -573,9 +573,7 @@ svg path {
       color: var(--txt-1);
       font-size: 14px;
       &--active {
-        border: 1px solid var(--txt-1);
-        background-color: var(--bgc-0);
-        color: var(--txt-1);
+        border-width:2px;
       }
     }
 

@@ -98,10 +98,7 @@ impl CBWebDatabase {
 
                     {
                         // Init misc store
-                        let _misc_store = evt
-                            .db()
-                            .create_object_store(MISC_CF)
-                            .unwrap();
+                        let _misc_store = evt.db().create_object_store(MISC_CF).unwrap();
                     }
                 }
                 Ok(())
@@ -253,7 +250,6 @@ impl CBWebDatabase {
         Ok(())
     }
 
-
     pub async fn get_relay_set(&self, name: String) -> Result<RelaySet, CBwebDatabaseError> {
         let tx = self
             .db
@@ -320,22 +316,38 @@ impl CBWebDatabase {
         tx.await.into_result()?;
         Ok(())
     }
-    pub async fn update_custom_sub(&self, old_name: String, custom_sub: CustomSub) -> Result<(), CBwebDatabaseError> {
+    pub async fn update_custom_sub(
+        &self,
+        old_name: String,
+        custom_sub: CustomSub,
+    ) -> Result<(), CBwebDatabaseError> {
         tracing::info!("Update custom sub: {:?}", custom_sub);
         let old_custom_sub = self.get_custom_sub(old_name.clone()).await?;
         if old_custom_sub.name != custom_sub.name {
-            self.remove_custom_sub(old_name.clone()).await?;
+            // If you remove the sub first, when there is 1 sub in the sub list, the default sub will be inserted. If the default sub is modified at this time, then there is a bug here, and you will find that the modification is unsuccessful, so you need to save the modification first. sub and then remove the old sub
             self.save_custom_sub(custom_sub).await?;
+            self.remove_custom_sub(old_name.clone()).await?;
         } else {
             let tx = self
                 .db
-                .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)?;
+                .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)
+                .map_err(|e| {
+                    tracing::error!("Failed to start transaction: {:?}", e);
+                    CBwebDatabaseError::Dom(e)
+                })?;
 
             let store = tx.object_store(CUSTOM_SUB_CF)?;
             let value = to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
-            store.put_val(&value)?;
 
-            tx.await.into_result()?;
+            store.put_val(&value).map_err(|e| {
+                tracing::error!("Failed to put value in store: {:?}", e);
+                CBwebDatabaseError::Dom(e)
+            })?;
+
+            tx.await.into_result().map_err(|e| {
+                tracing::error!("Transaction failed: {:?}", e);
+                CBwebDatabaseError::Dom(e)
+            })?;
         }
         Ok(())
     }
@@ -485,7 +497,7 @@ impl CBWebDatabase {
             .transaction_on_one_with_mode(MISC_CF, IdbTransactionMode::Readwrite)?;
 
         let store = tx.object_store(MISC_CF)?;
-        let key =  to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
+        let key = to_value(&key).map_err(CBwebDatabaseError::DeserializationError)?;
         let value = to_value(&value).map_err(CBwebDatabaseError::DeserializationError)?;
         store.put_key_val(&key, &value)?;
         tx.await.into_result()?;

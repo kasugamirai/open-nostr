@@ -10,6 +10,7 @@ use nostr_sdk::Event;
 use crate::{
     nostr::multiclient::MultiClient,
     store::{subscription::CustomSub, CBWebDatabase},
+    Route,
 };
 
 use custom_sub::CustomSubscription;
@@ -21,52 +22,67 @@ pub fn NoteList(name: String) -> Element {
     // all custom subscriptions
     let mut all_sub = use_context::<Signal<Vec<CustomSub>>>();
 
-    let mut sub_current = use_signal(CustomSub::empty);
+    let mut sub_current = use_signal(|| CustomSub::empty());
     let mut sub_index = use_signal(|| 0);
     let mut cb_database_db = use_context::<Signal<CBWebDatabase>>();
 
     use_effect(use_reactive((&name,), move |(s,)| {
-      for (i, sub) in all_sub.read().iter().enumerate() {
-      for (i, sub) in all_sub.read().iter().enumerate() {
-
-          tracing::info!("name/name/name/subClone: {:?}", all_sub.len());
-          tracing::info!("name/name/name/i: {:?}", i);
         for (i, sub) in all_sub.read().iter().enumerate() {
-
-          tracing::info!("name/name/name/subClone: {:?}", all_sub.len());
-          tracing::info!("name/name/name/i: {:?}", i);
+            tracing::info!("name/name/name/subClone: {:?}", all_sub.len());
+            tracing::info!("name/name/name/i: {:?}", i);
             if sub.name == s {
                 sub_current.set(sub.clone());
                 sub_index.set(i);
-          }
-          }
-
             }
-
         }
     }));
 
     let handle_save = move |value: CustomSub| {
         spawn(async move {
-            let old_name = sub_current.read().name.clone();
-
-            sub_current.set(value.clone());
-            tracing::info!("Save: {:?}", value);
-            let index: usize = *sub_index.read();
-            let mut subs = all_sub.write();
-            subs[index] = sub_current.read().clone();
-
-            // Capture necessary variables for the async block
-            let sub_current_clone = sub_current;
-            let old_name_clone = old_name.clone();
-
-            // Move the database write operation here
-            let cb_database_db_write = cb_database_db.write(); // Ensure .await is used if necessary
-            tracing::info!("Update: {:?}", sub_current_clone.read()); // Ensure you read from the Arc
-            cb_database_db_write
-                .update_custom_sub(old_name_clone, sub_current_clone.read().clone())
+            let old_name = {
+                let sub_current_lock = sub_current();
+                sub_current_lock.name.clone()
+            };
+            let edit_value = value.clone();
+            tracing::info!("Update: {:?}", edit_value);
+    
+            match cb_database_db()
+                .update_custom_sub(old_name.clone(), edit_value.clone())
                 .await
-                .unwrap();
+            {
+                Ok(_) => {
+                    let edit_name = edit_value.name.clone();
+    
+                    // 成功更新后再次获取 sub_current 并更新其值
+                    {
+                        sub_current.set(value.clone());
+                    }
+    
+                    // 更新 all_sub 的值
+                    let index: usize = *sub_index.read();
+                    {
+                        let mut subs: Write<_, UnsyncStorage> = all_sub.write();
+                        subs[index] = sub_current().clone();
+                    }
+    
+                    if old_name != edit_name {
+                        navigator().replace(Route::NoteList {
+                            name: edit_name,
+                        });
+                    }
+                    tracing::info!("Update success: wait for reload");
+                }
+                Err(e) => {
+                    tracing::error!("Update error: {:?}", e);
+                }
+            }
+            // {
+            //     tracing::info!("Update success: wait for reload");
+            //     sub_current.set(value.clone());
+            //     let index: usize = *sub_index.read();
+            //     let mut subs: Write<_, UnsyncStorage> = all_sub.write();
+            //     subs[index] = sub_current.read().clone();
+            // }
         });
     };
 

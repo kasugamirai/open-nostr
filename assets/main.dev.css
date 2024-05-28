@@ -14078,9 +14078,7 @@ svg path {
   font-size: 14px;
 }
 .relay-name-item--active {
-  border: 1px solid var(--txt-1);
-  background-color: var(--bgc-0);
-  color: var(--txt-1);
+  border-width: 2px;
 }
 .relay-name-add {
   background-color: var(--bgc-1);
@@ -15028,6 +15026,7 @@ svg path {
 .post-media-wrap {
   display: flex;
   flex-wrap: wrap;
+  gap: 5px;
 }
 
 .post-media-wrap::after {
@@ -15040,8 +15039,6 @@ svg path {
   height: 160px;
   flex-grow: 1;
   max-width: 100%;
-  margin-right: 8px;
-  margin-bottom: 8px;
   text-align: center;
 }
 

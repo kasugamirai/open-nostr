@@ -37,18 +37,18 @@ pub fn Quote(props: QouteProps) -> Element {
                         div {
                             class: "quote flex items-center display-flex-box items-center",
                             div {
-                                class:"font-weight-bold display-flex-box items-center justify-content-center wh-52",
+                                class:"font-weight-bold display-flex-box items-center justify-content-center w-52",
                                 "Qt:"
                             }
                             div {
-                                class:"qt-text",
+                                class: "qt-text",
                                 Avatar {
                                     pubkey: pk,
                                     timestamp: timestamp,
                                     relay_name: relay_name.clone(),
                                 }
                                 div {
-                                    class:"qt-text-content",
+                                    class:"qt-text-content relative",
                                     dangerous_inner_html: "{content}"
                                 }
                             }

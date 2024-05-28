@@ -25,10 +25,10 @@ pub struct NoteProps {
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    let sub_name = use_signal(|| props.sub_name.clone());
-    let all_subs = use_context::<Signal<Vec<CustomSub>>>();
-    let subs = all_subs.read();
-    let current_sub = subs.iter().find(|s| s.name == sub_name()).unwrap();
+    // let sub_name = use_signal(|| props.sub_name.clone());
+    // let all_sub = use_context::<Signal<Vec<CustomSub>>>();
+    // let subs = all_sub.read();
+    // let current_sub = subs.iter().find(|s| s.name == sub_name()).unwrap();
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
@@ -109,7 +109,7 @@ pub fn Note(props: NoteProps) -> Element {
                 Avatar {
                     pubkey: pk.read().clone(),
                     timestamp: props.event.created_at.as_u64(),
-                    relay_name: current_sub.relay_set.clone(),
+                    relay_name: "default".to_string(),
                     repost_event: match props.event.kind() {
                         Kind::Repost => {
                             let repost_event = Event::from_json(&props.event.content).unwrap();

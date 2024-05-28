@@ -8,11 +8,13 @@ mod limit;
 pub mod relays;
 mod tag;
 
+use chrono::format;
 use dioxus::prelude::*;
+use regex::Regex;
 
 use crate::{
-    components::{icons::*, DateTimePicker, Dropdown, Switch},
-    store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+    components::{icons::*, DateTimePicker, Dropdown, Switch}, store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag}, 
+    utils::{contants::NUM_AND_LETTER_REG, js::alert}, Route
     // utils::js::{export_to_clipboard, import_from_clipboard},
 };
 use account::AccountInput;
@@ -41,7 +43,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
             sub_current.set(subscription.clone());
         },
     ));
-
     let mut edit = use_context_provider(|| Signal::new(false));
 
     let handle_reset = move |_| {
@@ -55,6 +56,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_reload = move |_| {
+        tracing::info!("emit reload");
         props.on_reload.call(sub_current.read().clone());
     };
 
@@ -64,9 +66,37 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
         //     sub_current.set(CustomSub::from(&value));
         // });
     };
-
     let handle_export = move || {
-        // export_to_clipboard(sub_current.read().json());
+        // spawn(async move {
+        //     let value = import_from_clipboard().await;
+        //     sub_current.set(CustomSub::from(&value));
+        // });
+    };
+    let handle_change_subname = move |v: String| {
+        // check sub name
+        if v.is_empty() {
+            return;
+        }
+        {
+            let mut sub = sub_current.write();
+            sub.name = v;
+        };
+        {
+            let sub = sub_current();
+            tracing::info!("save sub: {:#?}", sub);
+            props.on_save.call(sub.clone());
+        }
+    };
+    let handle_change_replyset = move |v: RelaySet| {
+        {
+            let mut sub: Write<CustomSub, UnsyncStorage> = sub_current.write();
+            sub.relay_set = v.name.clone();
+        }
+        {
+            let sub = sub_current();
+            tracing::info!("save sub: {:#?}", sub);
+            props.on_save.call(sub.clone());
+        }
     };
 
     rsx! {
@@ -76,9 +106,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 class: "custom-sub-header",
                 div {
                     class: "sub-header",
-                    h2 { 
+                    h2 {
                       class:"custom-sub-family",
-                      "Custom Sub" 
+                      "Custom Sub"
                     }
                     button {
                         class: "btn-icon purple small",
@@ -116,7 +146,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                     }
                                     "Export"
                                 }
-                                
+
                             }
                         }
                     }
@@ -132,10 +162,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                     Input {
                         edit: true,
-                        on_change: move |v| {
-                            let mut sub = sub_current.write();
-                            sub.name = v;
-                        },
+                        on_change: handle_change_subname,
                         value: "{sub_current().name}",
                     }
                 }
@@ -148,11 +175,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     div {
                         class:"display-inline-block",
                         RelaysInput {
-                            on_change: move |v: RelaySet| {
-                                let mut sub = sub_current.write();
-                                sub.relay_set = v.name.clone();
-                            },
+                            on_change: handle_change_replyset,
                             relay_name: &sub_current.read().relay_set,
+                            is_popup: true,
                         }
                     }
                 }
@@ -191,7 +216,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     class:"display-inline-block",
                     div {
                         class:"sub-edit-button",
-                        
                         if edit() {
                             button {
                               class: "btn-circle btn-circle-true",

@@ -24,7 +24,7 @@
 .post-media-wrap {
   display: flex;
   flex-wrap: wrap;
-  // gap: 5px;
+  gap: 5px;
 }
 
 .post-media-wrap::after {
@@ -37,8 +37,8 @@
   height: 160px;
   flex-grow: 1;
   max-width: 100%;
-  margin-right: 8px;
-  margin-bottom: 8px;
+  // margin-right: 8px;
+  // margin-bottom: 8px;
   text-align: center;
 }
 

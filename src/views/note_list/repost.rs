@@ -105,7 +105,7 @@ pub fn Repost(props: RepostProps) -> Element {
                         div {
                             class: "quote display-flex-box items-center",
                             div {
-                              class:"font-weight-bold display-flex-box items-center justify-content-center wh-52",
+                              class:"font-weight-bold display-flex-box items-center justify-content-center w-52",
                                 "Qt:"
                             }
                             div {
