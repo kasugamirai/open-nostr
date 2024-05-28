@@ -10,7 +10,6 @@ use indexed_db_futures::{IdbDatabase, IdbKeyPath, IdbQuerySource, IdbVersionChan
 use serde_wasm_bindgen::{from_value, to_value};
 use std::future::IntoFuture;
 use std::rc::Rc;
-use std::sync::Arc;
 use subscription::{CustomSub, RelaySet};
 pub use user::{AccountType, User};
 use wasm_bindgen::JsValue;

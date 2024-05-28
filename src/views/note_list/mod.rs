@@ -1,21 +1,19 @@
 mod custom_sub;
 pub mod note;
-pub mod note_wrapper;
 pub mod reply;
 
 use std::time::Duration;
 
-use dioxus::{events, prelude::*};
-use nostr_sdk::{Event, JsonUtil, Kind};
+use dioxus::prelude::*;
+use nostr_sdk::Event;
 
 use crate::{
-    nostr::{multiclient::MultiClient, note::TextNote},
+    nostr::multiclient::MultiClient,
     store::{subscription::CustomSub, CBWebDatabase},
 };
 
 use custom_sub::CustomSubscription;
 use note::Note;
-use note_wrapper::Note_wrapper;
 
 #[component]
 pub fn NoteList(name: String) -> Element {

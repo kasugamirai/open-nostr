@@ -13,7 +13,7 @@ use dioxus::prelude::*;
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, Switch},
     store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
-    utils::js::{export_to_clipboard, import_from_clipboard},
+    // utils::js::{export_to_clipboard, import_from_clipboard},
 };
 use account::AccountInput;
 use add_filter::AddFilter;

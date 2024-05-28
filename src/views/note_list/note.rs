@@ -1,24 +1,11 @@
-use std::collections::HashMap;
-
 use dioxus::prelude::*;
-use nostr_sdk::{Event, EventId, FromBech32, JsonUtil, Kind};
-use regex::Regex;
-use web_sys::console;
+use nostr_sdk::{Event, JsonUtil, Kind};
 
 use crate::{
-    components::{icons::*, Avatar, Quote},
-    nostr::{
-        fetch::{get_event_by_id, get_metadata, get_reactions, get_replies},
-        multiclient::MultiClient,
-        note::{ReplyTreeManager, ReplyTrees, TextNote},
-        utils::{is_note_address, AddressType},
-    },
-    utils::{
-        format::{format_content, format_create_at, format_note_content},
+    components::{icons::*, Avatar}, nostr::note::TextNote, utils::{
+        format::format_note_content,
         js::note_srcoll_into_view,
-    },
-    views::note_list::reply::Reply,
-    Route,
+    }, views::note_list::reply::Reply, CustomSub, Route
 };
 
 #[derive(PartialEq, Clone, Props)]
@@ -36,20 +23,12 @@ pub struct NoteProps {
     #[props(default = false)]
     pub is_tree: bool,
 }
-enum NoteAction {
-    Replay,
-    Share,
-    Qoute,
-    Zap,
-}
-struct NoteActionState {
-    action: NoteAction,
-    count: usize,
-}
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    // let mut replytree = use_context::<Signal<ReplyTrees>>();
-    let multiclient = use_context::<Signal<MultiClient>>();
+    let sub_name = use_signal(|| props.sub_name.clone());
+    let all_subs = use_context::<Signal<Vec<CustomSub>>>();
+    let subs = all_subs.read();
+    let current_sub = subs.iter().find(|s| s.name == sub_name()).unwrap();
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
@@ -130,7 +109,7 @@ pub fn Note(props: NoteProps) -> Element {
                 Avatar {
                     pubkey: pk.read().clone(),
                     timestamp: props.event.created_at.as_u64(),
-                    relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
+                    relay_name: current_sub.relay_set.clone(),
                     repost_event: match props.event.kind() {
                         Kind::Repost => {
                             let repost_event = Event::from_json(&props.event.content).unwrap();

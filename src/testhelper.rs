@@ -1,10 +1,10 @@
 use js_sys::Promise;
 use nostr_sdk::JsonUtil;
-use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
+use nostr_sdk::Event;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_test::*;
-
+#[cfg(test)]
 pub mod test_data {
     //basic test notes
     pub const NOT_NOTE: &str = r#"{"pubkey":"e1ff3bfdd4e40315959b08b4fcc8245eaa514637e1d4ec2ae166b743341be1af","sig":"53087c94115efb071632abc8d514b1f09b20eb8377d2854fa51ab76c4ac0aa6c5766c9af45ded4e2789098bad73117e02d0bdcb96c34866bec1898753a80465a","created_at":1713418044,"id":"0076792624df92e4b0892722c282fdeddd5912e89d61af843e180f2dc02a5530","content":"Pornalreadyfillsthedemandforaigirlfriends.Theaipartonlyaddssomeonetotalkto,whichboysdon'treallycrave.Theaiboyfriendwillbeabiggerdeal,womengetsomeonetotalktoalldaywithoutanythingelse.","kind":6,"tags":[["e","1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"],["p","0018b7ee33fb253843639c62e292fec700a69a93b08ee374c5bda971c9b39564"]]}"#;

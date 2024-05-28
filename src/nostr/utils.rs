@@ -1,7 +1,5 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use std::ops::Add;
-
 use indextree::{Arena, NodeId};
 use serde::Serialize;
 use nostr_sdk::{EventId, FromBech32, PublicKey};

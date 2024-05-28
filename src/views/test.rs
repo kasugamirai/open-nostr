@@ -1,10 +1,9 @@
 use std::{collections::HashMap, time::Duration};
 
 use dioxus::prelude::*;
-use nostr_indexeddb::WebDatabase;
+
 use nostr_sdk::prelude::*;
 
-use crate::views::note_list::note::{Note};
 
 #[derive(Debug, Clone)]
 pub struct Clients {

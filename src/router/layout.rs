@@ -1,13 +1,10 @@
 use crate::{nostr::note::ReplyTreeManager, store::subscription::CustomSub};
 use dioxus::prelude::*;
-use wasm_bindgen::closure;
 struct UserItem {
     avatar: &'static str,
     username: &'static str,
 }
-use crate::{
-  utils::format::{splite_by_replys},
-};
+use crate::utils::format::splite_by_replys;
 // use crate::views::
 
 use crate::components::icons::*;
@@ -27,8 +24,9 @@ pub fn Layout() -> Element {
             theme.set("light".to_string());
         }
     };
-    let mut messageContent = use_signal(||String::from(""));
+    let messageContent = use_signal(||String::from(""));
 
+    // golbal replytree manager cache
     let replytree_manager = use_context_provider(|| Signal::new(ReplyTreeManager::new(200)));
     let users = [UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",

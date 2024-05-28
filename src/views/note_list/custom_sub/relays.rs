@@ -35,7 +35,6 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
     let mut old_relay_sets: Signal<Vec<RelaySet>> = use_signal(Vec::new);
     let allow_edit = use_context::<Signal<bool>>();
     let mut cb_database_db = use_context::<Signal<CBWebDatabase>>();
-    let relay_name = use_signal(|| props.relay_name.clone());
     // let relay_sets.read() = relay_sets.read();
     let current_relay_set: RelaySet = match relay_sets.read().get(relay_curent_index()) {
         Some(relay) => relay.clone(),

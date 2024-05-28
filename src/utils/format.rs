@@ -1,8 +1,6 @@
 use dioxus::prelude::*;
 use nostr_sdk::{EventId, FromBech32, PublicKey};
 use regex::Regex;
-use web_sys::Element;
-
 use crate::nostr::utils::{is_note_address, AddressType};
 use crate::components::Quote;
 use crate::components::Mention;

@@ -1,4 +1,4 @@
-use nostr_sdk::key::{PublicKey, SecretKey};
+use nostr_sdk::key::PublicKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
