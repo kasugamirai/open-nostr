@@ -37,12 +37,12 @@ pub fn Reply(props: ReplyProps) -> Element {
         let mut root_rsx = root_rsx.clone();
         let sub_name = props.sub_name.clone();
         let relay_name = props.relay_name.clone();
+        let eventid = text_note.get_root().unwrap();
         
         spawn(async move {
-            let mut clients = multiclient();
-            let hc = &clients.get_or_create(&relay_name).await.unwrap();
-            let client = hc.client();
-            match get_event_by_id(&client, &text_note.root.unwrap(), None).await {
+            let clients = multiclient();
+            let client = clients.get_client(&relay_name).unwrap();
+            match get_event_by_id(&client.client(), &eventid, None).await {
                 Ok(root) => {
                     if let Some(root_event) = root {
                         root_rsx.set(rsx! {

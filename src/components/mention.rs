@@ -33,10 +33,11 @@ pub fn Mention(props: MentionProps) -> Element {
         move |(pubkey, relay_name)| {
             let multiclient = multiclient();
             if let Some(client) = multiclient.get_client(&relay_name) {
+                let client = client.client();
                 // client.send_event_builder(builder)
                 spawn(async move {
                     let filter = Filter::new().author(pubkey).kind(Kind::Metadata);
-                    let event_result = client.client()
+                    let event_result = client
                         .database()
                         .query(vec![filter], Order::Desc)
                         .await
@@ -53,7 +54,7 @@ pub fn Mention(props: MentionProps) -> Element {
                         });
                         
                     }
-                    match get_metadata(&client.client(), &pubkey, None).await {
+                    match get_metadata(&client, &pubkey, None).await {
                         Ok(metadata) => {
                             ele.set(rsx! {
                                 a {

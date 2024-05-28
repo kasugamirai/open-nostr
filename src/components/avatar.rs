@@ -36,10 +36,11 @@ pub fn Avatar(props: AvatarProps) -> Element {
         move |(pubkey, relay_name)| {
             let multiclient = multiclient();
             if let Some(client) = multiclient.get_client(&relay_name) {
+                let client = client.client();
                 // client.send_event_builder(builder)
                 spawn(async move {
                     let filter = Filter::new().author(pubkey).kind(Kind::Metadata);
-                    let event_result = client.client()
+                    let event_result = client
                         .database()
                         .query(vec![filter], Order::Desc)
                         .await
@@ -53,7 +54,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
                             "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
                         }));
                     }
-                    match get_metadata(&client.client(), &pubkey, None).await {
+                    match get_metadata(&client, &pubkey, None).await {
                         Ok(metadata) => {
                             nickname.set(metadata.display_name.unwrap_or_else(|| {
                                 metadata.name.unwrap_or("Nostr Account".to_string())
@@ -80,7 +81,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
                 if let Some(event) = repost_event {
                     if let Some(client) = multiclient.get_client(&relay_name) {
                         let filter = Filter::new().author(event.pubkey).kind(Kind::Metadata);
-                        let event_result = client.client()
+                        let client = client.client();
+                        let event_result = client
                             .database()
                             .query(vec![filter], Order::Desc)
                             .await
@@ -93,7 +95,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
                             }));
                             root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
                         }
-                        match get_metadata(&client.client(), &event.pubkey, None).await {
+                        match get_metadata(&client, &event.pubkey, None).await {
                             Ok(metadata) => {
                                 root_pic.set(metadata.picture.unwrap_or_else(|| {
                                     "https://avatars.githubusercontent.com/u/1024025?v=4"

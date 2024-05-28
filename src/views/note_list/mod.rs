@@ -1,7 +1,7 @@
 mod custom_sub;
 pub mod note;
-pub mod reply;
 pub mod note_wrapper;
+pub mod reply;
 
 use std::time::Duration;
 
@@ -16,7 +16,6 @@ use crate::{
 use custom_sub::CustomSubscription;
 use note::Note;
 use note_wrapper::Note_wrapper;
-
 
 #[component]
 pub fn NoteList(name: String) -> Element {
@@ -119,13 +118,12 @@ pub fn List(props: ListProps) -> Element {
             tracing::info!("Filters: {:#?}", filters);
             // TODO: use the 'subscribe' function if this sub requires subscription
             let events = client
-                .get_events_of(filters, Some(Duration::from_secs(180)))
+                .get_events_of(filters, None)
                 .await
                 .unwrap();
             // TODO: add or append to database
-
-            notes.clear();
-            notes.extend(events);
+                notes.clear();
+                notes.extend(events);
         })
     };
 
@@ -173,10 +171,9 @@ pub fn List(props: ListProps) -> Element {
                 //     sub_name: props.subscription.name.clone(),
                 //     event: note.clone(),
                 //     relay_name: props.subscription.relay_set.clone(),
-                
+
                 // }
             }
         }
     }
 }
-

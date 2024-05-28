@@ -19,7 +19,7 @@ use nostr_sdk::hashes::hash160::Hash;
 use nostr_sdk::{ClientBuilder, EventId, Filter, Kind};
 use wasm_bindgen_test::console_log;
 
-pub const EXAMPLE_SUB_KEY: &str = "#nostr";
+pub const EXAMPLE_SUB_KEY: &str = "nostr";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";
 pub const NOSTR_DB_NAME: &str = "nostr-db";
 pub const LAST_LOGINED_KEY: &str = "last_logined";

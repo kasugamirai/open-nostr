@@ -8,6 +8,7 @@ use cached::{TimedCache, Cached};
 use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::time::Duration;
 
+use crate::init::NOSTR_DB_NAME;
 use crate::store::{CBWebDatabase, CAPYBASTR_DBNAME};
 
 use super::utils::hash_filter;
@@ -127,7 +128,7 @@ impl MultiClient {
 
     pub async fn get_or_create(&mut self, name: &str) -> Option<HashedClient> {
         let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-        let db = WebDatabase::open("nostr-idb").await.unwrap();
+        let db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
         let client_builder = ClientBuilder::new().database(db);
         let client = client_builder.build();
         let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
