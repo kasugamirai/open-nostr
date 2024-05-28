@@ -74,7 +74,7 @@ pub fn Relay() -> Element {
                         class:"relay-name-ipt",
                         r#type: "text",
                         placeholder: "Default",
-                        oninput: move |event| {
+                        oninput: move |_| {
 
                         }
                     }
@@ -148,7 +148,7 @@ pub fn Relay() -> Element {
                         class: "relay-ipt mr-10",
                         r#type: "text",
                         placeholder: "wss://",
-                        oninput: move |event| {
+                        oninput: move |_| {
                             // tracing::info!("new_relay: {:?}", event.value());
                         }
                     }

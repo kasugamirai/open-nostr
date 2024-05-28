@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::{
     components::icons::ADD,
-    store::subscription::{CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, FilterTemp},
+    store::subscription::{CustomAccounts, CustomEvents, CustomHashTag, FilterTemp},
 };
 
 #[derive(PartialEq, Clone, Props)]

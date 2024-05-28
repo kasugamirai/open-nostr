@@ -1,7 +1,4 @@
 use crate::nostr::multiclient::HashedClient;
-use std::collections::HashMap;
-
-use crate::nostr::note::{ReplyTreeManager, ReplyTrees};
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
 use crate::store::{
@@ -15,9 +12,7 @@ use crate::{
 };
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::hashes::hash160::Hash;
-use nostr_sdk::{ClientBuilder, EventId, Filter, Kind};
-use wasm_bindgen_test::console_log;
+use nostr_sdk::ClientBuilder;
 
 pub const EXAMPLE_SUB_KEY: &str = "nostr";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";
@@ -107,7 +102,7 @@ pub fn App() -> Element {
                         }
                     }
                 }
-                Err(e) => {
+                Err(_) => {
                     //todo
                 }
             }
@@ -135,7 +130,7 @@ pub fn App() -> Element {
                         }
                     }
                 }
-                Err(e) => {
+                Err(_) => {
                     //todo
                 }
             }

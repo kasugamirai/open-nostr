@@ -1,23 +1,22 @@
-use dioxus::{html::text, prelude::*};
-use nostr::event;
-use nostr_sdk::Event;
-use crate::{
-    components::Avatar, 
-    nostr::{fetch::get_event_by_id, note::TextNote}, 
-    views::note_list::note::Note};
 use crate::nostr::multiclient::MultiClient;
+use crate::{
+    components::Avatar,
+    nostr::{fetch::get_event_by_id, note::TextNote},
+};
+use dioxus::prelude::*;
+use nostr_sdk::Event;
 /// This is the reply view for the note component
 /// /
-/// 
-/// 
-/// 
-/// 
+///
+///
+///
+///
 
 #[derive(PartialEq, Clone, Props)]
 pub struct ReplyProps {
-   pub event: Event,
-   pub sub_name: String,
-   pub relay_name: String,
+    pub event: Event,
+    pub sub_name: String,
+    pub relay_name: String,
 }
 
 #[component]
@@ -33,12 +32,12 @@ pub fn Reply(props: ReplyProps) -> Element {
         }
     });
     let multiclient = use_context::<Signal<MultiClient>>();
-    use_effect(use_reactive(&event, move |event| {
+    use_effect(use_reactive(&event, move |_| {
         let mut root_rsx = root_rsx.clone();
-        let sub_name = props.sub_name.clone();
+        // let sub_name = props.sub_name.clone();
         let relay_name = props.relay_name.clone();
         let eventid = text_note.get_root().unwrap();
-        
+
         spawn(async move {
             let clients = multiclient();
             let client = clients.get_client(&relay_name).unwrap();
@@ -73,7 +72,6 @@ pub fn Reply(props: ReplyProps) -> Element {
                     tracing::error!("get_event_by_id error: {:?}", e);
                 }
             }
-            
         });
     }));
     rsx! {

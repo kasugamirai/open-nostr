@@ -1,21 +1,19 @@
 mod custom_sub;
 pub mod note;
-pub mod note_wrapper;
 pub mod reply;
 
 use std::time::Duration;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Event, JsonUtil, Kind};
+use nostr_sdk::Event;
 
 use crate::{
-    nostr::{multiclient::MultiClient, note::TextNote},
+    nostr::multiclient::MultiClient,
     store::{subscription::CustomSub, CBWebDatabase},
 };
 
 use custom_sub::CustomSubscription;
 use note::Note;
-use note_wrapper::Note_wrapper;
 
 #[component]
 pub fn NoteList(name: String) -> Element {
@@ -112,19 +110,34 @@ pub fn List(props: ListProps) -> Element {
             let filters = sub.get_filters();
             tracing::info!("Subscription: {:#?}", filters);
             let mut clients = multiclient();
-            let hc = &clients
-                .get_or_create(&sub.relay_set)
-                .await
-                .unwrap()
-                .unwrap();
-            let client = hc.client();
-            // TODO: use global client by this subscription
-            tracing::info!("Filters: {:#?}", filters);
-            // TODO: use the 'subscribe' function if this sub requires subscription
-            let events = client.get_events_of(filters, None).await.unwrap();
-            // TODO: add or append to database
-            notes.clear();
-            notes.extend(events);
+            let client_result = clients.get_or_create(&sub.relay_set).await;
+
+            let hc = match client_result {
+                Ok(hc) => hc,
+                Err(e) => {
+                    tracing::error!("Error: {:?}", e);
+                    return;
+                }
+            };
+            if let Some(hc) = hc {
+                let client = hc.client();
+                // TODO: use global client by this subscription
+                tracing::info!("Filters: {:#?}", filters);
+                // TODO: use the 'subscribe' function if this sub requires subscription
+                match client
+                    .get_events_of(filters, Some(Duration::from_secs(5)))
+                    .await
+                {
+                    Ok(events) => {
+                        // TODO: add or append to database
+                        // notes.clear();
+                        notes.extend(events);
+                    }
+                    Err(e) => {
+                        tracing::error!("Error: {:?}", e);
+                    }
+                }
+            }
         })
     };
 

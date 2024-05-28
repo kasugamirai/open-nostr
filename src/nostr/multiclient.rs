@@ -150,15 +150,23 @@ impl MultiClient {
     }
 
     pub async fn get_or_create(&mut self, name: &str) -> Result<Option<HashedClient>, Error> {
-        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
-        let db = WebDatabase::open(NOSTR_DB_NAME).await?;
-        let client_builder = ClientBuilder::new().database(db);
-        let client = client_builder.build();
-        let relay_set_info = database.get_relay_set(name.to_string()).await?;
-        client.add_relays(relay_set_info.relays).await?;
-        let hc = HashedClient::new(client).await;
-        self.register(name.to_string(), hc);
-        Ok(self.get_client(name))
+        match self.get_client(name) {
+            Some(client) => Ok(Some(client)),
+            None => {
+                let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
+                let db = WebDatabase::open(NOSTR_DB_NAME).await?;
+                let client_builder = ClientBuilder::new().database(db);
+                let client = client_builder.build();
+                let relay_set_info = database.get_relay_set(name.to_string()).await?;
+                // client.add_relays(relay_set_info.relays).await.unwrap();
+                // client.connect().await;
+                let mut hc = HashedClient::new(client).await;
+                let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
+                hc.add_relays(relays).await?;
+                self.register(name.to_string(), hc);
+                Ok(self.get_client(name))
+            }
+        }
     }
 
     pub async fn cached_get_events_of(
@@ -192,7 +200,6 @@ mod tests {
     use nostr_sdk::PublicKey;
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
     use wasm_bindgen_test::console_log;
 
     #[wasm_bindgen_test]

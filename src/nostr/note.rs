@@ -277,7 +277,7 @@ impl ReplyTreeManager {
 
     pub fn accept_event(&mut self, root_id: EventId, events: Vec<Event>) {
         let tree = self.get_or_create_tree(root_id.clone());
-        tree.accept(events);
+        tree.accept(events).unwrap();
     }
 
     pub fn modify_tree_with_event<F>(&mut self, root_id: &EventId, event: Event, modify: F)

@@ -8,12 +8,12 @@ mod limit;
 mod relays;
 mod tag;
 
-use dioxus::{html::tr, prelude::*};
+use dioxus::prelude::*;
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, Switch},
     store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
-    utils::js::{export_to_clipboard, import_from_clipboard},
+    // utils::js::{export_to_clipboard, import_from_clipboard},
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -128,7 +128,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     class: "custom-sub-name",
                     div {
                         class: "width-80-fontSize-16",
-                        "1Name:"
+                        "Name:"
                     }
                     Input {
                         edit: true,

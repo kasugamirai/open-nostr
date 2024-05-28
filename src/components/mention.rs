@@ -1,13 +1,10 @@
 use dioxus::prelude::*;
 use nostr_indexeddb::database::Order;
-use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
+use nostr_sdk::{Filter, JsonUtil, Kind, Metadata, PublicKey};
 
-use crate::{
-    nostr::{
-        fetch::{get_metadata, get_newest_event},
-        multiclient::MultiClient,
-    },
-    utils::format::format_create_at,
+use crate::nostr::{
+    fetch::{get_metadata, get_newest_event},
+    multiclient::MultiClient,
 };
 
 #[derive(PartialEq, Clone, Props)]
@@ -52,7 +49,6 @@ pub fn Mention(props: MentionProps) -> Element {
                                 }))}
                             }
                         });
-                        
                     }
                     match get_metadata(&client, &pubkey, None).await {
                         Ok(metadata) => {
