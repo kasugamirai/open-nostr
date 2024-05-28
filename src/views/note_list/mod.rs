@@ -47,7 +47,7 @@ pub fn NoteList(name: String) -> Element {
             subs[index] = sub_current.read().clone();
 
             // Capture necessary variables for the async block
-            let sub_current_clone = sub_current.clone();
+            let sub_current_clone = sub_current;
             let old_name_clone = old_name.clone();
 
             // Move the database write operation here
@@ -112,18 +112,19 @@ pub fn List(props: ListProps) -> Element {
             let filters = sub.get_filters();
             tracing::info!("Subscription: {:#?}", filters);
             let mut clients = multiclient();
-            let hc = &clients.get_or_create(&sub.relay_set).await.unwrap();
+            let hc = &clients
+                .get_or_create(&sub.relay_set)
+                .await
+                .unwrap()
+                .unwrap();
             let client = hc.client();
             // TODO: use global client by this subscription
             tracing::info!("Filters: {:#?}", filters);
             // TODO: use the 'subscribe' function if this sub requires subscription
-            let events = client
-                .get_events_of(filters, None)
-                .await
-                .unwrap();
+            let events = client.get_events_of(filters, None).await.unwrap();
             // TODO: add or append to database
-                notes.clear();
-                notes.extend(events);
+            notes.clear();
+            notes.extend(events);
         })
     };
 

@@ -43,7 +43,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
     };
     let wss_regx = Regex::new(WSS_REG).unwrap();
     // tracing::info!("index: {:?}", );
-    use_effect(use_reactive((&props.relay_name), move |_relay_name| {
+    use_effect(use_reactive(&props.relay_name, move |_relay_name| {
         spawn(async move {
             // Reading from the database
             let cb_database_db_write = cb_database_db.read();
@@ -145,7 +145,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
             tracing::info!("modified: {:#?}", modified);
             tracing::info!("deleted: {:#?}", deleted);
 
-            if new_added.len() > 0 || modified.len() > 0 || deleted.len() > 0 {
+            if !new_added.is_empty() || !modified.is_empty() | !deleted.is_empty() {
                 let mut tips = String::new();
                 for relay in new_added
                     .iter()
