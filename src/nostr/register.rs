@@ -119,7 +119,7 @@ mod tests {
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
 
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+    wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test(async)]
     async fn test_sub_for_two_clients() {

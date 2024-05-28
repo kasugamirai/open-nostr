@@ -57,7 +57,7 @@ pub fn NoteList(name: String) -> Element {
             subs[index] = sub_current.read().clone();
 
             // Capture necessary variables for the async block
-            let sub_current_clone = sub_current.clone();
+            let sub_current_clone = sub_current;
             let old_name_clone = old_name.clone();
 
             // Move the database write operation here
@@ -122,20 +122,32 @@ pub fn List(props: ListProps) -> Element {
             let filters = sub.get_filters();
             tracing::info!("Subscription: {:#?}", filters);
             let mut clients = multiclient();
-            
-            let hc = clients.get_or_create(&sub.relay_set).await.unwrap();
-            let client = hc.client();
-            // TODO: use global client by this subscription
-            tracing::info!("Filters: {:#?}", filters);
-            // TODO: use the 'subscribe' function if this sub requires subscription
-            match client.get_events_of(filters, Some(Duration::from_secs(5))).await {
-                Ok(events) => {
-                    // TODO: add or append to database
-                    // notes.clear();
-                    notes.extend(events);
-                },
+            let client_result = clients.get_or_create(&sub.relay_set).await;
+
+            let hc = match client_result {
+                Ok(hc) => hc,
                 Err(e) => {
                     tracing::error!("Error: {:?}", e);
+                    return;
+                }
+            };
+            if let Some(hc) = hc {
+                let client = hc.client();
+                // TODO: use global client by this subscription
+                tracing::info!("Filters: {:#?}", filters);
+                // TODO: use the 'subscribe' function if this sub requires subscription
+                match client
+                    .get_events_of(filters, Some(Duration::from_secs(5)))
+                    .await
+                {
+                    Ok(events) => {
+                        // TODO: add or append to database
+                        // notes.clear();
+                        notes.extend(events);
+                    }
+                    Err(e) => {
+                        tracing::error!("Error: {:?}", e);
+                    }
                 }
             }
         })

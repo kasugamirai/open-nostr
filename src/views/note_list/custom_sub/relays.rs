@@ -146,7 +146,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
             tracing::info!("modified: {:#?}", modified);
             tracing::info!("deleted: {:#?}", deleted);
 
-            if new_added.len() > 0 || modified.len() > 0 || deleted.len() > 0 {
+            if !new_added.is_empty() || !modified.is_empty() | !deleted.is_empty() {
                 let mut tips = String::new();
                 for relay in new_added
                     .iter()

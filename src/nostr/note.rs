@@ -318,56 +318,32 @@ mod tests {
         let event = event_from(REPLY_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
 
-        assert!(
-            text_note.root.unwrap().to_hex()
-                == *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"
-        );
-        assert!(
-            text_note.reply_to.unwrap().to_hex()
-                == *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345"
-        );
+        assert_eq!(text_note.root.unwrap().to_hex(), *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935");
+        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345");
     }
 
     #[wasm_bindgen_test]
     fn test_reply_with_no_marker() {
         let event = event_from(REPLY_WITH_NO_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        assert!(
-            text_note.root.unwrap().to_hex()
-                == *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc"
-        );
-        assert!(
-            text_note.reply_to.unwrap().to_hex()
-                == *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430"
-        );
+        assert_eq!(text_note.root.unwrap().to_hex(), *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc");
+        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430");
     }
 
     #[wasm_bindgen_test]
     fn test_reply_to_root_no_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_NO_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        assert!(
-            text_note.root.unwrap().to_hex()
-                == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
-        );
-        assert!(
-            text_note.reply_to.unwrap().to_hex()
-                == *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
-        );
+        assert_eq!(text_note.root.unwrap().to_hex(), *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24");
+        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24");
     }
 
     #[wasm_bindgen_test]
     fn test_reply_to_root_with_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        assert!(
-            text_note.root.unwrap().to_hex()
-                == *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b"
-        );
-        assert!(
-            text_note.reply_to.unwrap().to_hex()
-                == *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b"
-        );
+        assert_eq!(text_note.root.unwrap().to_hex(), *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b");
+        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b");
     }
 
     #[wasm_bindgen_test]
@@ -385,8 +361,8 @@ mod tests {
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
                 .unwrap();
-        assert!(reply_tree.get_note_by_id(&event_id).unwrap().inner.id == event_id);
-        assert!(reply_tree.get_note_by_id(&event_id).unwrap().inner.content == *"If i do createElement and rhen appendChild for a lot of number of time, It took a lot of RAM compared to writting the entire HTML manually.");
+        assert_eq!(reply_tree.get_note_by_id(&event_id).unwrap().inner.id, event_id);
+        assert_eq!(reply_tree.get_note_by_id(&event_id).unwrap().inner.content, *"If i do createElement and rhen appendChild for a lot of number of time, It took a lot of RAM compared to writting the entire HTML manually.");
     }
 
     #[wasm_bindgen_test]
@@ -402,9 +378,9 @@ mod tests {
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
-        assert!(r_children.len() == 3);
-        assert!(r_children.first().unwrap().inner.content == "R -> Z");
-        assert!(r_children.last().unwrap().inner.content == "R -> A");
+        assert_eq!(r_children.len(), 3);
+        assert_eq!(r_children.first().unwrap().inner.content, "R -> Z");
+        assert_eq!(r_children.last().unwrap().inner.content, "R -> A");
         //pick a child
         let r_a_children = reply_tree.get_replies(
             &EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511")
@@ -412,7 +388,7 @@ mod tests {
             Some(DisplayOrder::NewestFirst),
         );
         assert!(r_a_children.len() == 1);
-        assert!(r_a_children.first().unwrap().inner.content == "R -> A -> B");
+        assert_eq!(r_a_children.first().unwrap().inner.content, "R -> A -> B");
     }
 
     #[wasm_bindgen_test]
@@ -428,8 +404,8 @@ mod tests {
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
-        assert!(r_children.len() == 2);
-        assert!(r_children.last().unwrap().inner.content == "R -> A");
+        assert_eq!(r_children.len(), 2);
+        assert_eq!(r_children.last().unwrap().inner.content, "R -> A");
     }
 
     #[wasm_bindgen_test]
@@ -444,8 +420,8 @@ mod tests {
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
         );
-        assert!(ancestors.first().unwrap().inner.content == "R -> A");
-        assert!(ancestors.last().unwrap().inner.content == "This is the Root!");
+        assert_eq!(ancestors.first().unwrap().inner.content, "R -> A");
+        assert_eq!(ancestors.last().unwrap().inner.content, "This is the Root!");
     }
 
     #[wasm_bindgen_test]
@@ -464,16 +440,16 @@ mod tests {
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
         );
-        assert!(ancestors.first().unwrap().inner.content == "R -> A");
-        assert!(ancestors.last().unwrap().inner.content == "This is the Root!");
+        assert_eq!(ancestors.first().unwrap().inner.content, "R -> A");
+        assert_eq!(ancestors.last().unwrap().inner.content, "This is the Root!");
         //pick a child
         let r_a_children = reply_tree.get_replies(
             &EventId::parse("9421678017349485b5ac0cd8d6de4907f34b00338e8b255c6fcfe6790fb09511")
                 .unwrap(),
             Some(DisplayOrder::NewestFirst),
         );
-        assert!(r_a_children.len() == 1);
-        assert!(r_a_children.first().unwrap().inner.content == "R -> A -> B");
+        assert_eq!(r_a_children.len(), 1);
+        assert_eq!(r_a_children.first().unwrap().inner.content, "R -> A -> B");
     }
 
     #[wasm_bindgen_test]
@@ -483,6 +459,6 @@ mod tests {
         let event = text_note.inner.clone();
         let result = TextNote::process_tags(&event, &mut text_note);
         assert!(result.is_err());
-        assert!(result.err().unwrap() == Error::NotEnoughElements);
+        assert_eq!(result.err().unwrap(), Error::NotEnoughElements);
     }
 }

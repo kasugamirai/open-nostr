@@ -1,6 +1,5 @@
 use cached::{Cached, TimedCache};
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::client::Error;
 use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -9,9 +8,34 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use crate::init::NOSTR_DB_NAME;
-use crate::store::{CBWebDatabase, CAPYBASTR_DBNAME};
+use crate::store::{self, CBWebDatabase, CAPYBASTR_DBNAME};
 
 use super::utils::hash_filter;
+
+#[derive(Debug)]
+pub enum Error {
+    Client(nostr_sdk::client::Error),
+    Store(store::error::CBwebDatabaseError),
+    IndexDb(nostr_indexeddb::IndexedDBError),
+}
+
+impl From<nostr_indexeddb::IndexedDBError> for Error {
+    fn from(e: nostr_indexeddb::IndexedDBError) -> Self {
+        Error::IndexDb(e)
+    }
+}
+
+impl From<nostr_sdk::client::Error> for Error {
+    fn from(e: nostr_sdk::client::Error) -> Self {
+        Error::Client(e)
+    }
+}
+
+impl From<store::error::CBwebDatabaseError> for Error {
+    fn from(e: store::error::CBwebDatabaseError) -> Self {
+        Error::Store(e)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct HashedClient {
@@ -125,22 +149,22 @@ impl MultiClient {
         clients.get(name).cloned()
     }
 
-    pub async fn get_or_create(&mut self, name: &str) -> Option<HashedClient> {
+    pub async fn get_or_create(&mut self, name: &str) -> Result<Option<HashedClient>, Error> {
         match self.get_client(name) {
-            Some(client) => return Some(client),
+            Some(client) => Ok(Some(client)),
             None => {
-                let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-                let db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
+                let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
+                let db = WebDatabase::open(NOSTR_DB_NAME).await?;
                 let client_builder = ClientBuilder::new().database(db);
                 let client = client_builder.build();
-                let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
+                let relay_set_info = database.get_relay_set(name.to_string()).await?;
                 // client.add_relays(relay_set_info.relays).await.unwrap();
                 // client.connect().await;
                 let mut hc = HashedClient::new(client).await;
                 let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
-                hc.add_relays(relays).await.unwrap();
+                hc.add_relays(relays).await?;
                 self.register(name.to_string(), hc);
-                self.get_client(name)
+                Ok(self.get_client(name))
             }
         }
     }
@@ -157,12 +181,14 @@ impl MultiClient {
             return Ok(cached_result.clone());
         }
 
-        let result = client.client.get_events_of(filters.clone(), timeout).await;
+        let result = client
+            .client
+            .get_events_of(filters.clone(), timeout)
+            .await?;
 
-        if let Ok(events) = &result {
-            self.cache.cache_set(query, events.clone());
-        }
-        result
+        self.cache.cache_set(query, result.clone());
+
+        Ok(result)
     }
 }
 
@@ -173,10 +199,7 @@ mod tests {
     use nostr_sdk::Kind;
     use nostr_sdk::PublicKey;
     use wasm_bindgen_test::*;
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-
-    use crate::testhelper::event_from;
-    use crate::testhelper::test_data::*;
+    wasm_bindgen_test_configure!(run_in_browser);
     use wasm_bindgen_test::console_log;
 
     #[wasm_bindgen_test]
@@ -213,7 +236,7 @@ mod tests {
     async fn test_multi_client_cached_query() {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
-        hashed_client.add_relay("wss://relay.damus.io").await;
+        let _ = hashed_client.add_relay("wss://relay.damus.io").await;
         let mut multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
