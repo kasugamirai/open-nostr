@@ -43,7 +43,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
     };
     let wss_regx = Regex::new(WSS_REG).unwrap();
     // tracing::info!("index: {:?}", );
-    use_effect(use_reactive((&props.relay_name), move |_relay_name| {
+    use_effect(use_reactive(&props.relay_name, move |_relay_name| {
         spawn(async move {
             // Reading from the database
             let cb_database_db_write = cb_database_db.read();
@@ -208,7 +208,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     edit.set(!edit());
                   }
                 },
-                "{props.relay_name}"
+                "{current_relay_set.name}"
             }
             div {
                 class:"show-{edit} hierarchical relay-edit--modal",

@@ -15,9 +15,7 @@ use crate::{
 };
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::hashes::hash160::Hash;
-use nostr_sdk::{ClientBuilder, EventId, Filter, Kind};
-use wasm_bindgen_test::console_log;
+use nostr_sdk::{ClientBuilder, Filter};
 
 pub const EXAMPLE_SUB_KEY: &str = "nostr";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";

@@ -1,11 +1,11 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use cached::{Cached, TimedCache};
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::client::Error;
-use cached::{TimedCache, Cached};
 use nostr_sdk::{ClientBuilder, Event, Filter};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::rc::Rc;
 use std::time::Duration;
 
 use crate::init::NOSTR_DB_NAME;
@@ -24,7 +24,7 @@ impl HashedClient {
         let hash = Self::_hash(&client).await;
         Self { client, hash }
     }
-    
+
     async fn _hash(client: &nostr_sdk::Client) -> u64 {
         let relays = client.relays().await;
         if relays.is_empty() {
@@ -77,7 +77,6 @@ impl HashedClient {
         self.client.remove_all_relays().await?;
         Ok(())
     }
-
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -127,15 +126,23 @@ impl MultiClient {
     }
 
     pub async fn get_or_create(&mut self, name: &str) -> Option<HashedClient> {
-        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-        let db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
-        let client_builder = ClientBuilder::new().database(db);
-        let client = client_builder.build();
-        let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
-        client.add_relays(relay_set_info.relays).await.unwrap();
-        let hc = HashedClient::new(client).await;
-        self.register(name.to_string(), hc);
-        self.get_client(name)
+        match self.get_client(name) {
+            Some(client) => return Some(client),
+            None => {
+                let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+                let db = WebDatabase::open(NOSTR_DB_NAME).await.unwrap();
+                let client_builder = ClientBuilder::new().database(db);
+                let client = client_builder.build();
+                let relay_set_info = database.get_relay_set(name.to_string()).await.unwrap();
+                // client.add_relays(relay_set_info.relays).await.unwrap();
+                // client.connect().await;
+                let mut hc = HashedClient::new(client).await;
+                let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
+                hc.add_relays(relays).await.unwrap();
+                self.register(name.to_string(), hc);
+                self.get_client(name)
+            }
+        }
     }
 
     pub async fn cached_get_events_of(
@@ -157,7 +164,6 @@ impl MultiClient {
         }
         result
     }
-
 }
 
 #[cfg(test)]
@@ -169,9 +175,9 @@ mod tests {
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
-    use wasm_bindgen_test::console_log;
-    use crate::testhelper::test_data::*;
     use crate::testhelper::event_from;
+    use crate::testhelper::test_data::*;
+    use wasm_bindgen_test::console_log;
 
     #[wasm_bindgen_test]
     async fn test_hashed_client1() {
@@ -225,12 +231,20 @@ mod tests {
         let filters = vec![filter];
 
         // Perform the first query (this should not hit the cache)
-        let result1 = multi_client.cached_get_events_of(&hashed_client, filters.clone(), Some(Duration::from_secs(10))).await;
+        let result1 = multi_client
+            .cached_get_events_of(
+                &hashed_client,
+                filters.clone(),
+                Some(Duration::from_secs(10)),
+            )
+            .await;
         assert!(result1.is_ok());
         console_log!("First query result: {:?}", result1);
 
         // Perform the second query (this should hit the cache)
-        let result2 = multi_client.cached_get_events_of(&hashed_client, filters, Some(Duration::from_secs(10))).await;
+        let result2 = multi_client
+            .cached_get_events_of(&hashed_client, filters, Some(Duration::from_secs(10)))
+            .await;
         assert!(result2.is_ok());
         console_log!("Second query result: {:?}", result2);
 
@@ -260,11 +274,16 @@ mod tests {
         let filters = vec![filter];
 
         for _ in 0..100 {
-            let result1 = multi_client.cached_get_events_of(&hashed_client, filters.clone(), Some(Duration::from_secs(10))).await;
+            let result1 = multi_client
+                .cached_get_events_of(
+                    &hashed_client,
+                    filters.clone(),
+                    Some(Duration::from_secs(10)),
+                )
+                .await;
             assert!(result1.is_ok());
             console_log!("First query result: {:?}", result1);
         }
-
     }
 
     // this test is no needed
