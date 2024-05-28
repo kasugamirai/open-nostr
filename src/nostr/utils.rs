@@ -74,5 +74,5 @@ pub fn is_note_address(address: &str) -> AddressType {
             return AddressType::Mention;
         }
     }
-    return AddressType::Nostr;
+    AddressType::Nostr
 }

@@ -1,6 +1,6 @@
+use crate::components::icons::*;
 use chrono::{DateTime, NaiveDateTime};
 use dioxus::prelude::*;
-use crate::components::icons::*;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct DateTimePickerProps {
@@ -22,7 +22,7 @@ pub struct DateTimePickerProps {
 ///     end: 1000,  // end time
 ///     range: true,  // select time range
 ///     on_change: move |(start, end): (u64, u64)| {
-///         
+///
 ///     },
 /// }
 /// ```
@@ -33,12 +33,15 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
     let mut start_value = use_signal(|| String::new());
     let mut end_value = use_signal(|| String::new());
 
-    use_effect(use_reactive((&props.value, &props.end), move |(start, end)| {
-        let start_time = DateTime::from_timestamp(start as i64, 0).unwrap();
-        let end_time = DateTime::from_timestamp(end as i64, 0).unwrap();
-        start_value.set(start_time.format("%Y-%m-%dT%H:%M").to_string());
-        end_value.set(end_time.format("%Y-%m-%dT%H:%M").to_string());
-    }));
+    use_effect(use_reactive(
+        (&props.value, &props.end),
+        move |(start, end)| {
+            let start_time = DateTime::from_timestamp(start as i64, 0).unwrap();
+            let end_time = DateTime::from_timestamp(end as i64, 0).unwrap();
+            start_value.set(start_time.format("%Y-%m-%dT%H:%M").to_string());
+            end_value.set(end_time.format("%Y-%m-%dT%H:%M").to_string());
+        },
+    ));
 
     // tracing::info!("start_value: {:?}   {}", start_value, props.value);
     // tracing::info!("end_value: {:?}", end_value);

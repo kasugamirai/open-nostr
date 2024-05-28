@@ -199,7 +199,7 @@ mod tests {
     use nostr_sdk::Kind;
     use nostr_sdk::PublicKey;
     use wasm_bindgen_test::*;
-    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+    wasm_bindgen_test_configure!(run_in_browser);
     use wasm_bindgen_test::console_log;
 
     #[wasm_bindgen_test]
@@ -236,7 +236,7 @@ mod tests {
     async fn test_multi_client_cached_query() {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
-        hashed_client.add_relay("wss://relay.damus.io").await;
+        let _ = hashed_client.add_relay("wss://relay.damus.io").await;
         let mut multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
