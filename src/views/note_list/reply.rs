@@ -46,22 +46,30 @@ pub fn Reply(props: ReplyProps) -> Element {
                     if let Some(root_event) = root {
                         root_rsx.set(rsx! {
                             div {
-                                class: "quote flex items-center",
-                                style: "display: flex; align-items: center;",
+                                class: "quote flex items-center display-flex-box items-center",
                                 div {
-                                    style: "font-weight: bold; width: 52px; display: flex; align-items: center; justify-content: center;",
+                                    class:"font-weight-bold display-flex-box items-center justify-content-center wh-52",
                                     "Re:"
                                 }
                                 div {
-                                    style: "flex: 1; border: 1px solid #333; border-radius: 20px; overflow: hidden; padding: 4px; display: flex; gap: 12px; background: #fff; height: 50px;",
-                                    Avatar {
+                                   class:"qt-text",
+                                   Avatar {
                                         pubkey: root_event.author(),
                                         timestamp: root_event.created_at().as_u64(),
                                         relay_name: relay_name.clone(),
                                     }
                                     div {
-                                        style: "flex: 1; font-size: 14px; line-height: 20px; border-left: 2px solid #b4b4b4; padding: 0 12px;",
-                                        dangerous_inner_html: "{root_event.content()}"
+                                        class:"relative qt-text-content",
+                                        // two-line-truncate 
+                                        span{
+                                          class:"re-text two-line-truncate relative",
+                                          dangerous_inner_html: "{root_event.content()}"
+                                        }
+                                        span{
+                                          class:"more-show-style pl-4",
+                                          "show more"
+                                        }
+                                        
                                     }
                                 }
                             }

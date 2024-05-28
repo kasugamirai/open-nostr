@@ -1,6 +1,6 @@
 // Content Feed style
 .content-feed {
-  width: calc(100vw - 230px);
+  width: calc(100% - 240px);
   padding: 20px;
 }
 
@@ -98,7 +98,7 @@
     }
 
     .relay-name-ipt {
-      width: calc(70% - 56px);
+      width: calc(100% - 140px);
     }
   }
 }
@@ -124,8 +124,8 @@
 
 //settings style
 .settings-box{
-  height: 100%; 
   @include display-align-justify-flex(flex,null,null,column);
+  height: 100%; 
   gap: 10px; 
   overflow-y: auto;
 }
@@ -143,8 +143,8 @@
   // height: 50px;
 }
 .qt-img-box{
-  width: 140px;
   @include display-align-justify-flex(flex,center,null,null);
+  width: 140px;
   gap: 12px;
 }
 .qt-content-box{
@@ -165,14 +165,14 @@
 }
 .note-action-wrapper-span{
   height: 24px; 
-  width: 3px; 
+  width: 2px; 
   background-color: var(--txt-3);
 }
 .note-more-box{
   @include position(absolute,(right,0));
-  background-color: var(--bgc-0);
-  border-radius: var(--radius-1);
   @include display-align-justify-flex(flex,null,null,column);
+  background-color: var(--bgc-0);
+  border-radius: 26px;
   gap: 10px; 
   padding: 10px; 
   border: 1px solid var(--boc-1); 
@@ -181,14 +181,19 @@
 
 .note-more-content-box{
   @include display-align-justify-flex(flex,null,null,column);
-  gap: 10px; 
-  padding: 10px;
-  width: 140px;
+  gap: 10px;
+  width: 120px;
+  svg{
+    width: 20px;
+    height: 20px;
+  }
+  
 }
 .note-more-button{
   @include display-align-justify-flex(flex,center,null,null);
-  gap: 5px; 
+  gap: 10px; 
   cursor: pointer;
+  padding: 2px;
 }
 
 .note-more-mod-box{
@@ -200,9 +205,8 @@
 // addFilter style
 .add-filter-more-box{
   @include position(absolute);
-  background-color: var(--bgc-0);
-  border-radius: var(--radius-1);
   @include display-align-justify-flex(flex,null,null,column);
+  background-color: var(--bgc-0);
   gap: 10px; 
   padding: 10px; 
   border: 1px solid var(--boc-1); 
@@ -211,10 +215,78 @@
 .add-filter-more-mod-box{
   @include display-align-justify-flex(flex,null,null,column);
   gap: 10px;
-  padding: 10px;
 }
 
 // layout subscriptions
 .subscriptions-text{
-  color:var(--txt-1)
+  color:var(--txt-1);
+  font-size: 16px;
+  font-family: "Raleway";
+  font-weight: 600;
+  text-indent: 12px;
+}
+
+//reply style
+.more-show-style{
+  @include position(absolute,(right,7px),(bottom,0));
+  background-color: var(--bgc-0);
+  color: var(--bgc-5);
+}
+.re-text::after {
+  @include position(absolute,(right,0),(top,20px));
+  content: "...";
+  padding-right: 71px;
+  padding-left: 0px;
+  background-color: var(--bgc-0);
+}
+.settings-box-style{
+  height: 100%; 
+  @include display-align-justify-flex(flex,null,null,column);
+  gap: 10px; 
+  overflow-y: auto;
+}
+
+//test style
+
+.test-box{
+  @include display-align-justify-flex(flex,null,null,column);
+  width: 100%; 
+  height: 100%; 
+  gap: 20px; 
+  overflow-y: auto;
+}
+.parent-li{
+  border: 1px solid var(--boc-1); 
+  border-radius: 10px; 
+  padding: 10px; 
+  flex: 1; 
+  word-wrap:break-word;
+}
+.qt-text{
+  @include display-align-justify-flex(flex,null,null,null);
+  flex: 1; 
+  border: 1px solid var(--boc-1); 
+  border-radius: 20px; 
+  overflow: hidden; 
+  padding: 4px; 
+  gap: 12px; 
+  background: var(--bgc-0); 
+  height: 50px;
+}
+.qt-text-content{
+  flex: 1; 
+  font-size: 14px; 
+  line-height: 20px; 
+  border-left: 2px solid var(--txt-3); 
+  padding: 0 12px;
+}
+.com-btn-style{
+  top: -12px;
+  left: -12px;
+}
+.new-subscription-btn{
+  background: var(--bgc-6) !important;
+}
+.new-subscription-btn:hover{
+  background: var(--bgc-6) !important;
 }

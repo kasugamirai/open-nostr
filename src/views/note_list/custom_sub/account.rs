@@ -52,7 +52,7 @@ pub fn AccountInput(props: AccountInputProps) -> Element {
             div {
                 class: "show-{edit} add-pop-up-style",
                 label {
-                    class:"display-align-gap",
+                    class:"flex-box-center",
                     input {
                         r#type: "text",
                         class:"add-input",
@@ -64,7 +64,7 @@ pub fn AccountInput(props: AccountInputProps) -> Element {
                     }
                     input {
                         r#type: "text",
-                        class:"add-input add-input-76",
+                        class:"add-input add-input-width",
                         placeholder: "alt name",
                         value: "{value().alt_name}",
                         oninput: move |event| {

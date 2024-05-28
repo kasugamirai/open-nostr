@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    components::icons::{ADD, FALSE, TRUE},
+    components::icons::{ADD, FALSE, TRUE,BOTTOMRIGHT,UPPERRIGHT},
     store::{subscription::RelaySet, CBWebDatabase, DEFAULT_RELAY_SET_KEY},
     utils::{contants::WSS_REG, js::alert},
 };
@@ -19,6 +19,8 @@ pub struct RelaysInputProps {
     edit: bool,
     #[props(default = 0)]
     index: usize,
+    #[props(default = true)]
+    is_popup: bool,
 }
 #[derive(Clone, Debug)]
 struct ModifiedRelaySet {
@@ -196,16 +198,25 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
             edit.set(false);
         });
     };
+    let handle_delete = move |name:String| {
+      spawn(async move {
+          let cb_database_db_write = cb_database_db.write();
+          cb_database_db_write
+              .remove_relay_set(name.clone())
+              .await
+              .unwrap();
+          
+      });
+    };
 
     rsx! {
         div {
             class: "relay-btn relative",
-            div {
-                class: format!("sub-input cursor-{}", if allow_edit() { "pointer" } else { "disabled" }),
+            if props.is_popup{
+              div {
+                class: "sub-input",
                 onclick: move |_| {
-                  if allow_edit() { // 判断是否编辑状态
-                    edit.set(!edit());
-                  }
+                  edit.set(!edit());
                 },
                 "{current_relay_set.name}"
             }
@@ -259,42 +270,28 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                 }
                             }
                             button {
-                                class: "btn-circle btn-circle-true ml-24",
+                                class: "btn-circle btn-circle-true flex-right ml-5",
                                 onclick: move |_| {
                                     handle_save();
                                 },
                                 dangerous_inner_html: "{TRUE}"
                             }
                             button {
-                                class: "btn-circle btn-circle-false ml-12",
-                                onclick: move |_| {
-                                    // handle_save();
-                                    // 1. todo save relays
-                                    // 2.
-                                    // bak.set(value());
-                                    // props.on_change.call(relay_sets.read().get(relay_curent_index()).unwrap().clone());
-                                    // edit.set(false);
-                                },
-                                dangerous_inner_html: "{FALSE}"
+                              class: "btn-circle btn-circle-success flex-right ml-5",
+                              onclick: move |_| {
+                              },
+                              div {
+                                  dangerous_inner_html: "{BOTTOMRIGHT}"
+                              }
                             }
-                            // button {
-                            //     class: "btn-circle btn-circle-success",
-                            //     onclick: move |_| {
-                            //         // handle_export(value.read().relays.join(",\n"));
-                            //     },
-                            //     div {
-                            //         dangerous_inner_html: "{RIGHT}"
-                            //     }
-                            // }
-                            // button {
-                            //     class: "btn-circle btn-circle-success",
-                            //     onclick: move |_| {
-                            //         handle_import();
-                            //     },
-                            //     div {
-                            //     dangerous_inner_html: "{LEFT}"
-                            //     }
-                            // }
+                            button {
+                                class: "btn-circle btn-circle-success flex-right ml-5",
+                                onclick: move |_| {
+                                },
+                                div {
+                                  dangerous_inner_html: "{UPPERRIGHT}"
+                                }
+                            }
                         }
                         for (i, relay_url) in current_relay_set.relays.iter().enumerate() {
                             div {
@@ -310,7 +307,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                     }
                                 }
                                 button {
-                                    class: "btn-circle btn-circle-false relay-url-del",
+                                    class: "btn-circle btn-circle-false relay-url-del flex-right",
                                     onclick: move |_| {
                                         let mut _relay_sets = relay_sets.write();
                                         _relay_sets[relay_curent_index()].relays.remove(i);
@@ -334,7 +331,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                 }
                             }
                             button {
-                                class: "btn-icon add relay-url-add",
+                                class: "btn-icon add relay-url-add flex-right",
                                 onclick: move |_| {
                                     if new_relay().is_empty() {
                                         return;
@@ -359,6 +356,155 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                         }
                     }
                 }
+            }
+            } else{
+              div {
+                class: "modal-content relay-edit--content z-100 relative radius-26 flex",
+                div{
+                    class:"relay-name-list p-10",
+                    div{
+                        class: "relay-name-list--content overflow-y-auto",
+                        for (i, relay) in relay_sets.read().iter().enumerate() {
+                            div{
+                                class: format!("mb-8 cursor-pointer radius-15 relay-name-item w-full px-8 text-overflow {}", if i == relay_curent_index() { "relay-name-item--active" } else { "" }),
+                                onclick: move |_| {
+                                  relay_curent_index.set(i);
+                                },
+                                "{relay.name}",
+                            }
+                        }
+                    }
+                    // Add new relay set
+                    div {
+                        class: "relay-name-add w-full radius-15 px-8 cursor-pointer",
+                        onclick: move |_| {
+                            let mut _relay_sets = relay_sets.write();
+                            let new_relay_set = RelaySet::new(&_relay_sets.len());
+                            _relay_sets.push(new_relay_set);
+                        },
+                        "new relay set"
+                    }
+                }
+                div{
+                    class:"relay-urls ml-41",
+                    div {
+                        class:"relay-actions-bar flex mb-15",
+                        input {
+                            class:"relay-name-ipt",
+                            r#type: "text",
+                            disabled: (current_relay_set.name == DEFAULT_RELAY_SET_KEY).to_string(),
+                            value: current_relay_set.name,
+                            oninput: move |event| {
+                                let mut _relay_sets = relay_sets.write();
+                                _relay_sets[relay_curent_index()].name = event.value().clone();
+                            }
+                        }
+                        button {
+                            class: "btn-circle btn-circle-true flex-right ml-5",
+                            onclick: move |_| {
+                                handle_save();
+                            },
+                            dangerous_inner_html: "{TRUE}"
+                        }
+
+                        if (current_relay_set.name != DEFAULT_RELAY_SET_KEY){
+                          button {
+                            class: "btn-circle btn-circle-false flex-right ml-5",
+                            onclick: move |_| {
+                              let mut _relay_sets = relay_sets.write();
+                              handle_delete(_relay_sets[relay_curent_index()].clone().name.to_string());
+                              _relay_sets.remove(relay_curent_index());
+                              // cb_database_db.remove_relay_set(current_relay_set.name.clone()).await.unwrap();
+                                  // 1. todo save relays
+                                  // 2.
+                                  // bak.set(value());
+                                  // props.on_change.call(relay_sets.read().get(relay_curent_index()).unwrap().clone());
+                                  // edit.set(false);
+                            },
+                            dangerous_inner_html: "{FALSE}"
+                          }
+                        }
+                        button {
+                          class: "btn-circle btn-circle-success flex-right ml-5",
+                          onclick: move |_| {
+                          },
+                          div {
+                              dangerous_inner_html: "{BOTTOMRIGHT}"
+                          }
+                        }
+                        button {
+                            class: "btn-circle btn-circle-success flex-right ml-5",
+                            onclick: move |_| {
+                            },
+                            div {
+                              dangerous_inner_html: "{UPPERRIGHT}"
+                            }
+                        }
+                    }
+                    for (i, relay_url) in current_relay_set.relays.iter().enumerate() {
+                        div {
+                            class:"relay-url-item mb-10 flex items-center",
+                            input {
+                                class: "relay-ipt mr-10",
+                                r#type: "text",
+                                value: "{relay_url}",
+                                placeholder: "wss://",
+                                oninput: move |event| {
+                                    let mut _relay_sets = relay_sets.write();
+                                    _relay_sets[relay_curent_index()].relays[i] = event.value().clone();
+                                }
+                            }
+                            button {
+                                class: "btn-circle btn-circle-false relay-url-del",
+                                onclick: move |_| {
+                                    let mut _relay_sets = relay_sets.write();
+                                    _relay_sets[relay_curent_index()].relays.remove(i);
+                                },
+                                div {
+                                    dangerous_inner_html: "{FALSE}"
+                                }
+                            }
+                        }
+                    }
+                    div {
+                        class:"relay-url-item flex items-center",
+                        input {
+                            class: "relay-ipt mr-10",
+                            r#type: "text",
+                            placeholder: "wss://",
+                            value: "{new_relay()}",
+                            oninput: move |event| {
+                                // tracing::info!("new_relay: {:?}", event.value());
+                                new_relay.set(event.value());
+                            }
+                        }
+                        button {
+                            class: "btn-icon add relay-url-add flex-right",
+                            onclick: move |_| {
+                                if new_relay().is_empty() {
+                                    return;
+                                } else if !wss_regx.is_match(&new_relay()) {
+                                    spawn(async move {
+                                        alert("Invalid URL".to_string()).await;
+                                    });
+                                } else if current_relay_set.relays.iter().any(|x| x == &new_relay()){
+                                    spawn(async move {
+                                        alert("Relay already exists".to_string()).await;
+                                    });
+                                } else {
+                                    relay_sets.write()[relay_curent_index()].relays.push((new_relay.clone())());
+                                    new_relay.set(String::new());
+                                }
+                                //  current_relay_set.relays.push(new_relay.clone());
+                            },
+                            div {
+                                dangerous_inner_html: "{ADD}"
+                            }
+                        }
+                    }
+                }
+            }
+        
             }
         }
     }

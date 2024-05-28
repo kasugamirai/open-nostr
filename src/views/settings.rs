@@ -62,7 +62,7 @@ pub fn Settings() -> Element {
             onmounted: move |_| {
                 get_events()
             },
-            style: "height: 100%; display: flex; flex-direction: column; gap: 10px; overflow-y: auto;",
+            class:"settings-box-style",
             for event in data.iter() {
                 EventItem { event: event.clone() }
             }

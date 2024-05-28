@@ -1,6 +1,7 @@
 mod avatar;
 pub(crate) mod button;
-mod custom_sub;
+mod notification;
+mod author;
 mod dropdown;
 mod dtpicker;
 mod outside;
@@ -13,7 +14,8 @@ pub mod icons;
 
 pub use avatar::Avatar;
 pub use button::Button;
-pub use custom_sub::CustomSub;
+pub use notification::Notification;
+pub use author::Author;
 pub use dropdown::Dropdown;
 pub use dtpicker::DateTimePicker;
 pub use outside::ClickOutside;

@@ -21,7 +21,7 @@ pub struct AvatarProps {
 #[component]
 pub fn Avatar(props: AvatarProps) -> Element {
     let multiclient = use_context::<Signal<MultiClient>>();
-
+    
     // Using signals for reactive state management
     let mut nickname = use_signal(|| "Nostr Account".to_string());
     let mut avatar =
@@ -117,7 +117,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
     if let Some(repost_event) = &props.repost_event {
         rsx! {
             div {
-                class: "post-avatar flex items-center",
+                class: "post-avatar flex items-center min-width-120",
                 img {
                     class: "square-40 radius-20 mr-12 relative z-1",
                     style: "margin-right: -12px;",
@@ -130,13 +130,13 @@ pub fn Avatar(props: AvatarProps) -> Element {
                     alt: "avatar",
                 }
                 div {
-                    class: "profile flex flex-col",
+                    class: "profile flex flex-col max-width-80",
                     span {
-                        class: "nickname font-size-16 txt-1",
+                        class: "nickname font-size-16 txt-1 text-overflow",
                         {root_nickname}
                     }
                     span {
-                        class: "created txt-3 font-size-12",
+                        class: "created txt-3 font-size-12 text-overflow",
                         "{format_create_at(repost_event.created_at().as_u64())}"
                     }
                 }
@@ -145,20 +145,20 @@ pub fn Avatar(props: AvatarProps) -> Element {
     } else {
         rsx! {
             div {
-                class: "post-avatar flex items-center",
+                class: "post-avatar flex items-center min-width-120",
                 img {
                     class: "square-40 radius-20 mr-12",
                     src: "{avatar}",
                     alt: "avatar",
                 }
                 div {
-                    class: "profile flex flex-col",
+                    class: "profile flex flex-col max-width-80",
                     span {
-                        class: "nickname font-size-16 txt-1",
+                        class: "nickname font-size-16 txt-1 text-overflow",
                         "{nickname}"
                     }
                     span {
-                        class: "created txt-3 font-size-12",
+                        class: "created txt-3 font-size-12 text-overflow",
                         "{format_create_at(props.timestamp)}"
                     }
                 }

@@ -54,10 +54,10 @@ pub fn TagInput(props: TagInputProps) -> Element {
             div {
                 class: "show-{edit} add-pop-up-style",
                 label {
-                    class:"display-align-gap",
+                    class:"flex-box-center",
                     input {
                         r#type: "text",
-                        class:"add-input add-input-76",
+                        class:"add-input add-input-width",
                         placeholder: "tag",
                         value: "{value().tag}",
                         oninput: move |event| {
@@ -66,7 +66,7 @@ pub fn TagInput(props: TagInputProps) -> Element {
                     }
                     input {
                         r#type: "text",
-                        class:"add-input add-input-76",
+                        class:"add-input add-input-width",
                         placeholder: "value",
                         value: "{value().value}",
                         oninput: move |event| {

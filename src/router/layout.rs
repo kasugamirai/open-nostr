@@ -25,7 +25,6 @@ pub fn Layout() -> Element {
         }
     };
     let messageContent = use_signal(||String::from(""));
-
     // golbal replytree manager cache
     let replytree_manager = use_context_provider(|| Signal::new(ReplyTreeManager::new(200)));
     let users = [UserItem{
@@ -58,7 +57,7 @@ pub fn Layout() -> Element {
                 div {
                     class: "user-trigger user-trigger-{show} account-wrapper",
                     div{
-                        class: "user-item flex items-center justify-between overflow-hidden cursor-pointer",
+                        class: "user-item flex items-center justify-between overflow-hidden cursor-pointer pr-13",
                         onclick: move |_| {
                             show.set(!show());
                         },
@@ -104,7 +103,7 @@ pub fn Layout() -> Element {
                         }
                         for user in users.iter() {
                             div{
-                                class: "user-trigger-item flex items-center justify-between",
+                                class: "user-trigger-item flex items-center justify-between pl-0",
                                 div {
                                     class: "user-info flex items-center",
                                     img{
@@ -145,7 +144,7 @@ pub fn Layout() -> Element {
                     }
                     div {
                         class: "nav-item-content add-note-btn cursor-pointer text-center",
-                    onclick: move |_| {
+                        onclick: move |_| {
                           edit.set(!edit());
                         },
                         "New Note"
@@ -225,7 +224,7 @@ pub fn Layout() -> Element {
                 div {
                     class: "subscriptions",
                     h1{
-                        class:"subscriptions-text",
+                        class:"subscriptions-text mb-8 ",
                         "Subscriptions:"
                     }
                     div{
@@ -237,6 +236,13 @@ pub fn Layout() -> Element {
                                 to: Route::NoteList { name: urlencoding::encode(&sub.name.clone()).to_string() },
                                 "#{sub.name}"
                             }
+                        }
+                        Link {
+                            active_class: "active",
+                            class: "nav-item new-subscription-btn",
+                            to: Route::NoteList { name: "new".to_string() },
+                            // href:"/newSubscription",
+                            "New Subscription +"
                         }
                     }
                 }
@@ -265,20 +271,20 @@ fn EventLess(content: String) -> Element {
         div {
             class: "event-less",
             div {
-              class: "post-avatar flex items-center",
+              class: "post-avatar flex items-center min-width-120",
               img {
                   class: "square-40 radius-20 mr-12",
                   src: "https://avatars.githubusercontent.com/u/1024025?v=4",
                   alt: "avatar",
               }
               div {
-                  class: "profile flex flex-col",
+                  class: "profile flex flex-col max-width-80",
                     span {
-                        class: "nickname font-size-16 txt-1",
+                        class: "nickname font-size-16 txt-1 text-overflow",
                         "dioxus"
                     }
                     span {
-                        class: "created txt-3 font-size-12",
+                        class: "created txt-3 font-size-12 text-overflow",
                       "123"
                     }
                 }

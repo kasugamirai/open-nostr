@@ -49,21 +49,21 @@ pub fn Test(id: i32) -> Element {
     rsx! {
         div {
             onmounted: on_mounted,
-            style: "display: flex; flex-direction: column; width: 100%; height: 100%; gap: 20px; overflow-y: auto;",
+            class:"test-box",
             h1 {
-                style: "font-weight: bold;",
+                class:"font-weight-bold",
                 "Parent"
             }
             div {
-                style: "display: flex; flex-direction: column; gap: 20px;",
+                class:"gap-20 display-flex-box flex-col",
                 div {
-                    style: "border: 1px solid #333; border-radius: 10px; padding: 10px; flex: 1; word-wrap:break-word;",
+                    class: "parent-li",
                     ChildrenKeep {
                         name: "Dog".to_string()
                     }
                 }
                 div {
-                    style: "border: 1px solid #333; border-radius: 10px; padding: 10px; flex: 1; word-wrap:break-word;",
+                    class: "parent-li",
                     Children {
                         name: "Dog".to_string()
                     }
@@ -112,7 +112,7 @@ pub fn Children(name: String) -> Element {
                 "Get Data"
             }
             h2 {
-                style: "font-weight: bold;",
+                class: "font-weight-bold",
                 "Children: {n}"
             }
             div {
@@ -188,7 +188,7 @@ pub fn ChildrenKeep(name: String) -> Element {
         div {
             onmounted: on_mounted,
             h2 {
-                style: "font-weight: bold;",
+                class: "font-weight-bold",
                 "Children: {n}"
             }
             div {

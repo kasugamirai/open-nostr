@@ -5,7 +5,7 @@ mod hashtag;
 mod input;
 mod kind;
 mod limit;
-mod relays;
+pub mod relays;
 mod tag;
 
 use dioxus::prelude::*;
@@ -178,29 +178,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                                 onclick: handle_reload,
                                 dangerous_inner_html: "{RELOAD}",
                             }
-                        }
-                    }
-                }
-                div {
-                    class: format!("custom-sub-time {}", if sub_current().live { "display-none-important" } else { "display-flex-box" }),
-                    div {
-                        class: "width-80-fontSize-16 window-color relative ti-12",
-                        span{
-                          class:"sub-window-icon",
-                          dangerous_inner_html: "{ARROWRIGHT}",
-                        }
-                        "Window:"
-                    }
-                    div {
-                        class:"display-inline-block",
-                        DateTimePicker {
-                            value: sub_current().since,
-                            end: sub_current().until,
-                            on_change: move |(start, end): (u64, u64)| {
-                                let mut sub = sub_current.write();
-                                sub.since = start;
-                                sub.until = end;
-                            },
                         }
                     }
                 }

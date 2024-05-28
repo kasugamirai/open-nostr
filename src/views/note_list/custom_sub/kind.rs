@@ -77,7 +77,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
             div {
                 class: "show-{edit} add-radius-style",
                 label {
-                    class:"display-align-gap",
+                    class:"flex-box-center",
                     span {
                         "Note"
                     }
@@ -97,7 +97,7 @@ pub fn KindInput(props: KindInputProps) -> Element {
                     }
                 }
                 label {
-                    class:"display-align-gap",
+                    class:"flex-box-center",
                     span {
                         "Repost"
                     }

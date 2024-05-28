@@ -1,9 +1,9 @@
+use crate::components::Mention;
+use crate::components::Quote;
+use crate::nostr::utils::{is_note_address, AddressType};
 use dioxus::prelude::*;
 use nostr_sdk::{EventId, FromBech32, PublicKey};
 use regex::Regex;
-use crate::nostr::utils::{is_note_address, AddressType};
-use crate::components::Quote;
-use crate::components::Mention;
 /// format public key
 ///
 /// # Parameters
@@ -30,9 +30,7 @@ pub fn format_public_key(public_key: &str, len: Option<usize>) -> String {
     public_key
 }
 
-
-
-/// 
+///
 /// format note content
 pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
     let mut element: Option<VNode> = rsx! {
@@ -58,43 +56,38 @@ pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
     if last_end < data.len() {
         parts.push(&data[last_end..]);
     }
-
     for i in parts {
         if i.starts_with("nostr:") {
             let id = i.strip_prefix("nostr:").unwrap();
             let is_note = is_note_address(i);
             tracing::info!("is_note: {:#?} {}", is_note, i);
-            match is_note {
-                AddressType::Note => {
-                    elements.push(rsx! {
-                        Quote {
-                            event_id: EventId::from_bech32(id).unwrap().clone(),
-                            relay_name: relay_name,
-                            quote_nostr: i.to_string(),
-                        }
-                    })
-                },
-                AddressType::Mention => {
-                    elements.push(rsx! {
-                        Mention {
-                            pubkey: PublicKey::from_bech32(id).unwrap(),
-                            relay_name: relay_name.to_string(),
-                        }
-                    });
-                },
-                _ => {
-                    elements.push(rsx! {
-                        span {
-                            "{i}"
-                        }
-                    });
+            let _el = if is_note == AddressType::Note {
+                rsx! {
+                    Quote {
+                        event_id: EventId::from_bech32(id).unwrap().clone(),
+                        relay_name: relay_name,
+                        quote_nostr: i.to_string(),
+                    }
                 }
-            }
+            } else if is_note == AddressType::Mention {
+                rsx! {
+                    Mention {
+                        pubkey: PublicKey::from_bech32(id).unwrap(),
+                        relay_name: relay_name.to_string(),
+                    }
+                }
+            } else {
+                rsx! { span {
+                    "{i}"
+                } }
+            };
+            elements.push(rsx! {
+                {_el}
+            })
         } else {
             elements.push(rsx! {
-                div {
-                    class: "text pl-52",
-                    dangerous_inner_html: "{format_content(i)}"
+                span {
+                    dangerous_inner_html: "{format_content(i)}",
                 }
             });
         }
@@ -105,7 +98,12 @@ pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
             {element}
         }
     };
-    element
+    rsx! {
+        div {
+            class: "text pl-52",
+            {element}
+        }
+    }
 }
 
 /// format timestamp

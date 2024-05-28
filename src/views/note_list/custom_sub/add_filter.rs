@@ -2,8 +2,8 @@ use dioxus::prelude::*;
 use serde_json::Value;
 
 use crate::{
-    components::icons::ADD,
-    store::subscription::{CustomAccounts, CustomEvents, CustomHashTag, FilterTemp},
+    components::icons::{ADD,ACCOUNTSICON,NOTEICON,TAGSICON},
+    store::subscription::{CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, FilterTemp},
 };
 
 #[derive(PartialEq, Clone, Props)]
@@ -81,31 +81,40 @@ pub fn AddFilter(props: AddFilterProps) -> Element {
                 dangerous_inner_html: "{ADD}"
             }
             div {
-                class: "show-{edit} add-filter-more-box",
+                class: "show-{edit} add-filter-more-box radius-26",
                 div {
                     class: "add-filter-more-mod-box",
                     button {
-                        class: "btn-add-item",
+                        class: "btn-add-item display-flex-box items-center radius-15",
                         onclick: move |_| {
                             props.on_click.call(FilterTemp::HashTag(CustomHashTag::empty()));
                             edit.set(false);
                         },
+                        div {
+                          dangerous_inner_html: "{TAGSICON}"
+                        }
                         "Follow Hash Tags"
                     }
                     button {
-                        class: "btn-add-item",
+                        class: "btn-add-item  display-flex-box items-center radius-15",
                         onclick: move |_| {
                             props.on_click.call(FilterTemp::Accounts(CustomAccounts::empty()));
                             edit.set(false);
                         },
+                        div {
+                          dangerous_inner_html: "{ACCOUNTSICON}"
+                        }
                         "Follow Accounts"
                     }
                     button {
-                        class: "btn-add-item",
+                        class: "btn-add-item  display-flex-box items-center radius-15",
                         onclick: move |_| {
                             props.on_click.call(FilterTemp::Events(CustomEvents::empty()));
                             edit.set(false);
                         },
+                        div {
+                          dangerous_inner_html: "{NOTEICON}"
+                        }
                         "Follow Notes"
                     }
                     // button {

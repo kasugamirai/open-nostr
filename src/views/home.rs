@@ -1,5 +1,13 @@
 use dioxus::prelude::*;
-use crate::components::CustomSub;
+use futures::{FutureExt, TryFutureExt};
+use wasm_bindgen_test::console_log;
+
+use crate::{
+  components::Notification,
+  components::Author, 
+  store::CBWebDatabase
+};
+use crate::store::DEFAULT_RELAY_SET_KEY;
 
 #[component]
 pub fn Home() -> Element {
@@ -11,7 +19,8 @@ pub fn Home() -> Element {
           h1 { "Home" }
         }
         div{
-          CustomSub {}
+          // Notification{}
+          Author{}
         }
       }
 

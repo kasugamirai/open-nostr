@@ -91,13 +91,13 @@ pub fn NoteEdit(content: String) -> Element {
                                         alt: "avatar",
                                     }
                                     div {
-                                        class: "profile flex flex-col",
+                                        class: "profile flex flex-col max-width-80",
                                         span {
-                                            class: "nickname font-size-16 txt-1",
+                                            class: "nickname font-size-16 txt-1 text-overflow",
                                             {nickname}
                                         }
                                         span {
-                                            class: "created txt-3 font-size-12",
+                                            class: "created txt-3 font-size-12 text-overflow",
                                             {format_create_at(timestamp)}
                                         }
                                     }

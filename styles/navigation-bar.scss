@@ -16,9 +16,9 @@
   font-family: 'Raleway';
   font-weight: 800;
   line-height: var(--size-26);
-  font-size: var(--size-26);
-  text-align: center;
-  margin: 20px 0;
+  font-size: 20px;
+  text-indent: 29px;
+  margin: 13px 0 19px 0;
 }
 
 .menu-bar .account-wrapper {
@@ -28,7 +28,7 @@
 }
 
 .menu-bar .user-item {
-  padding: 5px 10px
+  // padding: 5px 10px
 }
 
 .menu-bar .user-avatar-img {
@@ -59,7 +59,7 @@
 }
 
 .menu-bar .nav {
-  margin-bottom: 45px;
+  margin-bottom: 29px;
 }
 
 .menu-bar .subscriptions {
@@ -72,27 +72,33 @@
 
 .menu-bar .menu .subscriptions {
   width: 100%;
-  margin-top: 50px;
 }
 
 .menu-bar .menu .subscriptions-item {
+  @include display-align-justify-flex(flex,center,null,column);
   width: 100%;
   background-color: var(--bgc-0);
-  @include display-align-justify-flex(flex,center,null,column);
   gap: 4px;
   padding: 10px;
   border-radius: var(--radius-2);
   color: var(--txt-1);
+  
 }
 
 .menu-bar .menu .subscriptions-item .nav-item {
   background: none;
   border: none;
-  font-size: 12px;
-  padding: 4px 20px;
   border-radius: var(--radius-1);
+  width: 180px;
+  height: 33px;
+  text-align: center;
+  padding: 0;
+  line-height: 33px;
+  font-size: 14px;
+  font-family: "Raleway";
+  font-weight: 600;
+  padding: 0 !important;
   cursor: pointer;
-  width: 100%;
 }
 
 .menu-bar .menu .subscriptions-item .nav-item:hover {
@@ -144,10 +150,13 @@
 }
 
 .menu-bar .user-name {
+  font-size: 18px;
+  font-family: "Roboto";
   width: 100px;
 }
 
 .menu-bar .add-note-btn {
+  width: 170px;
   line-height: 27px;
   border-radius: 10px;
   background-color: var(--bgc-1);
@@ -155,9 +164,15 @@
   font-family: "Raleway";
   font-weight: 600;
   color: #fff;
+  margin: auto;
 }
 
 .note-pop-up {
+  @include fixed-z-index;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
   width: 82vw;
   height: 80vh;
   max-height: 650px;
@@ -166,11 +181,6 @@
   border-radius: 24px;
   border: 1px solid var(--boc-1);
   box-sizing: border-box;
-  @include fixed-z-index;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
   margin: auto;
   padding: 13px 23px;
 }
@@ -178,7 +188,7 @@
 .text-area-style {
   width: 100%;
   height: 22vh;
-  // height: 224px;
+  max-height: 215px;
   border: 1px solid var(--boc-1);
   color: var(--boc-1);
   background-color: var(--bgc-0);
@@ -203,6 +213,7 @@
 .preview-content {
   width: 100%;
   height: 33vh;
+  max-height: 258px;
   margin: auto;
   overflow-y: auto;
   color: var(--boc-1);

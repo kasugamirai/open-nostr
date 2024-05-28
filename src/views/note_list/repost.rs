@@ -103,21 +103,20 @@ pub fn Repost(props: RepostProps) -> Element {
 
                         elements.push(rsx! {
                         div {
-                            class: "quote",
-                            style: "display: flex; align-items: center;",
+                            class: "quote display-flex-box items-center",
                             div {
-                                style: "font-weight: bold; width: 52px; display: flex; align-items: center; justify-content: center;",
+                              class:"font-weight-bold display-flex-box items-center justify-content-center wh-52",
                                 "Qt:"
                             }
                             div {
-                                style: "flex: 1; border: 1px solid #333; border-radius: 20px; overflow: hidden; padding: 4px; display: flex; gap: 12px; background: #fff; height: 50px;",
+                                class:"qt-text",
                                 Avatar {
                                     pubkey: pk,
                                     timestamp: timestamp,
                                     relay_name: relay_name.clone(),
                                 }
                                 div {
-                                    style: "flex: 1; font-size: 14px; line-height: 20px; border-left: 2px solid #b4b4b4; padding: 0 12px;",
+                                    class:"qt-text-content",
                                     dangerous_inner_html: "{content}"
                                 }
                             }
@@ -159,19 +158,18 @@ pub fn Repost(props: RepostProps) -> Element {
             id: format!("note-{}", props.data.id),
             // detail modal
             div {
-                style: format!("position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.5); z-index: 99999999; display: {};", if *show_detail.read() { "block" } else { "none" }),
+                class: format!("detail-modal-box {}", if *show_detail.read() { "display-block" } else { "display-none" }),
                 div {
-                    style: "width: 50%; height: 60%; max-width: 900px; background-color: #fff; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 10px;",
+                    class:"com-post-content",
                     button {
-                        class: "btn-icon remove",
-                        style: "position: absolute; top: -12px; left: -12px;",
+                        class: "btn-icon remove absolute com-btn-style",
                         onclick: move |_| {
                             show_detail.set(false);
                         },
                         dangerous_inner_html: "{FALSE}",
                     }
                     pre {
-                        style: "height: 100%; overflow-y: auto; font-size: 16px;",
+                        class:"btn-icon-pre",
                         "{detail}"
                     }
                 }

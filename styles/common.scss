@@ -5,14 +5,21 @@
   outline: none;
   font-family: "Source Sans Pro";
 }
-
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow-y: hidden;
+  overflow-x: auto;
+}
 #app {
-  @include fixed-auto;
+  position: relative;
   background-color: var(--bgc-0);
-  overflow-y: auto;
   display: flex;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
+  min-width: 1200px;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 #app {
   --radius-1: 10px;
@@ -68,11 +75,6 @@
 }
 
 
-#main {
-  @include fixed-auto;
-}
-
-
 // Font size 10 - 120px
 @for $i from 10 through $font_max_size {
     .font-size-#{$i} {
@@ -80,6 +82,11 @@
     }
 }
 
+@for $i from 10 through $font_max_size {
+  .gap-#{$i} {
+      gap: $i + $unitpx;
+  }
+}
 
 @for $i from 10 through $font_max_size {
     .line-height-#{$i} {
@@ -91,6 +98,12 @@
 @for $i from 1 through $box_maring_padding_max_size {
     .wd-#{$i} {
         width: $i + $unitpx;
+    }
+    .max-width-#{$i} {
+      max-width: $i + $unitpx;
+    }
+    .min-width-#{$i} {
+      min-width: $i + $unitpx;
     }
     .ml-#{$i} {
         margin-left: $i + $unitpx;
@@ -223,17 +236,7 @@
   @include position(absolute);
 }
 
-.flex-col {
-  flex-direction: column;
-}
 
-.flex-row {
-  flex-direction: row;
-}
-
-.items-start {
-  align-items: flex-start;
-}
 
 .wor-wrap {
   word-wrap: break-word;
@@ -252,9 +255,7 @@
 
 /* common css */
 
-.justify-between {
-  justify-content: space-between;
-}
+
 
 .overflow-hidden {
   overflow: hidden;
@@ -269,6 +270,14 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.two-line-truncate {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-clamp: 2; 
 }
 
 .font-raleway-400 {
@@ -310,13 +319,35 @@
 }
 
 
-.items-center {
-  align-items: center;
-}
 
+// flex 
 .display-flex-box {
   display: flex;
 }
+.items-center {
+  align-items: center;
+}
+.justify-content-center{
+  justify-content: center;
+}
+.justify-between {
+  justify-content: space-between;
+}
+.flex-col {
+  flex-direction: column;
+}
+.flex-row {
+  flex-direction: row;
+}
+.flex-right {
+  margin-left: auto !important;
+}
+.items-start {
+  align-items: flex-start;
+}
+// flex end
+
+
 .display-none {
   display: none;
 }
@@ -326,6 +357,7 @@
 .display-inline-block {
   display: inline-block;
 }
+
 .display-block {
   display: block;
 }
@@ -345,7 +377,7 @@
 .show-false {
   display: none !important;
 }
-.display-align-gap{
+.flex-box-center{
   display: flex; 
   align-items: center; 
   gap: 10px;

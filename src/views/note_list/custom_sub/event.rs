@@ -40,7 +40,7 @@ pub fn EventInput(props: EventInputProps) -> Element {
             div {
                 class: "show-{edit} add-pop-up-style",
                 label {
-                    class:"display-align-gap",
+                    class:"flex-box-center",
                     input {
                         r#type: "text",
                         class:"add-input",

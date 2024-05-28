@@ -1,4 +1,4 @@
-mod custom_sub;
+pub(crate) mod custom_sub;
 pub mod note;
 pub mod reply;
 
@@ -26,11 +26,23 @@ pub fn NoteList(name: String) -> Element {
     let mut cb_database_db = use_context::<Signal<CBWebDatabase>>();
 
     use_effect(use_reactive((&name,), move |(s,)| {
+      for (i, sub) in all_sub.read().iter().enumerate() {
+      for (i, sub) in all_sub.read().iter().enumerate() {
+
+          tracing::info!("name/name/name/subClone: {:?}", all_sub.len());
+          tracing::info!("name/name/name/i: {:?}", i);
         for (i, sub) in all_sub.read().iter().enumerate() {
+
+          tracing::info!("name/name/name/subClone: {:?}", all_sub.len());
+          tracing::info!("name/name/name/i: {:?}", i);
             if sub.name == s {
                 sub_current.set(sub.clone());
                 sub_index.set(i);
+          }
+          }
+
             }
+
         }
     }));
 
@@ -169,12 +181,6 @@ pub fn List(props: ListProps) -> Element {
                     relay_name: props.subscription.relay_set.clone(),
                     note_index: i,
                 }
-                // Note_wrapper {
-                //     sub_name: props.subscription.name.clone(),
-                //     event: note.clone(),
-                //     relay_name: props.subscription.relay_set.clone(),
-
-                // }
             }
         }
     }

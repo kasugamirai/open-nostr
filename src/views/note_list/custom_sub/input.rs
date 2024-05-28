@@ -50,16 +50,14 @@ pub fn Input(props: InputProps) -> Element {
                 div {
                     class:"sub-input",
                     onclick: move |_| {
-                        if allow_edit() {
-                            edit.set(true);
-                        }
+                        edit.set(true);
                     },
                     " {bak} "
                 }
                 div {
                     class: "show-{edit} add-pop-up-style",
                     label {
-                        class:"display-align-gap",
+                        class:"flex-box-center",
                         input {
                             r#type: "text",
                             class:"add-input",

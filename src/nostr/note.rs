@@ -289,6 +289,12 @@ impl ReplyTreeManager {
     }
 }
 
+#[derive(Debug)]
+pub struct ModalManager {
+    is_open: bool,
+    // data: Option<>,
+}
+
 
 
 #[cfg(test)]
