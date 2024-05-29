@@ -1,4 +1,5 @@
 use cached::{Cached, TimedCache};
+use core::fmt;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::cell::RefCell;
@@ -17,6 +18,7 @@ pub enum Error {
     Client(nostr_sdk::client::Error),
     Store(store::error::CBwebDatabaseError),
     IndexDb(nostr_indexeddb::IndexedDBError),
+    ClientNotFound,
 }
 
 impl From<nostr_indexeddb::IndexedDBError> for Error {
@@ -34,6 +36,17 @@ impl From<nostr_sdk::client::Error> for Error {
 impl From<store::error::CBwebDatabaseError> for Error {
     fn from(e: store::error::CBwebDatabaseError) -> Self {
         Error::Store(e)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Client(e) => write!(f, "Client error: {}", e),
+            Error::Store(e) => write!(f, "Store error: {}", e),
+            Error::IndexDb(e) => write!(f, "IndexDb error: {}", e),
+            Error::ClientNotFound => write!(f, "Client not found"),
+        }
     }
 }
 
@@ -159,9 +172,9 @@ impl MultiClient {
         clients.get(name).cloned()
     }
 
-    pub async fn get_or_create(&mut self, name: &str) -> Result<Option<HashedClient>, Error> {
+    pub async fn get_or_create(&mut self, name: &str) -> Result<HashedClient, Error> {
         match self.get_client(name) {
-            Some(client) => Ok(Some(client)),
+            Some(client) => Ok(client),
             None => {
                 let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
                 let db = WebDatabase::open(NOSTR_DB_NAME).await?;
@@ -174,7 +187,8 @@ impl MultiClient {
                 let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
                 hc.add_relays(relays).await?;
                 self.register(name.to_string(), hc);
-                Ok(self.get_client(name))
+                // The return type has been changed to remove Option
+                self.get_client(name).ok_or(Error::ClientNotFound)
             }
         }
     }
@@ -289,7 +303,7 @@ mod tests {
     async fn test_multi_client_cached_query_many_times() {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
-        hashed_client.add_relay("wss://relay.damus.io").await;
+        let _ = hashed_client.add_relay("wss://relay.damus.io").await;
         let mut multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
