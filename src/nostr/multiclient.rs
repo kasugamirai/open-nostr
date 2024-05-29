@@ -144,6 +144,16 @@ impl MultiClient {
         clients.insert(name, hc);
     }
 
+    pub fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
+        let mut clients = self.clients.borrow_mut();
+        if let Some(client) = clients.remove(old_key) {
+            clients.insert(new_key, client);
+            Ok(())
+        } else {
+            Err(format!("Client with key '{}' not found", old_key))
+        }
+    }
+
     pub fn get_client(&self, name: &str) -> Option<HashedClient> {
         let clients = self.clients.borrow();
         clients.get(name).cloned()
