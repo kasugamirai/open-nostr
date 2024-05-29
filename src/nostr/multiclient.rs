@@ -135,7 +135,6 @@ impl NostrQuery {
 #[derive(Debug, Clone)]
 pub struct MultiClient {
     clients: Rc<RefCell<HashMap<String, HashedClient>>>,
-    cache: TimedCache<NostrQuery, Vec<Event>>,
 }
 
 impl Default for MultiClient {
@@ -148,7 +147,6 @@ impl MultiClient {
     pub fn new() -> Self {
         Self {
             clients: Rc::new(RefCell::new(HashMap::new())),
-            cache: TimedCache::with_lifespan_and_capacity(300, 300), // Initialize cache
         }
     }
 
@@ -192,6 +190,20 @@ impl MultiClient {
             }
         }
     }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct EventCache {
+    cache: TimedCache<NostrQuery, Vec<Event>>,
+}
+
+impl EventCache {
+    pub fn new(lifespan: u64, capacity: usize) -> Self {
+        Self {
+            cache: TimedCache::with_lifespan_and_capacity(lifespan, capacity),
+        }
+    }
 
     pub async fn cached_get_events_of(
         &mut self,
@@ -215,6 +227,7 @@ impl MultiClient {
         Ok(result)
     }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -277,8 +290,10 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
+        let mut cache = EventCache::new(30, 300);
+
         // Perform the first query (this should not hit the cache)
-        let result1 = multi_client
+        let result1 = cache
             .cached_get_events_of(
                 &hashed_client,
                 filters.clone(),
@@ -289,7 +304,7 @@ mod tests {
         console_log!("First query result: {:?}", result1);
 
         // Perform the second query (this should hit the cache)
-        let result2 = multi_client
+        let result2 = cache
             .cached_get_events_of(&hashed_client, filters, Some(Duration::from_secs(10)))
             .await;
         assert!(result2.is_ok());
@@ -320,8 +335,10 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
+        let mut cache = EventCache::new(30, 300);
+
         for _ in 0..100 {
-            let result1 = multi_client
+            let result1 = cache
                 .cached_get_events_of(
                     &hashed_client,
                     filters.clone(),
