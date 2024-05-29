@@ -2,10 +2,9 @@ use cached::{Cached, TimedCache};
 use core::fmt;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, Event, Filter};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::init::NOSTR_DB_NAME;
@@ -134,7 +133,7 @@ impl NostrQuery {
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: Rc<RefCell<HashMap<String, HashedClient>>>,
+    clients: Arc<Mutex<HashMap<String, HashedClient>>>,
 }
 
 impl Default for MultiClient {
@@ -146,17 +145,17 @@ impl Default for MultiClient {
 impl MultiClient {
     pub fn new() -> Self {
         Self {
-            clients: Rc::new(RefCell::new(HashMap::new())),
+            clients: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     pub fn register(&self, name: String, hc: HashedClient) {
-        let mut clients = self.clients.borrow_mut();
+        let mut clients = self.clients.lock().unwrap();
         clients.insert(name, hc);
     }
 
     pub fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
-        let mut clients = self.clients.borrow_mut();
+        let mut clients = self.clients.lock().unwrap();
         if let Some(client) = clients.remove(old_key) {
             clients.insert(new_key, client);
             Ok(())
@@ -166,7 +165,7 @@ impl MultiClient {
     }
 
     pub fn get_client(&self, name: &str) -> Option<HashedClient> {
-        let clients = self.clients.borrow();
+        let clients = self.clients.lock().unwrap();
         clients.get(name).cloned()
     }
 
@@ -191,7 +190,6 @@ impl MultiClient {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct EventCache {
@@ -227,7 +225,6 @@ impl EventCache {
         Ok(result)
     }
 }
-
 
 #[cfg(test)]
 mod tests {
