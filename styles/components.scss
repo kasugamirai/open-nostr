@@ -528,6 +528,9 @@ svg path {
   &-edit {
     &--modal {
       overflow-y: auto;
+      .btn-close {
+        @include position(absolute,(top,-10px),(left,-10px));
+      }
     }
 
     &--content {
@@ -637,4 +640,14 @@ svg path {
   flex: 1; 
   height: 100%; 
   overflow-y: scroll;
+}
+
+.capy-btn{
+  padding: 5px 12px;
+  border-radius: var(--radius-circle);
+  background-color: var(--primary);
+  transition: 0.3s;
+  &:active {
+    background-color: var(--primary-active);
+  }
 }

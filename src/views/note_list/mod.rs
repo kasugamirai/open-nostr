@@ -76,13 +76,6 @@ pub fn NoteList(name: String) -> Element {
                     tracing::error!("Update error: {:?}", e);
                 }
             }
-            // {
-            //     tracing::info!("Update success: wait for reload");
-            //     sub_current.set(value.clone());
-            //     let index: usize = *sub_index.read();
-            //     let mut subs: Write<_, UnsyncStorage> = all_sub.write();
-            //     subs[index] = sub_current.read().clone();
-            // }
         });
     };
 

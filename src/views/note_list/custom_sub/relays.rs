@@ -231,6 +231,17 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                     }
                     div {
                         class: "modal-content p-24 relay-edit--content z-100 relative radius-26 flex",
+                        button {
+                            class: "btn-close btn-circle btn-circle-false flex-right ml-5 absolute",
+                            onclick: move |_| {
+
+                            edit.set(false);
+                            //   let mut _relay_sets = relay_sets.write();
+                            //   handle_delete(_relay_sets[relay_curent_index()].clone().name.to_string());
+                            //   _relay_sets.remove(relay_curent_index());
+                            },
+                            dangerous_inner_html: "{FALSE}"
+                          }
                         div{
                             class:"relay-name-list p-10",
                             div{
@@ -272,28 +283,28 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                     }
                                 }
                                 button {
-                                    class: "btn-circle btn-circle-true flex-right ml-5",
+                                    class: "capy-btn flex-right ml-5",
                                     onclick: move |_| {
                                         handle_save();
                                     },
-                                    dangerous_inner_html: "{TRUE}"
+                                    "Save"
                                 }
-                                button {
-                                class: "btn-circle btn-circle-success flex-right ml-5",
-                                onclick: move |_| {
-                                },
-                                div {
-                                    dangerous_inner_html: "{BOTTOMRIGHT}"
-                                }
-                                }
-                                button {
-                                    class: "btn-circle btn-circle-success flex-right ml-5",
-                                    onclick: move |_| {
-                                    },
-                                    div {
-                                    dangerous_inner_html: "{UPPERRIGHT}"
-                                    }
-                                }
+                                // button {
+                                // class: "btn-circle btn-circle-success flex-right ml-5",
+                                // onclick: move |_| {
+                                // },
+                                // div {
+                                //     dangerous_inner_html: "{BOTTOMRIGHT}"
+                                // }
+                                // }
+                                // button {
+                                //     class: "btn-circle btn-circle-success flex-right ml-5",
+                                //     onclick: move |_| {
+                                //     },
+                                //     div {
+                                //     dangerous_inner_html: "{UPPERRIGHT}"
+                                //     }
+                                // }
                             }
                             for (i, relay_url) in current_relay_set.relays.iter().enumerate() {
                                 div {

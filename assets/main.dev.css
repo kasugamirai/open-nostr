@@ -623,6 +623,15 @@ body, html {
   --col-error: #fc80bc;
   --col-error-2: #fc80bc;
   --col-success: #93f4ab;
+  --primary: #9f74eb;
+  --danger: #fc80bc;
+  --success: #93f4ab;
+  --warning: #f7b500;
+  --primary-active: #f6f2ff;
+  --info: #4d8af0;
+  --dark: #0d0d0d;
+  --light: #ffffff;
+  --gray: #b4b4b4;
 }
 
 #app.dark {
@@ -13511,6 +13520,22 @@ body, html {
   gap: 10px;
 }
 
+.top-0 {
+  top: 0;
+}
+
+.left-0 {
+  left: 0;
+}
+
+.bottom-0 {
+  bottom: 0;
+}
+
+.right-0 {
+  right: 0;
+}
+
 input[type=datetime-local] {
   appearance: none;
   -webkit-appearance: none;
@@ -14039,6 +14064,11 @@ svg path {
 .relay-edit--modal {
   overflow-y: auto;
 }
+.relay-edit--modal .btn-close {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+}
 .relay-edit--content {
   background-color: var(--bgc-0);
   border: 1px solid var(--boc-1);
@@ -14137,6 +14167,16 @@ svg path {
   flex: 1;
   height: 100%;
   overflow-y: scroll;
+}
+
+.capy-btn {
+  padding: 5px 12px;
+  border-radius: var(--radius-circle);
+  background-color: var(--primary);
+  transition: 0.3s;
+}
+.capy-btn:active {
+  background-color: var(--primary-active);
 }
 
 :root {

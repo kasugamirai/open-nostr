@@ -54,6 +54,16 @@ body, html {
   --col-error: #fc80bc;
   --col-error-2: #fc80bc;
   --col-success: #93f4ab;
+
+  --primary: #9f74eb;
+  --danger: #fc80bc;
+  --success: #93f4ab;
+  --warning: #f7b500;
+  --primary-active: #f6f2ff;
+  --info: #4d8af0;
+  --dark: #0d0d0d;
+  --light: #ffffff;
+  --gray: #b4b4b4;
 }
 
 #app.dark {
@@ -381,4 +391,17 @@ body, html {
   display: flex; 
   align-items: center; 
   gap: 10px;
+}
+
+.top-0 {
+  top: 0;
+}
+.left-0 {
+  left: 0;
+}
+.bottom-0 {
+  bottom: 0;
+}
+.right-0 {
+  right: 0;
 }
