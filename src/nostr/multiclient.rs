@@ -1,10 +1,10 @@
 use cached::{Cached, TimedCache};
+use core::fmt;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, Event, Filter};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use crate::init::NOSTR_DB_NAME;
@@ -17,6 +17,7 @@ pub enum Error {
     Client(nostr_sdk::client::Error),
     Store(store::error::CBwebDatabaseError),
     IndexDb(nostr_indexeddb::IndexedDBError),
+    ClientNotFound,
 }
 
 impl From<nostr_indexeddb::IndexedDBError> for Error {
@@ -34,6 +35,17 @@ impl From<nostr_sdk::client::Error> for Error {
 impl From<store::error::CBwebDatabaseError> for Error {
     fn from(e: store::error::CBwebDatabaseError) -> Self {
         Error::Store(e)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Client(e) => write!(f, "Client error: {}", e),
+            Error::Store(e) => write!(f, "Store error: {}", e),
+            Error::IndexDb(e) => write!(f, "IndexDb error: {}", e),
+            Error::ClientNotFound => write!(f, "Client not found"),
+        }
     }
 }
 
@@ -121,8 +133,7 @@ impl NostrQuery {
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: Rc<RefCell<HashMap<String, HashedClient>>>,
-    cache: TimedCache<NostrQuery, Vec<Event>>,
+    clients: Arc<Mutex<HashMap<String, HashedClient>>>,
 }
 
 impl Default for MultiClient {
@@ -134,24 +145,33 @@ impl Default for MultiClient {
 impl MultiClient {
     pub fn new() -> Self {
         Self {
-            clients: Rc::new(RefCell::new(HashMap::new())),
-            cache: TimedCache::with_lifespan_and_capacity(300, 300), // Initialize cache
+            clients: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     pub fn register(&self, name: String, hc: HashedClient) {
-        let mut clients = self.clients.borrow_mut();
+        let mut clients = self.clients.lock().unwrap();
         clients.insert(name, hc);
     }
 
+    pub fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
+        let mut clients = self.clients.lock().unwrap();
+        if let Some(client) = clients.remove(old_key) {
+            clients.insert(new_key, client);
+            Ok(())
+        } else {
+            Err(format!("Client with key '{}' not found", old_key))
+        }
+    }
+
     pub fn get_client(&self, name: &str) -> Option<HashedClient> {
-        let clients = self.clients.borrow();
+        let clients = self.clients.lock().unwrap();
         clients.get(name).cloned()
     }
 
-    pub async fn get_or_create(&mut self, name: &str) -> Result<Option<HashedClient>, Error> {
+    pub async fn get_or_create(&mut self, name: &str) -> Result<HashedClient, Error> {
         match self.get_client(name) {
-            Some(client) => Ok(Some(client)),
+            Some(client) => Ok(client),
             None => {
                 let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
                 let db = WebDatabase::open(NOSTR_DB_NAME).await?;
@@ -164,8 +184,22 @@ impl MultiClient {
                 let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
                 hc.add_relays(relays).await?;
                 self.register(name.to_string(), hc);
-                Ok(self.get_client(name))
+                // The return type has been changed to remove Option
+                self.get_client(name).ok_or(Error::ClientNotFound)
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct EventCache {
+    cache: TimedCache<NostrQuery, Vec<Event>>,
+}
+
+impl EventCache {
+    pub fn new(lifespan: u64, capacity: usize) -> Self {
+        Self {
+            cache: TimedCache::with_lifespan_and_capacity(lifespan, capacity),
         }
     }
 
@@ -253,8 +287,10 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
+        let mut cache = EventCache::new(30, 300);
+
         // Perform the first query (this should not hit the cache)
-        let result1 = multi_client
+        let result1 = cache
             .cached_get_events_of(
                 &hashed_client,
                 filters.clone(),
@@ -265,7 +301,7 @@ mod tests {
         console_log!("First query result: {:?}", result1);
 
         // Perform the second query (this should hit the cache)
-        let result2 = multi_client
+        let result2 = cache
             .cached_get_events_of(&hashed_client, filters, Some(Duration::from_secs(10)))
             .await;
         assert!(result2.is_ok());
@@ -279,7 +315,7 @@ mod tests {
     async fn test_multi_client_cached_query_many_times() {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
-        hashed_client.add_relay("wss://relay.damus.io").await;
+        let _ = hashed_client.add_relay("wss://relay.damus.io").await;
         let mut multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
@@ -296,8 +332,10 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
+        let mut cache = EventCache::new(30, 300);
+
         for _ in 0..100 {
-            let result1 = multi_client
+            let result1 = cache
                 .cached_get_events_of(
                     &hashed_client,
                     filters.clone(),

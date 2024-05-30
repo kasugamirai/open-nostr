@@ -2,10 +2,11 @@ use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil, Kind};
 
 use crate::{
-    components::{icons::*, Avatar}, nostr::note::TextNote, utils::{
-        format::format_note_content,
-        js::note_srcoll_into_view,
-    }, views::note_list::reply::Reply, CustomSub, Route
+    components::{icons::*, Avatar},
+    nostr::note::TextNote,
+    utils::{format::format_note_content, js::note_srcoll_into_view},
+    views::note_list::reply::Reply,
+    CustomSub, Route,
 };
 
 #[derive(PartialEq, Clone, Props)]
@@ -76,7 +77,8 @@ pub fn Note(props: NoteProps) -> Element {
     let is_highlight = use_signal(|| {
         props.is_tree
             && props
-                .clsname.clone()
+                .clsname
+                .clone()
                 .unwrap_or("".to_string())
                 .contains("com-post--active")
     });

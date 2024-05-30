@@ -24,7 +24,7 @@ pub fn NoteList(name: String) -> Element {
 
     let mut sub_current = use_signal(|| CustomSub::empty());
     let mut sub_index = use_signal(|| 0);
-    let mut cb_database_db = use_context::<Signal<CBWebDatabase>>();
+    let cb_database_db = use_context::<Signal<CBWebDatabase>>();
 
     use_effect(use_reactive((&name,), move |(s,)| {
         for (i, sub) in all_sub.read().iter().enumerate() {
@@ -45,30 +45,28 @@ pub fn NoteList(name: String) -> Element {
             };
             let edit_value = value.clone();
             tracing::info!("Update: {:?}", edit_value);
-    
+
             match cb_database_db()
                 .update_custom_sub(old_name.clone(), edit_value.clone())
                 .await
             {
                 Ok(_) => {
                     let edit_name = edit_value.name.clone();
-    
+
                     // 成功更新后再次获取 sub_current 并更新其值
                     {
                         sub_current.set(value.clone());
                     }
-    
+
                     // 更新 all_sub 的值
                     let index: usize = *sub_index.read();
                     {
                         let mut subs: Write<_, UnsyncStorage> = all_sub.write();
                         subs[index] = sub_current().clone();
                     }
-    
+
                     if old_name != edit_name {
-                        navigator().replace(Route::NoteList {
-                            name: edit_name,
-                        });
+                        navigator().replace(Route::NoteList { name: edit_name });
                     }
                     tracing::info!("Update success: wait for reload");
                 }
@@ -140,23 +138,22 @@ pub fn List(props: ListProps) -> Element {
                     return;
                 }
             };
-            if let Some(hc) = hc {
-                let client = hc.client();
-                // TODO: use global client by this subscription
-                tracing::info!("Filters: {:#?}", filters);
-                // TODO: use the 'subscribe' function if this sub requires subscription
-                match client
-                    .get_events_of(filters, Some(Duration::from_secs(5)))
-                    .await
-                {
-                    Ok(events) => {
-                        // TODO: add or append to database
-                        // notes.clear();
-                        notes.extend(events);
-                    }
-                    Err(e) => {
-                        tracing::error!("Error: {:?}", e);
-                    }
+
+            let client = hc.client();
+            // TODO: use global client by this subscription
+            tracing::info!("Filters: {:#?}", filters);
+            // TODO: use the 'subscribe' function if this sub requires subscription
+            match client
+                .get_events_of(filters, Some(Duration::from_secs(5)))
+                .await
+            {
+                Ok(events) => {
+                    // TODO: add or append to database
+                    // notes.clear();
+                    notes.extend(events);
+                }
+                Err(e) => {
+                    tracing::error!("Error: {:?}", e);
                 }
             }
         })
