@@ -180,7 +180,6 @@ impl<'a> EventPaginator<'a> {
     }
 }
 
-
 impl<'a> Stream for EventPaginator<'a> {
     type Item = Result<Vec<Event>, Error>;
 
@@ -294,7 +293,7 @@ pub async fn get_metadata(
     let events = client.get_events_of(vec![filter], timeout).await?;
     if let Some(event) = get_newest_event(&events) {
         let metadata = Metadata::from_json(&event.content)?;
-        client.database().save_event(&event).await.unwrap();
+        client.database().save_event(event).await.unwrap();
         Ok(metadata)
     } else {
         Err(Error::NotFound)
