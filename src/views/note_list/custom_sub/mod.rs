@@ -229,7 +229,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             }
                         } else {
                           button {
-                            class: format!("btn-icon purple small {}", if sub_current().live { "display-none-important" } else { "display-inline-block" }),
+                            class: "btn-icon purple small",
                             onclick: move |_| edit.set(true),
                             dangerous_inner_html: "{SUBEDIT}",
                           }

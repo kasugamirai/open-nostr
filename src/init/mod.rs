@@ -1,4 +1,4 @@
-use crate::nostr::multiclient::HashedClient;
+use crate::nostr::multiclient::{EventCache, HashedClient};
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
 use crate::store::{
@@ -32,6 +32,8 @@ pub fn App() -> Element {
     let theme = use_context_provider(|| Signal::new(String::from("light")));
 
     let mut router = use_signal(|| rsx! {div{}});
+
+    use_context_provider(|| Signal::new(EventCache::new(300, 300)));
     // hook: on mounted
     let on_mounted = move |_| {
         // init treading
