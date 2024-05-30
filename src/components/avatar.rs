@@ -23,90 +23,50 @@ pub fn Avatar(props: AvatarProps) -> Element {
     let multiclient = use_context::<Signal<MultiClient>>();
 
     // Using signals for reactive state management
-    let mut nickname = use_signal(|| "Nostr Account".to_string());
-    let mut avatar =
-        use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
-    let mut root_pic =
-        use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
-    let mut root_nickname = use_signal(|| "Nostr Account".to_string());
-    let mut event_cache = use_context::<Signal<EventCache>>();
-    // Fetching metadata for the main avatar
+    let nickname = use_signal(|| "Nostr Account".to_string());
+    let avatar = use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
+    let root_pic = use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
+    let root_nickname = use_signal(|| "Nostr Account".to_string());
+    let event_cache = use_context::<Signal<EventCache>>();
+    
     use_effect(use_reactive(
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
-            spawn(async move {
-                let hc_client = multiclient().get_client(&relay_name).unwrap();
-                // Perform the async operation within a separate scope to ensure no overlapping mutable borrow occurs
-                let result = {
-                    let mut event_cache = event_cache.write();
-                    event_cache
-                        .cached_get_events_of(
-                            &hc_client,
-                            vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
-                            None,
-                        )
-                        .await
-                };
-                match result {
-                    Ok(event) => {
-                        if let Some(event) = get_newest_event(&event) {
-                            let metadata = Metadata::from_json(&event.content).unwrap();
-                            nickname.set(metadata.display_name.unwrap_or_else(|| {
-                                metadata.name.unwrap_or("Nostr Account".to_string())
-                            }));
-                            avatar.set(metadata.picture.unwrap_or_else(|| {
-                                "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
-                            }));
+            spawn({
+                let multiclient = multiclient.clone();
+                let event_cache = event_cache.clone();
+                let mut nickname = nickname.clone();
+                let mut avatar = avatar.clone();
+                async move {
+                    let hc_client = multiclient.read().get_client(&relay_name).unwrap();
+
+                    let events = event_cache.read().cached_get_events_of(
+                        &hc_client,
+                        vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
+                        None,
+                    ).await;
+
+                    match events {
+                        Ok(events) => {
+                            if let Some(event) = get_newest_event(&events) {
+                                if let Ok(metadata) = Metadata::from_json(&event.content) {
+                                    nickname.set(metadata.display_name.unwrap_or_else(|| {
+                                        metadata.name.unwrap_or("Nostr Account".to_string())
+                                    }));
+                                    avatar.set(metadata.picture.unwrap_or_else(|| {
+                                        "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
+                                    }));
+                                }
+                            }
                         }
-                    }
-                    Err(e) => {
-                        tracing::error!("get_metadata error: {:?}", e);
+                        Err(e) => {
+                            tracing::error!("get_metadata error: {:?}", e);
+                        }
                     }
                 }
             });
         },
     ));
-
-    // // Fetching metadata for the repost event, if any
-    // use_effect(use_reactive(
-    //     (&props.repost_event, &props.relay_name),
-    //     move |(repost_event, relay_name)| {
-    //         let multiclient = multiclient();
-    //         spawn(async move {
-    //             if let Some(event) = repost_event {
-    //                 if let Some(client) = multiclient.get_client(&relay_name) {
-    //                     let filter = Filter::new().author(event.pubkey).kind(Kind::Metadata);
-    //                     let client = client.client();
-    //                     let event_result = client
-    //                         .database()
-    //                         .query(vec![filter], Order::Desc)
-    //                         .await
-    //                         .unwrap();
-    //                     if let Some(event) = get_newest_event(&event_result) {
-    //                         let metadata = Metadata::from_json(&event.content).unwrap();
-    //                         root_pic.set(metadata.picture.unwrap_or_else(|| {
-    //                             "https://avatars.githubusercontent.com/u/1024025?v=4"
-    //                                 .to_string()
-    //                         }));
-    //                         root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
-    //                     }
-    //                     match get_metadata(&client, &event.pubkey, None).await {
-    //                         Ok(metadata) => {
-    //                             root_pic.set(metadata.picture.unwrap_or_else(|| {
-    //                                 "https://avatars.githubusercontent.com/u/1024025?v=4"
-    //                                     .to_string()
-    //                             }));
-    //                             root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
-    //                         }
-    //                         Err(e) => {
-    //                             tracing::error!("get_metadata error: {:?}", e);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         });
-    //     },
-    // ));
 
     // Rendering based on whether there's a repost event
     if let Some(repost_event) = &props.repost_event {
@@ -161,3 +121,4 @@ pub fn Avatar(props: AvatarProps) -> Element {
         }
     }
 }
+

@@ -196,26 +196,30 @@ impl MultiClient {
 
 #[derive(Debug, Clone)]
 pub struct EventCache {
-    cache: TimedCache<NostrQuery, Vec<Event>>,
+    cache: Arc<Mutex<TimedCache<NostrQuery, Vec<Event>>>>,
 }
 
 impl EventCache {
     pub fn new(lifespan: u64, capacity: usize) -> Self {
         Self {
-            cache: TimedCache::with_lifespan_and_capacity(lifespan, capacity),
+            cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(lifespan, capacity))),
         }
     }
 
     pub async fn cached_get_events_of(
-        &mut self,
+        &self,
         client: &HashedClient,
         filters: Vec<Filter>,
         timeout: Option<Duration>,
     ) -> Result<Vec<Event>, Error> {
         let query = NostrQuery::new(client.hash(), &filters);
 
-        if let Some(cached_result) = self.cache.cache_get(&query) {
-            return Ok(cached_result.clone());
+        // Lock the mutex to access the cache
+        {
+            let mut cache = self.cache.lock().unwrap();
+            if let Some(cached_result) = cache.cache_get(&query) {
+                return Ok(cached_result.clone());
+            }
         }
 
         let result = client
@@ -223,7 +227,11 @@ impl EventCache {
             .get_events_of(filters.clone(), timeout)
             .await?;
 
-        self.cache.cache_set(query, result.clone());
+        // Lock the mutex to update the cache
+        {
+            let mut cache = self.cache.lock().unwrap();
+            cache.cache_set(query, result.clone());
+        }
 
         Ok(result)
     }
