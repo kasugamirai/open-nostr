@@ -22,20 +22,6 @@ nostr-sdk = { version = "0.31", default-features = false, features = [
     "nip57",
     "nip59",
 ] }
-nostr = { version = "0.31", default-features = false, features = [
-    "std",
-    "alloc",
-    "nip04",
-    "nip05",
-    "nip06",
-    "nip11",
-    "nip44",
-    "nip46",
-    "nip47",
-    "nip49",
-    "nip57",
-    "nip59",
-] }
 nostr-indexeddb = "0.31"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }

@@ -2,7 +2,7 @@ use std::cmp::min;
 use std::collections::{HashMap, VecDeque};
 
 use indextree::{Arena, NodeId};
-use nostr::nips::nip10::Marker;
+use nostr_sdk::nips::nip10::Marker;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
 use nostr_sdk::{SingleLetterTag, TagStandard};
 use std::fmt;
@@ -115,7 +115,7 @@ fn normalize_e_tag(t: &Tag) -> Result<Option<TagStandard>, Error> {
             character: Alphabet::E,
             uppercase: false,
         }) => {
-            let t_vec = <nostr::Tag as Clone>::clone(t).to_vec();
+            let t_vec = <nostr_sdk::Tag as Clone>::clone(t).to_vec();
             let at_most_4 = &t_vec[..min(4, t_vec.len())];
             let normalized_t = at_most_4.to_vec();
             match TagStandard::parse(&normalized_t) {
@@ -254,7 +254,7 @@ impl ReplyTreeManager {
                 self.trees.remove(&oldest_id);
             }
         }
-        
+
         self.trees.insert(root_id, tree);
         self.order.push_back(root_id);
     }
@@ -295,12 +295,10 @@ pub struct ModalManager {
     // data: Option<>,
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use crate::testhelper::{event_from, test_data::*};
     use super::*;
+    use crate::testhelper::{event_from, test_data::*};
     use wasm_bindgen_test::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -318,32 +316,56 @@ mod tests {
         let event = event_from(REPLY_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
 
-        assert_eq!(text_note.root.unwrap().to_hex(), *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935");
-        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345");
+        assert_eq!(
+            text_note.root.unwrap().to_hex(),
+            *"39413ed0400101a45abb82dd8949306790234f785ea224717d0f68fa1b36e935"
+        );
+        assert_eq!(
+            text_note.reply_to.unwrap().to_hex(),
+            *"3cacfcc0afa9d1daf798291b8d8b31fd0b471303f501e188191444ff4cdf1345"
+        );
     }
 
     #[wasm_bindgen_test]
     fn test_reply_with_no_marker() {
         let event = event_from(REPLY_WITH_NO_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        assert_eq!(text_note.root.unwrap().to_hex(), *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc");
-        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430");
+        assert_eq!(
+            text_note.root.unwrap().to_hex(),
+            *"a200b725177cc2fcbb0c40c5103695da6a8cbd9e73c5a9293c8bfd45521a84bc"
+        );
+        assert_eq!(
+            text_note.reply_to.unwrap().to_hex(),
+            *"cfab5dabf95fa14c21a611a3eff120132a470201407bd6799ae1c5058b88b430"
+        );
     }
 
     #[wasm_bindgen_test]
     fn test_reply_to_root_no_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_NO_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        assert_eq!(text_note.root.unwrap().to_hex(), *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24");
-        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24");
+        assert_eq!(
+            text_note.root.unwrap().to_hex(),
+            *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
+        );
+        assert_eq!(
+            text_note.reply_to.unwrap().to_hex(),
+            *"1c556c3a9e892841bef2bfae13ca5fdc50f81054d031a6a16b060a2e5113ae24"
+        );
     }
 
     #[wasm_bindgen_test]
     fn test_reply_to_root_with_marker() {
         let event = event_from(REPLY_TO_ROOT_WITH_MARKER);
         let text_note = TextNote::try_from(event).unwrap();
-        assert_eq!(text_note.root.unwrap().to_hex(), *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b");
-        assert_eq!(text_note.reply_to.unwrap().to_hex(), *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b");
+        assert_eq!(
+            text_note.root.unwrap().to_hex(),
+            *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b"
+        );
+        assert_eq!(
+            text_note.reply_to.unwrap().to_hex(),
+            *"ff25d26e734c41fa7ed86d28270628f8fb2f6fb03a23eed3d38502499c1a7a2b"
+        );
     }
 
     #[wasm_bindgen_test]
@@ -361,7 +383,10 @@ mod tests {
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
                 .unwrap();
-        assert_eq!(reply_tree.get_note_by_id(&event_id).unwrap().inner.id, event_id);
+        assert_eq!(
+            reply_tree.get_note_by_id(&event_id).unwrap().inner.id,
+            event_id
+        );
         assert_eq!(reply_tree.get_note_by_id(&event_id).unwrap().inner.content, *"If i do createElement and rhen appendChild for a lot of number of time, It took a lot of RAM compared to writting the entire HTML manually.");
     }
 
