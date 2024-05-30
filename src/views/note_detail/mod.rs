@@ -32,7 +32,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                 // if tree not exists, fetch it
                 if !tree_exists {
                     let sub = _all_sub.iter().find(|s| s.name == sub_name).unwrap();
-                    if let Some(client) = clients.get_client(&sub.relay_set) {
+                    if let Some(client) = clients.get_client(&sub.relay_set).await {
                         let client = client.client();
                         match get_event_by_id(&client, &rootid, None).await {
                             Ok(Some(event)) => {

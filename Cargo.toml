@@ -46,11 +46,11 @@ wasm-bindgen-futures = "0.4"
 async-std = "1.8"
 lazy_static = "1.4.0"
 anyhow = "1.0.40"
-thiserror = "1.0.29"
 wasm-bindgen-test = "0.3"
 js-sys = "0.3.69"
 cached = "0.51.3"
 urlencoding = "*"
+tokio = { version = "1", features = ["sync"] }
 
 [features]
 default = []

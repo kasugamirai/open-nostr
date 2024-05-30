@@ -28,7 +28,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
     let root_pic = use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
     let root_nickname = use_signal(|| "Nostr Account".to_string());
     let event_cache = use_context::<Signal<EventCache>>();
-    
+
     use_effect(use_reactive(
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
@@ -38,13 +38,24 @@ pub fn Avatar(props: AvatarProps) -> Element {
                 let mut nickname = nickname.clone();
                 let mut avatar = avatar.clone();
                 async move {
-                    let hc_client = multiclient.read().get_client(&relay_name).unwrap();
+                    let hc_client = {
+                        let multiclient = multiclient.read();
+                        if let Some(client) = multiclient.get_client(&relay_name).await {
+                            client
+                        } else {
+                            tracing::error!("client not found");
+                            return;
+                        }
+                    };
 
-                    let events = event_cache.read().cached_get_events_of(
-                        &hc_client,
-                        vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
-                        None,
-                    ).await;
+                    let events = event_cache
+                        .read()
+                        .cached_get_events_of(
+                            &hc_client,
+                            vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
+                            None,
+                        )
+                        .await;
 
                     match events {
                         Ok(events) => {
@@ -54,7 +65,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
                                         metadata.name.unwrap_or("Nostr Account".to_string())
                                     }));
                                     avatar.set(metadata.picture.unwrap_or_else(|| {
-                                        "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
+                                        "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                            .to_string()
                                     }));
                                 }
                             }
@@ -121,4 +133,3 @@ pub fn Avatar(props: AvatarProps) -> Element {
         }
     }
 }
-

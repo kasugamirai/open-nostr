@@ -51,10 +51,7 @@ pub fn App() -> Element {
             {
                 db.save_relay_set(RelaySet {
                     name: DEFAULT_RELAY_SET_KEY.to_string(),
-                    relays: vec![
-                        "wss://nos.lol".to_string(),
-                        "wss://nostr.wine".to_string(),
-                    ],
+                    relays: vec!["wss://nos.lol".to_string(), "wss://nostr.wine".to_string()],
                 })
                 .await
                 .unwrap();
@@ -66,20 +63,19 @@ pub fn App() -> Element {
             //init multiclient
             let relay_sets: Vec<RelaySet> = db.get_all_relay_sets().await.unwrap();
             if !relay_sets.is_empty() {
-                let mut _multiclient = multiclient.write();
+                let mut _multiclient = multiclient.write(); // Await the write lock
                 for rs in relay_sets {
-                    let client = _multiclient.get_client(&rs.name);
+                    let client = _multiclient.get_client(&rs.name).await;
                     if client.is_none() {
                         let client_builder = ClientBuilder::new().database(nostr_db.clone());
                         let c: nostr_sdk::Client = client_builder.build();
                         c.add_relays(rs.relays).await.unwrap();
                         c.connect().await;
                         let hc = HashedClient::new(c).await;
-                        _multiclient.register(rs.name, hc);
+                        _multiclient.register(rs.name, hc).await;
                     }
                 }
             }
-
             //init custom sub
             match db.get_all_subs().await {
                 Ok(subs) => {
@@ -140,7 +136,6 @@ pub fn App() -> Element {
             router.set(rsx! {Router::<Route> {}});
         });
     };
-    
 
     let mut root_click_pos = use_context_provider(|| Signal::new((0.0, 0.0)));
 

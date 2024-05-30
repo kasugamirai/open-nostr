@@ -4,8 +4,9 @@ use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
 use crate::init::NOSTR_DB_NAME;
 use crate::store::{self, CBWebDatabase, CAPYBASTR_DBNAME};
@@ -54,9 +55,6 @@ pub struct HashedClient {
     client: nostr_sdk::Client,
     hash: u64,
 }
-
-unsafe impl Send for HashedClient {}
-unsafe impl Sync for HashedClient {}
 
 impl HashedClient {
     pub async fn new(client: nostr_sdk::Client) -> Self {
@@ -152,13 +150,13 @@ impl MultiClient {
         }
     }
 
-    pub fn register(&self, name: String, hc: HashedClient) {
-        let mut clients = self.clients.lock().unwrap();
+    pub async fn register(&self, name: String, hc: HashedClient) {
+        let mut clients = self.clients.lock().await;
         clients.insert(name, hc);
     }
 
-    pub fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
-        let mut clients = self.clients.lock().unwrap();
+    pub async fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
+        let mut clients = self.clients.lock().await;
         if let Some(client) = clients.remove(old_key) {
             clients.insert(new_key, client);
             Ok(())
@@ -167,30 +165,31 @@ impl MultiClient {
         }
     }
 
-    pub fn get_client(&self, name: &str) -> Option<HashedClient> {
-        let clients = self.clients.lock().unwrap();
+    pub async fn get_client(&self, name: &str) -> Option<HashedClient> {
+        let clients = self.clients.lock().await;
         clients.get(name).cloned()
     }
 
-    pub async fn get_or_create(&mut self, name: &str) -> Result<HashedClient, Error> {
-        match self.get_client(name) {
-            Some(client) => Ok(client),
-            None => {
-                let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
-                let db = WebDatabase::open(NOSTR_DB_NAME).await?;
-                let client_builder = ClientBuilder::new().database(db);
-                let client = client_builder.build();
-                let relay_set_info = database.get_relay_set(name.to_string()).await?;
-                // client.add_relays(relay_set_info.relays).await.unwrap();
-                // client.connect().await;
-                let mut hc = HashedClient::new(client).await;
-                let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
-                hc.add_relays(relays).await?;
-                self.register(name.to_string(), hc);
-                // The return type has been changed to remove Option
-                self.get_client(name).ok_or(Error::ClientNotFound)
+    pub async fn get_or_create(&self, name: &str) -> Result<HashedClient, Error> {
+        {
+            let clients = self.clients.lock().await;
+            if let Some(client) = clients.get(name) {
+                return Ok(client.clone());
             }
         }
+
+        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
+        let db = WebDatabase::open(NOSTR_DB_NAME).await?;
+        let client_builder = ClientBuilder::new().database(db);
+        let client = client_builder.build();
+        let relay_set_info = database.get_relay_set(name.to_string()).await?;
+
+        let mut hc = HashedClient::new(client).await;
+        let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
+        hc.add_relays(relays).await?;
+        self.register(name.to_string(), hc.clone()).await;
+
+        Ok(hc)
     }
 }
 
@@ -202,7 +201,9 @@ pub struct EventCache {
 impl EventCache {
     pub fn new(lifespan: u64, capacity: usize) -> Self {
         Self {
-            cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(lifespan, capacity))),
+            cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(
+                lifespan, capacity,
+            ))),
         }
     }
 
@@ -216,7 +217,7 @@ impl EventCache {
 
         // Lock the mutex to access the cache
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().await;
             if let Some(cached_result) = cache.cache_get(&query) {
                 return Ok(cached_result.clone());
             }
@@ -229,7 +230,7 @@ impl EventCache {
 
         // Lock the mutex to update the cache
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().await;
             cache.cache_set(query, result.clone());
         }
 
