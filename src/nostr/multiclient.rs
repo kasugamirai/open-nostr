@@ -55,6 +55,9 @@ pub struct HashedClient {
     hash: u64,
 }
 
+unsafe impl Send for HashedClient {}
+unsafe impl Sync for HashedClient {}
+
 impl HashedClient {
     pub async fn new(client: nostr_sdk::Client) -> Self {
         let hash = Self::_hash(&client).await;
