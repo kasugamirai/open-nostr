@@ -19,6 +19,6 @@ pub enum CBwebDatabaseError {
 
 impl From<DomException> for CBwebDatabaseError {
     fn from(e: DomException) -> Self {
-        CBwebDatabaseError::Dom(e.message().into())
+        CBwebDatabaseError::Dom(e.message())
     }
 }
