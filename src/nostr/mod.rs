@@ -4,4 +4,7 @@ pub mod note;
 mod publish;
 pub mod register;
 pub mod utils;
+pub use publish::new_channel;
 pub use publish::publish_text_note;
+pub use publish::reaction;
+pub use publish::repost;
