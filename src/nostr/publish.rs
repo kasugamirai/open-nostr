@@ -3,9 +3,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Client error: {0}")]
+    #[error(transparent)]
     Client(#[from] nostr_sdk::client::Error),
-    #[error("Signer error: {0}")]
+    #[error(transparent)]
     Singer(#[from] nostr_sdk::signer::Error),
 }
 
