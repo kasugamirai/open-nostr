@@ -216,8 +216,8 @@ impl CBWebDatabase {
                 .map_err(CBwebDatabaseError::DeserializationError)?;
 
             // Update the name
-            relay_set.name = new_relay_set.name.clone();
-            relay_set.relays = new_relay_set.relays.clone();
+            relay_set.name.clone_from(&new_relay_set.name);
+            relay_set.relays.clone_from(&new_relay_set.relays);
             relay_set_value =
                 to_value(&relay_set).map_err(CBwebDatabaseError::DeserializationError)?;
 
@@ -236,7 +236,7 @@ impl CBWebDatabase {
                 from_value(sub_value.clone()).map_err(CBwebDatabaseError::DeserializationError)?;
 
             if custom_sub.relay_set == old_name {
-                custom_sub.relay_set = new_relay_set.name.clone();
+                custom_sub.relay_set.clone_from(&new_relay_set.name);
                 let updated_sub_value =
                     to_value(&custom_sub).map_err(CBwebDatabaseError::DeserializationError)?;
 
