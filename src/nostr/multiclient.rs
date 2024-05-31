@@ -1,5 +1,4 @@
 use cached::{Cached, TimedCache};
-use core::fmt;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::collections::HashMap;

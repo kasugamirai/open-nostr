@@ -256,7 +256,7 @@ impl ReplyTreeManager {
     pub fn get_or_create_tree(&mut self, root_id: EventId) -> &mut ReplyTrees {
         if !self.trees.contains_key(&root_id) {
             let new_tree = ReplyTrees::default();
-            self.add_tree(root_id.clone(), new_tree);
+            self.add_tree(root_id, new_tree);
         }
         self.trees.get_mut(&root_id).unwrap()
     }
@@ -270,7 +270,7 @@ impl ReplyTreeManager {
     }
 
     pub fn accept_event(&mut self, root_id: EventId, events: Vec<Event>) {
-        let tree = self.get_or_create_tree(root_id.clone());
+        let tree = self.get_or_create_tree(root_id);
         tree.accept(events).unwrap();
     }
 
@@ -278,7 +278,7 @@ impl ReplyTreeManager {
     where
         F: FnOnce(&mut ReplyTrees, Event),
     {
-        let tree = self.get_or_create_tree(root_id.clone());
+        let tree = self.get_or_create_tree(*root_id);
         modify(tree, event);
     }
 }
