@@ -1,4 +1,3 @@
-use anyhow::Result;
 use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
@@ -8,6 +7,25 @@ use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::time::Duration;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    Client(#[from] nostr_sdk::client::Error),
+    #[error(transparent)]
+    Metadata(#[from] nostr_sdk::types::metadata::Error),
+    #[error(transparent)]
+    IndexDb(#[from] nostr_indexeddb::IndexedDBError),
+    #[error(transparent)]
+    Decrypt(#[from] nostr_sdk::nips::nip04::Error),
+    #[error(transparent)]
+    Signer(#[from] nostr_sdk::signer::Error),
+    #[error(transparent)]
+    Database(#[from] nostr_indexeddb::database::DatabaseError),
+    #[error("error: {0}")]
+    Other(String),
+}
 
 macro_rules! create_encrypted_filters {
     ($kind:expr, $author:expr, $public_key:expr) => {{
@@ -89,7 +107,7 @@ impl<'a> EventPaginator<'a> {
             .all(|event| self.last_event_ids.contains(&event.id))
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>>> {
+    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
         if self.done {
             return None;
         }
@@ -134,14 +152,14 @@ impl<'a> EventPaginator<'a> {
             }
             Err(e) => {
                 self.done = true;
-                Some(Err(anyhow::anyhow!("Error fetching events: {:?}", e)))
+                Some(Err(Error::Other(e.to_string())))
             }
         }
     }
 }
 
 impl<'a> Stream for EventPaginator<'a> {
-    type Item = Result<Vec<Event>>;
+    type Item = Result<Vec<Event>, Error>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -169,7 +187,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
-    ) -> Result<DecryptedMsgPaginator<'a>> {
+    ) -> Result<DecryptedMsgPaginator<'a>, Error> {
         let public_key = signer.public_key().await?;
 
         let (me, target) =
@@ -184,7 +202,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         })
     }
 
-    async fn decrypt_dm_event(&self, event: &Event) -> Result<String> {
+    async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
         let msg = self
             .signer
             .nip04_decrypt(self.target_pub_key, &event.content)
@@ -192,7 +210,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         Ok(msg)
     }
 
-    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>> {
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
         let futures = events.into_iter().map(|event| {
             let self_ref = self;
             async move {
@@ -210,7 +228,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         futures::future::try_join_all(futures).await
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>>> {
+    pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>, Error>> {
         if self.paginator.done {
             return None;
         }
@@ -228,7 +246,7 @@ pub async fn get_event_by_id(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Option<Event>> {
+) -> Result<Option<Event>, Error> {
     let filter = Filter::new().id(*event_id).limit(1);
     let events = client.get_events_of(vec![filter], timeout).await?;
     Ok(events.into_iter().next())
@@ -238,7 +256,7 @@ pub async fn get_events_by_ids(
     client: &Client,
     event_ids: &[EventId],
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>> {
+) -> Result<Vec<Event>, Error> {
     let filters: Vec<Filter> = event_ids.iter().map(|id| Filter::new().id(*id)).collect();
     let events = client.get_events_of(filters, timeout).await?;
     Ok(events)
@@ -248,7 +266,7 @@ pub async fn get_metadata(
     client: &Client,
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
-) -> Result<Metadata> {
+) -> Result<Metadata, Error> {
     let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
     let events = client.get_events_of(vec![filter], timeout).await?;
     if let Some(event) = get_newest_event(&events) {
@@ -256,7 +274,7 @@ pub async fn get_metadata(
         client.database().save_event(event).await.unwrap();
         Ok(metadata)
     } else {
-        Err(anyhow::anyhow!("No metadata found"))
+        Err(Error::Other("No metadata found".to_string()))
     }
 }
 
@@ -264,7 +282,7 @@ pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<HashMap<String, i32>> {
+) -> Result<HashMap<String, i32>, Error> {
     let reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
@@ -285,7 +303,7 @@ pub async fn get_replies(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>> {
+) -> Result<Vec<Event>, Error> {
     let filter = Filter::new().kind(Kind::TextNote).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
@@ -295,7 +313,10 @@ pub async fn get_replies(
     Ok(events)
 }
 
-pub async fn query_events_from_db(client: &Client, filters: Vec<Filter>) -> Result<Vec<Event>> {
+pub async fn query_events_from_db(
+    client: &Client,
+    filters: Vec<Filter>,
+) -> Result<Vec<Event>, Error> {
     let events = client.database().query(filters, Order::Desc).await?;
     Ok(events)
 }

@@ -13,41 +13,18 @@ use crate::store::{self, CBWebDatabase, CAPYBASTR_DBNAME};
 
 use super::utils::hash_filter;
 
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum Error {
-    Client(nostr_sdk::client::Error),
-    Store(store::error::CBwebDatabaseError),
-    IndexDb(nostr_indexeddb::IndexedDBError),
+    #[error("Client error: {0}")]
+    Client(#[from] nostr_sdk::client::Error),
+    #[error("Store error: {0}")]
+    Store(#[from] store::error::CBwebDatabaseError),
+    #[error("IndexDb error: {0}")]
+    IndexDb(#[from] nostr_indexeddb::IndexedDBError),
+    #[error("Client not found")]
     ClientNotFound,
-}
-
-impl From<nostr_indexeddb::IndexedDBError> for Error {
-    fn from(e: nostr_indexeddb::IndexedDBError) -> Self {
-        Error::IndexDb(e)
-    }
-}
-
-impl From<nostr_sdk::client::Error> for Error {
-    fn from(e: nostr_sdk::client::Error) -> Self {
-        Error::Client(e)
-    }
-}
-
-impl From<store::error::CBwebDatabaseError> for Error {
-    fn from(e: store::error::CBwebDatabaseError) -> Self {
-        Error::Store(e)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Client(e) => write!(f, "Client error: {}", e),
-            Error::Store(e) => write!(f, "Store error: {}", e),
-            Error::IndexDb(e) => write!(f, "IndexDb error: {}", e),
-            Error::ClientNotFound => write!(f, "Client not found"),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

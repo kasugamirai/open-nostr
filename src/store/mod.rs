@@ -333,7 +333,7 @@ impl CBWebDatabase {
                 .transaction_on_one_with_mode(CUSTOM_SUB_CF, IdbTransactionMode::Readwrite)
                 .map_err(|e| {
                     tracing::error!("Failed to start transaction: {:?}", e);
-                    CBwebDatabaseError::Dom(e)
+                    CBwebDatabaseError::Dom(e.to_string().into())
                 })?;
 
             let store = tx.object_store(CUSTOM_SUB_CF)?;
@@ -341,12 +341,12 @@ impl CBWebDatabase {
 
             store.put_val(&value).map_err(|e| {
                 tracing::error!("Failed to put value in store: {:?}", e);
-                CBwebDatabaseError::Dom(e)
+                CBwebDatabaseError::Dom(e.to_string().into())
             })?;
 
             tx.await.into_result().map_err(|e| {
                 tracing::error!("Transaction failed: {:?}", e);
-                CBwebDatabaseError::Dom(e)
+                CBwebDatabaseError::Dom(e.to_string().into())
             })?;
         }
         Ok(())

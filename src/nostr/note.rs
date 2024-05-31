@@ -5,27 +5,21 @@ use indextree::{Arena, NodeId};
 use nostr_sdk::nips::nip10::Marker;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
 use nostr_sdk::{SingleLetterTag, TagStandard};
-use std::fmt;
 
 use super::utils::{self, get_children};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Error {
-    KindNotMatch,
-    NotEnoughElements,
-    NormalizationFailed,
-    NodeIdNotFound,
-}
+use thiserror::Error;
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::KindNotMatch => write!(f, "Kind does not match"),
-            Error::NotEnoughElements => write!(f, "Not enough elements in no_marker_array"),
-            Error::NormalizationFailed => write!(f, "Normalization failed"),
-            Error::NodeIdNotFound => write!(f, "Node ID not found"),
-        }
-    }
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum Error {
+    #[error("Kind does not match")]
+    KindNotMatch,
+    #[error("Not enough elements in no_marker_array")]
+    NotEnoughElements,
+    #[error("Normalization failed")]
+    NormalizationFailed,
+    #[error("Node ID not found")]
+    NodeIdNotFound,
 }
 
 #[derive(Debug, Clone, PartialEq)]
