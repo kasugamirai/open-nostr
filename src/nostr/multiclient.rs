@@ -308,7 +308,7 @@ mod tests {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
         let _ = hashed_client.add_relay("wss://relay.damus.io").await;
-        let mut multi_client = MultiClient::new();
+        let multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
             "npub1xtscya34g58tk0z605fvr788k263gsu6cy9x0mhnm87echrgufzsevkk5s",
@@ -324,7 +324,7 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
-        let mut cache = EventCache::new(30, 300);
+        let cache = EventCache::new(30, 300);
 
         for _ in 0..100 {
             let result1 = cache
