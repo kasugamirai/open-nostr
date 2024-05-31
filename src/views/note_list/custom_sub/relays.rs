@@ -279,7 +279,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                     value: current_relay_set.name,
                                     oninput: move |event| {
                                         let mut _relay_sets = relay_sets.write();
-                                        _relay_sets[relay_curent_index()].name = event.value().clone();
+                                        _relay_sets[relay_curent_index()].name.clone_from(&event.value());
                                     }
                                 }
                                 button {
@@ -316,7 +316,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                         placeholder: "wss://",
                                         oninput: move |event| {
                                             let mut _relay_sets = relay_sets.write();
-                                            _relay_sets[relay_curent_index()].relays[i] = event.value().clone();
+                                            _relay_sets[relay_curent_index()].relays[i].clone_from(&event.value());
                                         }
                                     }
                                     button {
@@ -357,7 +357,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                                 alert("Relay already exists".to_string()).await;
                                             });
                                         } else {
-                                            relay_sets.write()[relay_curent_index()].relays.push((new_relay.clone())());
+                                            relay_sets.write()[relay_curent_index()].relays.push(new_relay());
                                             new_relay.set(String::new());
                                         }
                                         //  current_relay_set.relays.push(new_relay.clone());
@@ -409,7 +409,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                             value: current_relay_set.name,
                             oninput: move |event| {
                                 let mut _relay_sets = relay_sets.write();
-                                _relay_sets[relay_curent_index()].name = event.value().clone();
+                                _relay_sets[relay_curent_index()].name.clone_from(&event.value());
                             }
                         }
                         button {
@@ -420,7 +420,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                             dangerous_inner_html: "{TRUE}"
                         }
 
-                        if (current_relay_set.name != DEFAULT_RELAY_SET_KEY){
+                        if current_relay_set.name != DEFAULT_RELAY_SET_KEY {
                           button {
                             class: "btn-circle btn-circle-false flex-right ml-5",
                             onclick: move |_| {
@@ -458,7 +458,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                 placeholder: "wss://",
                                 oninput: move |event| {
                                     let mut _relay_sets = relay_sets.write();
-                                    _relay_sets[relay_curent_index()].relays[i] = event.value().clone();
+                                    _relay_sets[relay_curent_index()].relays[i].clone_from(&event.value());
                                 }
                             }
                             button {
@@ -489,7 +489,6 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                             class: "btn-icon add relay-url-add flex-right",
                             onclick: move |_| {
                                 if new_relay().is_empty() {
-                                    return;
                                 } else if !wss_regx.is_match(&new_relay()) {
                                     spawn(async move {
                                         alert("Invalid URL".to_string()).await;
@@ -499,7 +498,7 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                         alert("Relay already exists".to_string()).await;
                                     });
                                 } else {
-                                    relay_sets.write()[relay_curent_index()].relays.push((new_relay.clone())());
+                                    relay_sets.write()[relay_curent_index()].relays.push(new_relay());
                                     new_relay.set(String::new());
                                 }
                                 //  current_relay_set.relays.push(new_relay.clone());
