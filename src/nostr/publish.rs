@@ -1,5 +1,9 @@
+use bitcoin::hashes::sha256::Hash as Sha256Hash;
 use nostr_sdk::{
-    self, Client, Event, EventBuilder, EventId, Metadata, NostrSigner, Tag, Timestamp, UncheckedUrl,
+    self, bitcoin,
+    nips::{nip65::RelayMetadata, nip94::FileMetadata},
+    Client, Contact, Event, EventBuilder, EventId, Metadata, NostrSigner, PublicKey, Tag,
+    Timestamp, UncheckedUrl, Url,
 };
 use thiserror::Error;
 
@@ -58,8 +62,94 @@ pub async fn new_channel(
     Ok(eid)
 }
 
+pub async fn set_channel_metadata(
+    client: &Client,
+    signer: NostrSigner,
+    channel_id: EventId,
+    metadata: &Metadata,
+    url: Option<Url>,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::channel_metadata(channel_id, url, metadata);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
+pub async fn send_channel_msg(
+    client: &Client,
+    signer: NostrSigner,
+    channel_id: EventId,
+    msg: &str,
+    relay_url: Url,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::channel_msg(channel_id, relay_url, msg);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
+pub async fn file_metadata(
+    client: &Client,
+    signer: NostrSigner,
+    metadata: FileMetadata,
+    description: &str,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::file_metadata(description, metadata);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
+pub async fn send_private_msg(
+    client: &Client,
+    signer: NostrSigner,
+    receiver: PublicKey,
+    message: &str,
+    reply_to: Option<EventId>,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::private_msg_rumor(receiver, message, reply_to);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
+pub async fn delete_event(
+    client: &Client,
+    signer: NostrSigner,
+    event_ids: Vec<EventId>,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::delete(event_ids);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
+pub async fn set_relay_list(
+    client: &Client,
+    signer: NostrSigner,
+    relays: Vec<(Url, Option<RelayMetadata>)>,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::relay_list(relays);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
+pub async fn set_contact_list(
+    client: &Client,
+    signer: NostrSigner,
+    contacts: Vec<Contact>,
+) -> Result<EventId, Error> {
+    let builder = EventBuilder::contact_list(contacts);
+    let event = signer.sign_event_builder(builder).await?;
+    let eid = client.send_event(event).await?;
+    Ok(eid)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
     use nostr_sdk::{EventId, Filter, FromBech32, Keys, SecretKey, ToBech32};
     use wasm_bindgen_test::*;
@@ -139,6 +229,149 @@ mod tests {
         let metadata = Metadata::new();
         client.connect().await;
         let result = new_channel(&client, signer, &metadata).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_set_channel_metadata() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let metadata = Metadata::new();
+        let channel_id =
+            EventId::from_bech32("note1zlsz37aggmsc2nfzqjdsdw77qwyfqm3erxag5f75nz8tndkvs0uqllhywm")
+                .unwrap();
+        client.connect().await;
+        let result = set_channel_metadata(&client, signer, channel_id, &metadata, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_send_channel_msg() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let channel_id =
+            EventId::from_bech32("note1zlsz37aggmsc2nfzqjdsdw77qwyfqm3erxag5f75nz8tndkvs0uqllhywm")
+                .unwrap();
+        let url = Url::parse("wss://relay.damus.io").unwrap();
+        client.connect().await;
+        let result = send_channel_msg(&client, signer, channel_id, "Hello, world!", url).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_file_metadata() {
+        const IMAGE_URL: &str = "https://image.nostr.build/99a95fcb4b7a2591ad32467032c52a62d90a204d3b176bc2459ad7427a3f2b89.jpg";
+        const IMAGE_HASH: &str = "1aea8e98e0e5d969b7124f553b88dfae47d1f00472ea8c0dbf4ac4577d39ef02";
+        let url = Url::parse(IMAGE_URL).unwrap();
+        let hash = Sha256Hash::from_str(IMAGE_HASH).unwrap();
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let metadata = FileMetadata::new(url, "image/jpeg", hash);
+        client.connect().await;
+        let result = file_metadata(&client, signer, metadata, "Hello, world!").await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_send_private_msg() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let receiver = PublicKey::from_bech32(
+            "npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew",
+        )
+        .unwrap();
+        client.connect().await;
+        let result = send_private_msg(&client, signer, receiver, "Hello, world!", None).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_delete_event() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let event_id =
+            EventId::from_bech32("note1zlsz37aggmsc2nfzqjdsdw77qwyfqm3erxag5f75nz8tndkvs0uqllhywm")
+                .unwrap();
+        client.connect().await;
+        let result = delete_event(&client, signer, vec![event_id]).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_set_relay_list() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let relays = vec![
+            (
+                Url::parse("wss://relay.damus.io").unwrap(),
+                Some(RelayMetadata::Read),
+            ),
+            (
+                Url::parse("wss://relay.damus.io").unwrap(),
+                Some(RelayMetadata::Write),
+            ),
+        ];
+        client.connect().await;
+        let result = set_relay_list(&client, signer, relays).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_set_contact_list() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qrypzwmxp8r54ctx2x7mhqzh5exca7xd8ssnlfup0js9l6pwku3qacq4u3",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        let contacts = vec![Contact::new(
+            PublicKey::from_bech32(
+                "npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew",
+            )
+            .unwrap(),
+            None,
+            None::<&str>,
+        )];
+        client.connect().await;
+        let result = set_contact_list(&client, signer, contacts).await;
         assert!(result.is_ok());
     }
 }
