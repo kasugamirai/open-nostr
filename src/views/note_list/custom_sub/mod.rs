@@ -13,9 +13,10 @@ use dioxus::prelude::*;
 use regex::Regex;
 
 use crate::{
-    components::{icons::*, DateTimePicker, Dropdown, Switch}, store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag}, 
-    utils::{contants::NUM_AND_LETTER_REG, js::alert}, Route
-    // utils::js::{export_to_clipboard, import_from_clipboard},
+    components::{icons::*, DateTimePicker, Dropdown, Switch},
+    store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+    utils::{contants::NUM_AND_LETTER_REG, js::alert},
+    Route, // utils::js::{export_to_clipboard, import_from_clipboard},
 };
 use account::AccountInput;
 use add_filter::AddFilter;
@@ -90,7 +91,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     let handle_change_replyset = move |v: RelaySet| {
         {
             let mut sub: Write<CustomSub, UnsyncStorage> = sub_current.write();
-            sub.relay_set = v.name.clone();
+            sub.relay_set.clone_from(&v.name);
         }
         {
             let sub = sub_current();

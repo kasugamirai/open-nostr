@@ -13,37 +13,29 @@ extern "C" {
     fn log(s: &str);
 }
 
-
-
-
 #[component]
 pub fn Message(content: String) -> Element {
-  // let mut str = use_signal(||String::from(""));
-  // str.set(content.clone());
-  
+    // let mut str = use_signal(||String::from(""));
+    // str.set(content.clone());
 
-  if content != "" {
+    if !content.is_empty() {
+        let closure: Closure<dyn FnMut()> = Closure::wrap(Box::new(|| {
+            // content.set("");
+            log("清空")
+        }) as Box<dyn FnMut()>);
 
-    let closure: Closure<dyn FnMut()> = Closure::wrap(Box::new(|| {
-      // content.set("");
-      log("清空")
-    }) as Box<dyn FnMut()>);
+        setTimeout(&closure, 2000);
 
-    setTimeout(&closure, 2000);
+        closure.forget();
 
-    closure.forget();
+        rsx! {
+          div {
+              class: "message-content font-size-16 lh-20",
+              {content}
 
-    rsx! {
-      div {
-          class: "message-content font-size-16 lh-20",
-          {content}
-            
+            }
         }
+    } else {
+        rsx! {}
     }
-  }else{
-    rsx! {
-      
-    }
-  }
-  
 }

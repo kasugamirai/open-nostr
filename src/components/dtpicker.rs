@@ -30,8 +30,8 @@ pub struct DateTimePickerProps {
 pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
     let mut start_signal = use_signal(|| props.value);
     let mut end_signal = use_signal(|| props.end);
-    let mut start_value = use_signal(|| String::new());
-    let mut end_value = use_signal(|| String::new());
+    let mut start_value = use_signal(String::new);
+    let mut end_value = use_signal(String::new);
 
     use_effect(use_reactive(
         (&props.value, &props.end),
@@ -58,7 +58,7 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
                 value: "{start_value}",
                 oninput: move |event| {
                     let v = event.value();
-                    if v.len() == 0 {
+                    if v.is_empty() {
                         start_signal.set(0);
                         props.on_change.call((start_signal(), end_signal()));
                     } else {
@@ -87,7 +87,7 @@ pub fn DateTimePicker(props: DateTimePickerProps) -> Element {
                   value: "{end_value}",
                   oninput: move |event| {
                       let v = event.value();
-                      if v.len() == 0 {
+                      if v.is_empty() {
                           end_signal.set(0);
                           props.on_change.call((start_signal(), end_signal()));
                       } else {

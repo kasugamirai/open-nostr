@@ -14,7 +14,7 @@ pub fn Switch(props: SwitchProps) -> Element {
 
     // update value when parent data has changed
     use_effect(use_reactive((&props.value,), move |(v,)| {
-        value.set(v.clone());
+        value.set(v);
     }));
 
     rsx! {
