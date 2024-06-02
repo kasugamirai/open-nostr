@@ -33,7 +33,7 @@ pub fn Reply(props: ReplyProps) -> Element {
     });
     let multiclient = use_context::<Signal<MultiClient>>();
     use_effect(use_reactive(&event, move |_| {
-        let mut root_rsx = root_rsx.clone();
+        let mut root_rsx = root_rsx;
         // let sub_name = props.sub_name.clone();
         let relay_name = props.relay_name.clone();
         let eventid = text_note.get_root().unwrap();

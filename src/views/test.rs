@@ -4,7 +4,6 @@ use dioxus::prelude::*;
 
 use nostr_sdk::prelude::*;
 
-
 #[derive(Debug, Clone)]
 pub struct Clients {
     clients: HashMap<String, Client>,
@@ -77,7 +76,7 @@ pub fn Test(id: i32) -> Element {
 pub fn Children(name: String) -> Element {
     let clients = use_context::<Signal<Clients>>();
 
-    let mut events = use_signal(|| vec![]);
+    let mut events = use_signal(std::vec::Vec::new);
 
     let n = name.clone();
 
