@@ -107,9 +107,9 @@ impl<'a> EventPaginator<'a> {
             .all(|event| self.last_event_ids.contains(&event.id))
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
+    pub async fn next_page(&mut self) -> Result<Vec<Event>, Error> {
         if self.done {
-            return None;
+            return Ok(vec![]);
         }
 
         // Update filters with the oldest timestamp and limit
@@ -126,35 +126,25 @@ impl<'a> EventPaginator<'a> {
             })
             .collect::<Vec<_>>();
 
-        // Fetch events
-        match self
+        let events = self
             .client
             .get_events_of(updated_filters.clone(), self.timeout)
-            .await
-        {
-            Ok(events) => {
-                if events.is_empty() || self.are_all_event_ids_present(&events) {
-                    self.done = true;
-                    return None;
-                }
+            .await?;
 
-                // Update the oldest timestamp
-                if let Some(oldest_event) = get_oldest_event(&events) {
-                    self.oldest_timestamp = Some(oldest_event.created_at());
-                }
-
-                // Update the filters
-                self.filters = updated_filters;
-
-                self.last_event_ids = events.iter().map(|event| event.id).collect();
-
-                Some(Ok(events))
-            }
-            Err(e) => {
-                self.done = true;
-                Some(Err(Error::Other(e.to_string())))
-            }
+        if events.is_empty() || self.are_all_event_ids_present(&events) {
+            self.done = true;
+            return Ok(vec![]);
         }
+
+        // Update the oldest timestamp
+        if let Some(oldest_event) = get_oldest_event(&events) {
+            self.oldest_timestamp = Some(oldest_event.created_at());
+        }
+
+        // Update the filters
+        self.filters = updated_filters;
+        self.last_event_ids = events.iter().map(|event| event.id).collect();
+        Ok(events)
     }
 }
 
@@ -168,7 +158,7 @@ impl<'a> Stream for EventPaginator<'a> {
         let fut = self.next_page();
         futures::pin_mut!(fut);
         match fut.poll(cx) {
-            std::task::Poll::Ready(res) => std::task::Poll::Ready(res),
+            std::task::Poll::Ready(res) => std::task::Poll::Ready(Some(res)),
             std::task::Poll::Pending => std::task::Poll::Pending,
         }
     }
@@ -233,7 +223,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
             return None;
         }
 
-        if let Some(Ok(events)) = self.paginator.next_page().await {
+        if let Ok(events) = self.paginator.next_page().await {
             let decrypt_results = self.convert_events(events).await;
             return Some(decrypt_results);
         }
@@ -450,7 +440,8 @@ mod tests {
         let mut paginator = EventPaginator::new(&client, vec![filter], timeout, page_size);
 
         let mut count = 0;
-        while let Some(result) = paginator.next_page().await {
+        loop {
+            let result = paginator.next_page().await;
             match result {
                 Ok(events) => {
                     if paginator.done {
@@ -465,7 +456,6 @@ mod tests {
                 }
             }
         }
-
         assert!(count > 100);
     }
 
