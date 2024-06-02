@@ -33,10 +33,10 @@ pub fn Avatar(props: AvatarProps) -> Element {
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
             spawn({
-                let multiclient = multiclient.clone();
-                let event_cache = event_cache.clone();
-                let mut nickname = nickname.clone();
-                let mut avatar = avatar.clone();
+                let multiclient = multiclient;
+                let event_cache = event_cache;
+                let mut nickname = nickname;
+                let mut avatar = avatar;
                 async move {
                     let hc_client = {
                         let multiclient = multiclient.read();
