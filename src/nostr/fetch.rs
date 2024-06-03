@@ -1,3 +1,5 @@
+use super::utils::get_newest_event;
+use super::utils::get_oldest_event;
 use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
@@ -309,14 +311,6 @@ pub async fn query_events_from_db(
 ) -> Result<Vec<Event>, Error> {
     let events = client.database().query(filters, Order::Desc).await?;
     Ok(events)
-}
-
-pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().max_by_key(|event| event.created_at())
-}
-
-pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().min_by_key(|event| event.created_at())
 }
 
 #[cfg(test)]

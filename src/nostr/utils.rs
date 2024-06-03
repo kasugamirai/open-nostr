@@ -1,8 +1,8 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use indextree::{Arena, NodeId};
+use nostr_sdk::{Event, EventId, FromBech32, PublicKey};
 use serde::Serialize;
-use nostr_sdk::{EventId, FromBech32, PublicKey};
 
 /// Utility function to get all children of a specified node in an Arena.
 ///
@@ -68,11 +68,19 @@ pub fn is_note_address(address: &str) -> AddressType {
         let is_mention = id.starts_with("npub") && PublicKey::from_bech32(id).is_ok();
         tracing::info!("is_note: {:#?} {}", is_note, id);
         tracing::info!("is_mention: {:#?} {}", is_mention, id);
-         if is_note {
+        if is_note {
             return AddressType::Note;
         } else if is_mention {
             return AddressType::Mention;
         }
     }
     AddressType::Nostr
+}
+
+pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
+    events.iter().max_by_key(|event| event.created_at())
+}
+
+pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
+    events.iter().min_by_key(|event| event.created_at())
 }

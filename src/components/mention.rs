@@ -2,10 +2,7 @@ use dioxus::prelude::*;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Filter, JsonUtil, Kind, Metadata, PublicKey};
 
-use crate::nostr::{
-    fetch::{get_metadata, get_newest_event},
-    multiclient::MultiClient,
-};
+use crate::nostr::{fetch::get_metadata, multiclient::MultiClient, utils::get_newest_event};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct MentionProps {

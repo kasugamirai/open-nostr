@@ -4,8 +4,8 @@ use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
 
 use crate::{
     nostr::{
-        fetch::{get_metadata, get_newest_event},
         multiclient::{EventCache, MultiClient},
+        utils::get_newest_event,
     },
     utils::format::format_create_at,
 };
