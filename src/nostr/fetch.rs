@@ -15,7 +15,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::Mutex as TokioMutex;
-use wasm_bindgen_test::console_log;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -365,7 +364,6 @@ pub async fn get_followers(
                         if sub_id == sub_id_1 {
                             let author = event.author().to_hex();
                             let mut followers_set = followers_set.lock().await;
-                            console_log!("{}", followers_set.len());
                             followers_set.insert(author);
                         }
                     }
