@@ -332,6 +332,23 @@ pub async fn get_following(
     Ok(ret)
 }
 
+pub async fn get_followers(
+    client: &Client,
+    public_key: &PublicKey,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<String>, Error> {
+    let filter = Filter::new().kind(Kind::ContactList).custom_tag(
+        SingleLetterTag::lowercase(Alphabet::P),
+        vec![public_key.to_hex()],
+    );
+    let events = client.get_events_of(vec![filter], timeout).await?;
+    let ret: Vec<String> = events
+        .into_iter()
+        .map(|event| event.author().to_hex())
+        .collect();
+    Ok(ret)
+}
+
 pub async fn query_events_from_db(
     client: &Client,
     filters: Vec<Filter>,
@@ -538,5 +555,22 @@ mod tests {
         let following = get_following(&client, &public_key, timeout).await.unwrap();
         console_log!("following: {:?}", following);
         assert!(!following.is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_followers() {
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        let public_key = PublicKey::from_bech32(
+            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+        )
+        .unwrap();
+
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let followers = get_followers(&client, &public_key, timeout).await.unwrap();
+        console_log!("followers: {:?}", followers);
+        assert!(!followers.is_empty());
     }
 }
