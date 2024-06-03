@@ -2,6 +2,8 @@ use super::utils::get_newest_event;
 use super::utils::get_oldest_event;
 use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
+use nostr_sdk::base64::alphabet;
+use nostr_sdk::TagKind;
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -10,6 +12,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::time::Duration;
 use thiserror::Error;
+use wasm_bindgen_test::console_log;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -305,6 +308,30 @@ pub async fn get_replies(
     Ok(events)
 }
 
+pub async fn get_following(
+    client: &Client,
+    public_key: &PublicKey,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<String>, Error> {
+    let filter = Filter::new().kind(Kind::ContactList).author(*public_key);
+    let events = client.get_events_of(vec![filter], timeout).await?;
+    let mut ret: Vec<String> = vec![];
+    if let Some(latest_event) = events.iter().max_by_key(|event| event.created_at()) {
+        for tag in latest_event.tags() {
+            if let TagKind::SingleLetter(SingleLetterTag {
+                character: Alphabet::P,
+                uppercase: false,
+            }) = tag.kind()
+            {
+                if let Some(content) = tag.content() {
+                    ret.push(content.to_string());
+                }
+            }
+        }
+    }
+    Ok(ret)
+}
+
 pub async fn query_events_from_db(
     client: &Client,
     filters: Vec<Filter>,
@@ -494,5 +521,22 @@ mod tests {
             }
         }
         assert!(count > 7);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_following() {
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        let public_key = PublicKey::from_bech32(
+            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+        )
+        .unwrap();
+
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let following = get_following(&client, &public_key, timeout).await.unwrap();
+        console_log!("following: {:?}", following);
+        assert!(!following.is_empty());
     }
 }
