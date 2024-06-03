@@ -33,52 +33,55 @@ pub fn Reply(props: ReplyProps) -> Element {
     });
     let multiclient = use_context::<Signal<MultiClient>>();
     use_effect(use_reactive(&event, move |_| {
-        let mut root_rsx = root_rsx.clone();
+        let mut root_rsx = root_rsx;
         // let sub_name = props.sub_name.clone();
         let relay_name = props.relay_name.clone();
         let eventid = text_note.get_root().unwrap();
 
         spawn(async move {
             let clients = multiclient();
-            let client = clients.get_client(&relay_name).unwrap();
-            match get_event_by_id(&client.client(), &eventid, None).await {
-                Ok(root) => {
-                    if let Some(root_event) = root {
-                        root_rsx.set(rsx! {
-                            div {
-                                class: "quote flex items-center display-flex-box items-center",
+            if let Some(client) = clients.get_client(&relay_name).await {
+                match get_event_by_id(&client.client(), &eventid, None).await {
+                    Ok(root) => {
+                        if let Some(root_event) = root {
+                            root_rsx.set(rsx! {
                                 div {
-                                    class:"font-weight-bold display-flex-box items-center justify-content-center w-52",
-                                    "Re:"
-                                }
-                                div {
-                                   class:"qt-text",
-                                   Avatar {
-                                        pubkey: root_event.author(),
-                                        timestamp: root_event.created_at().as_u64(),
-                                        relay_name: relay_name.clone(),
+                                    class: "quote flex items-center display-flex-box items-center",
+                                    div {
+                                        class:"font-weight-bold display-flex-box items-center justify-content-center w-52",
+                                        "Re:"
                                     }
                                     div {
-                                        class:"relative qt-text-content",
-                                        // two-line-truncate 
-                                        span{
-                                          class:"re-text two-line-truncate relative",
-                                          dangerous_inner_html: "{root_event.content()}"
+                                       class:"qt-text",
+                                       Avatar {
+                                            pubkey: root_event.author(),
+                                            timestamp: root_event.created_at().as_u64(),
+                                            relay_name: relay_name.clone(),
                                         }
-                                        span{
-                                          class:"more-show-style pl-4",
-                                          "show more"
+                                        div {
+                                            class:"relative qt-text-content",
+                                            // two-line-truncate
+                                            span{
+                                              class:"re-text two-line-truncate relative",
+                                              dangerous_inner_html: "{root_event.content()}"
+                                            }
+                                            span{
+                                              class:"more-show-style pl-4",
+                                              "show more"
+                                            }
+
                                         }
-                                        
                                     }
                                 }
-                            }
-                        })
+                            })
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("get_event_by_id error: {:?}", e);
                     }
                 }
-                Err(e) => {
-                    tracing::error!("get_event_by_id error: {:?}", e);
-                }
+            } else {
+                tracing::error!("client not found");
             }
         });
     }));

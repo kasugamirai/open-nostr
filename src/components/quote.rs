@@ -24,16 +24,27 @@ pub fn Quote(props: QouteProps) -> Element {
             }
         }
     });
-    use_effect(use_reactive((&props.event_id, &props.relay_name, &props.quote_nostr), move |(event_id, relay_name, quote_nostr)| {
-        spawn(async move {
-            let clients = multiclient();
-            let client = clients.get_client(&relay_name).unwrap();
-            match get_event_by_id(&client.client(), &event_id, None).await {
-                Ok(Some(event)) => {
-                    let pk = event.author();
-                    let content = event.content.to_string();
-                    let timestamp = event.created_at.as_u64();
-                    ele.set(rsx! {
+    use_effect(use_reactive(
+        (&props.event_id, &props.relay_name, &props.quote_nostr),
+        move |(event_id, relay_name, quote_nostr)| {
+            spawn(async move {
+                let clients = multiclient();
+                // Await the get_client function
+                let client = clients.get_client(&relay_name).await;
+                let client = if let Some(client) = client {
+                    client
+                } else {
+                    tracing::error!("client not found");
+                    return;
+                };
+
+                // Fetch the event by ID
+                match get_event_by_id(&client.client(), &event_id, None).await {
+                    Ok(Some(event)) => {
+                        let pk = event.author();
+                        let content = event.content.to_string();
+                        let timestamp = event.created_at.as_u64();
+                        ele.set(rsx! {
                         div {
                             class: "quote flex items-center display-flex-box items-center",
                             div {
@@ -61,29 +72,29 @@ pub fn Quote(props: QouteProps) -> Element {
                             }
                         }
                     });
+                    }
+                    Ok(None) => {
+                        tracing::info!("event not found");
+                        ele.set(rsx! {
+                            span {
+                                class: "pl-52",
+                                {quote_nostr}
+                            }
+                        });
+                    }
+                    Err(e) => {
+                        tracing::error!("{:?}", e);
+                        ele.set(rsx! {
+                            span {
+                                class: "pl-52",
+                                {quote_nostr}
+                            }
+                        });
+                    }
                 }
-                Ok(None) => {
-                    tracing::info!("event not found");
-                    ele.set(rsx! {
-                        span {
-                            class: "pl-52",
-                            {quote_nostr}
-                        }
-                    });
-                }
-                Err(e) => {
-                    tracing::error!("{:?}", e);
-                    ele.set(rsx! {
-                        span {
-                            class: "pl-52",
-                            {quote_nostr}
-                        }
-                    });
-                }
-            }
-        });
-    }));
-
+            });
+        },
+    ));
     rsx! {
         {ele}
     }

@@ -1,22 +1,32 @@
+use super::utils::get_newest_event;
+use super::utils::get_oldest_event;
 use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
-use nostr_sdk::nips::nip04;
-use nostr_sdk::{client, Metadata, Tag};
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
 use nostr_sdk::{JsonUtil, Timestamp};
+use nostr_sdk::{Metadata, Tag};
 use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::time::Duration;
+use thiserror::Error;
 
-macro_rules! impl_from_error {
-    ($src:ty, $variant:ident) => {
-        impl From<$src> for Error {
-            fn from(err: $src) -> Self {
-                Self::$variant(err)
-            }
-        }
-    };
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error(transparent)]
+    Client(#[from] nostr_sdk::client::Error),
+    #[error(transparent)]
+    Metadata(#[from] nostr_sdk::types::metadata::Error),
+    #[error(transparent)]
+    IndexDb(#[from] nostr_indexeddb::IndexedDBError),
+    #[error(transparent)]
+    Decrypt(#[from] nostr_sdk::nips::nip04::Error),
+    #[error(transparent)]
+    Signer(#[from] nostr_sdk::signer::Error),
+    #[error(transparent)]
+    Database(#[from] nostr_indexeddb::database::DatabaseError),
+    #[error("error: {0}")]
+    Other(String),
 }
 
 macro_rules! create_encrypted_filters {
@@ -35,36 +45,6 @@ macro_rules! create_encrypted_filters {
 }
 
 /// Error enum to represent possible errors in the application.
-#[derive(Debug)]
-pub enum Error {
-    Client(client::Error),
-    MetadataConversion(nostr_sdk::types::metadata::Error),
-    Database(nostr_indexeddb::IndexedDBError),
-    Decryptor(nip04::Error),
-    Signer(nostr_sdk::signer::Error),
-    NotFound,
-    UnableToSave,
-}
-
-impl_from_error!(nostr_sdk::signer::Error, Signer);
-impl_from_error!(nip04::Error, Decryptor);
-impl_from_error!(client::Error, Client);
-impl_from_error!(nostr_sdk::types::metadata::Error, MetadataConversion);
-impl_from_error!(nostr_indexeddb::IndexedDBError, Database);
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::Client(e) => write!(f, "Client error: {}", e),
-            Self::MetadataConversion(e) => write!(f, "Metadata conversion error: {}", e),
-            Self::Database(e) => write!(f, "Database error: {}", e),
-            Self::Decryptor(e) => write!(f, "Decryptor error: {}", e),
-            Self::Signer(e) => write!(f, "Signer error: {}", e),
-            Self::NotFound => write!(f, "Not found"),
-            Self::UnableToSave => write!(f, "Unable to save"),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct DecryptedMsg {
@@ -129,9 +109,9 @@ impl<'a> EventPaginator<'a> {
             .all(|event| self.last_event_ids.contains(&event.id))
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<Event>, Error>> {
+    pub async fn next_page(&mut self) -> Result<Vec<Event>, Error> {
         if self.done {
-            return None;
+            return Ok(vec![]);
         }
 
         // Update filters with the oldest timestamp and limit
@@ -148,35 +128,25 @@ impl<'a> EventPaginator<'a> {
             })
             .collect::<Vec<_>>();
 
-        // Fetch events
-        match self
+        let events = self
             .client
             .get_events_of(updated_filters.clone(), self.timeout)
-            .await
-        {
-            Ok(events) => {
-                if events.is_empty() || self.are_all_event_ids_present(&events) {
-                    self.done = true;
-                    return None;
-                }
+            .await?;
 
-                // Update the oldest timestamp
-                if let Some(oldest_event) = get_oldest_event(&events) {
-                    self.oldest_timestamp = Some(oldest_event.created_at());
-                }
-
-                // Update the filters
-                self.filters = updated_filters;
-
-                self.last_event_ids = events.iter().map(|event| event.id).collect();
-
-                Some(Ok(events))
-            }
-            Err(e) => {
-                self.done = true;
-                Some(Err(Error::Client(e)))
-            }
+        if events.is_empty() || self.are_all_event_ids_present(&events) {
+            self.done = true;
+            return Ok(vec![]);
         }
+
+        // Update the oldest timestamp
+        if let Some(oldest_event) = get_oldest_event(&events) {
+            self.oldest_timestamp = Some(oldest_event.created_at());
+        }
+
+        // Update the filters
+        self.filters = updated_filters;
+        self.last_event_ids = events.iter().map(|event| event.id).collect();
+        Ok(events)
     }
 }
 
@@ -190,7 +160,7 @@ impl<'a> Stream for EventPaginator<'a> {
         let fut = self.next_page();
         futures::pin_mut!(fut);
         match fut.poll(cx) {
-            std::task::Poll::Ready(res) => std::task::Poll::Ready(res),
+            std::task::Poll::Ready(res) => std::task::Poll::Ready(Some(res)),
             std::task::Poll::Pending => std::task::Poll::Pending,
         }
     }
@@ -255,7 +225,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
             return None;
         }
 
-        if let Some(Ok(events)) = self.paginator.next_page().await {
+        if let Ok(events) = self.paginator.next_page().await {
             let decrypt_results = self.convert_events(events).await;
             return Some(decrypt_results);
         }
@@ -296,7 +266,7 @@ pub async fn get_metadata(
         client.database().save_event(event).await.unwrap();
         Ok(metadata)
     } else {
-        Err(Error::NotFound)
+        Err(Error::Other("No metadata found".to_string()))
     }
 }
 
@@ -339,16 +309,8 @@ pub async fn query_events_from_db(
     client: &Client,
     filters: Vec<Filter>,
 ) -> Result<Vec<Event>, Error> {
-    let events = client.database().query(filters, Order::Desc).await;
-    events.map_err(|e| Error::Database(nostr_indexeddb::IndexedDBError::Database(e)))
-}
-
-pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().max_by_key(|event| event.created_at())
-}
-
-pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
-    events.iter().min_by_key(|event| event.created_at())
+    let events = client.database().query(filters, Order::Desc).await?;
+    Ok(events)
 }
 
 #[cfg(test)]
@@ -472,7 +434,8 @@ mod tests {
         let mut paginator = EventPaginator::new(&client, vec![filter], timeout, page_size);
 
         let mut count = 0;
-        while let Some(result) = paginator.next_page().await {
+        loop {
+            let result = paginator.next_page().await;
             match result {
                 Ok(events) => {
                     if paginator.done {
@@ -487,7 +450,6 @@ mod tests {
                 }
             }
         }
-
         assert!(count > 100);
     }
 

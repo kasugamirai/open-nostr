@@ -5,27 +5,21 @@ use indextree::{Arena, NodeId};
 use nostr_sdk::nips::nip10::Marker;
 use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
 use nostr_sdk::{SingleLetterTag, TagStandard};
-use std::fmt;
 
 use super::utils::{self, get_children};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Error {
-    KindNotMatch,
-    NotEnoughElements,
-    NormalizationFailed,
-    NodeIdNotFound,
-}
+use thiserror::Error;
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::KindNotMatch => write!(f, "Kind does not match"),
-            Error::NotEnoughElements => write!(f, "Not enough elements in no_marker_array"),
-            Error::NormalizationFailed => write!(f, "Normalization failed"),
-            Error::NodeIdNotFound => write!(f, "Node ID not found"),
-        }
-    }
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum Error {
+    #[error("Kind does not match")]
+    KindNotMatch,
+    #[error("Not enough elements in no_marker_array")]
+    NotEnoughElements,
+    #[error("Normalization failed")]
+    NormalizationFailed,
+    #[error("Node ID not found")]
+    NodeIdNotFound,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -262,7 +256,7 @@ impl ReplyTreeManager {
     pub fn get_or_create_tree(&mut self, root_id: EventId) -> &mut ReplyTrees {
         if !self.trees.contains_key(&root_id) {
             let new_tree = ReplyTrees::default();
-            self.add_tree(root_id.clone(), new_tree);
+            self.add_tree(root_id, new_tree);
         }
         self.trees.get_mut(&root_id).unwrap()
     }
@@ -276,7 +270,7 @@ impl ReplyTreeManager {
     }
 
     pub fn accept_event(&mut self, root_id: EventId, events: Vec<Event>) {
-        let tree = self.get_or_create_tree(root_id.clone());
+        let tree = self.get_or_create_tree(root_id);
         tree.accept(events).unwrap();
     }
 
@@ -284,7 +278,7 @@ impl ReplyTreeManager {
     where
         F: FnOnce(&mut ReplyTrees, Event),
     {
-        let tree = self.get_or_create_tree(root_id.clone());
+        let tree = self.get_or_create_tree(*root_id);
         modify(tree, event);
     }
 }

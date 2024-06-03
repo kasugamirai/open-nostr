@@ -31,7 +31,7 @@ pub fn Input(props: InputProps) -> Element {
 
     let nostr_name_reg = Regex::new(NUM_AND_LETTER_REG).unwrap();
     // cancel editing status when the parent does not allow editing
-    use_effect(use_reactive((&edit,), move |(mut edit,)| {
+    use_effect(use_reactive((&edit,), move |(edit,)| {
         if !edit() {
             value.set(bak());
         }

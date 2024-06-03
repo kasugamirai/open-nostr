@@ -2,10 +2,7 @@ use dioxus::prelude::*;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Filter, JsonUtil, Kind, Metadata, PublicKey};
 
-use crate::nostr::{
-    fetch::{get_metadata, get_newest_event},
-    multiclient::MultiClient,
-};
+use crate::nostr::{fetch::get_metadata, multiclient::MultiClient, utils::get_newest_event};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct MentionProps {
@@ -29,10 +26,10 @@ pub fn Mention(props: MentionProps) -> Element {
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
             let multiclient = multiclient();
-            if let Some(client) = multiclient.get_client(&relay_name) {
-                let client = client.client();
-                // client.send_event_builder(builder)
-                spawn(async move {
+            spawn(async move {
+                if let Some(client) = multiclient.get_client(&relay_name).await {
+                    let client = client.client();
+                    // client.send_event_builder(builder)
                     let filter = Filter::new().author(pubkey).kind(Kind::Metadata);
                     let event_result = client
                         .database()
@@ -65,8 +62,10 @@ pub fn Mention(props: MentionProps) -> Element {
                             tracing::error!("get_metadata error: {:?}", e);
                         }
                     }
-                });
-            }
+                } else {
+                    tracing::error!("client not found");
+                }
+            });
         },
     ));
 

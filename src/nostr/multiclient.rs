@@ -1,52 +1,29 @@
 use cached::{Cached, TimedCache};
-use core::fmt;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, Event, Filter};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::Mutex;
 
 use crate::init::NOSTR_DB_NAME;
 use crate::store::{self, CBWebDatabase, CAPYBASTR_DBNAME};
 
 use super::utils::hash_filter;
 
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Debug, Error)]
 pub enum Error {
-    Client(nostr_sdk::client::Error),
-    Store(store::error::CBwebDatabaseError),
-    IndexDb(nostr_indexeddb::IndexedDBError),
+    #[error("Client error: {0}")]
+    Client(#[from] nostr_sdk::client::Error),
+    #[error("Store error: {0}")]
+    Store(#[from] store::error::CBwebDatabaseError),
+    #[error("IndexDb error: {0}")]
+    IndexDb(#[from] nostr_indexeddb::IndexedDBError),
+    #[error("Client not found")]
     ClientNotFound,
-}
-
-impl From<nostr_indexeddb::IndexedDBError> for Error {
-    fn from(e: nostr_indexeddb::IndexedDBError) -> Self {
-        Error::IndexDb(e)
-    }
-}
-
-impl From<nostr_sdk::client::Error> for Error {
-    fn from(e: nostr_sdk::client::Error) -> Self {
-        Error::Client(e)
-    }
-}
-
-impl From<store::error::CBwebDatabaseError> for Error {
-    fn from(e: store::error::CBwebDatabaseError) -> Self {
-        Error::Store(e)
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::Client(e) => write!(f, "Client error: {}", e),
-            Error::Store(e) => write!(f, "Store error: {}", e),
-            Error::IndexDb(e) => write!(f, "IndexDb error: {}", e),
-            Error::ClientNotFound => write!(f, "Client not found"),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -152,13 +129,13 @@ impl MultiClient {
         }
     }
 
-    pub fn register(&self, name: String, hc: HashedClient) {
-        let mut clients = self.clients.lock().unwrap();
+    pub async fn register(&self, name: String, hc: HashedClient) {
+        let mut clients = self.clients.lock().await;
         clients.insert(name, hc);
     }
 
-    pub fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
-        let mut clients = self.clients.lock().unwrap();
+    pub async fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
+        let mut clients = self.clients.lock().await;
         if let Some(client) = clients.remove(old_key) {
             clients.insert(new_key, client);
             Ok(())
@@ -167,30 +144,31 @@ impl MultiClient {
         }
     }
 
-    pub fn get_client(&self, name: &str) -> Option<HashedClient> {
-        let clients = self.clients.lock().unwrap();
+    pub async fn get_client(&self, name: &str) -> Option<HashedClient> {
+        let clients = self.clients.lock().await;
         clients.get(name).cloned()
     }
 
-    pub async fn get_or_create(&mut self, name: &str) -> Result<HashedClient, Error> {
-        match self.get_client(name) {
-            Some(client) => Ok(client),
-            None => {
-                let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
-                let db = WebDatabase::open(NOSTR_DB_NAME).await?;
-                let client_builder = ClientBuilder::new().database(db);
-                let client = client_builder.build();
-                let relay_set_info = database.get_relay_set(name.to_string()).await?;
-                // client.add_relays(relay_set_info.relays).await.unwrap();
-                // client.connect().await;
-                let mut hc = HashedClient::new(client).await;
-                let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
-                hc.add_relays(relays).await?;
-                self.register(name.to_string(), hc);
-                // The return type has been changed to remove Option
-                self.get_client(name).ok_or(Error::ClientNotFound)
+    pub async fn get_or_create(&self, name: &str) -> Result<HashedClient, Error> {
+        {
+            let clients = self.clients.lock().await;
+            if let Some(client) = clients.get(name) {
+                return Ok(client.clone());
             }
         }
+
+        let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
+        let db = WebDatabase::open(NOSTR_DB_NAME).await?;
+        let client_builder = ClientBuilder::new().database(db);
+        let client = client_builder.build();
+        let relay_set_info = database.get_relay_set(name.to_string()).await?;
+
+        let mut hc = HashedClient::new(client).await;
+        let relays: Vec<&str> = relay_set_info.relays.iter().map(|s| s.as_str()).collect();
+        hc.add_relays(relays).await?;
+        self.register(name.to_string(), hc.clone()).await;
+
+        Ok(hc)
     }
 }
 
@@ -202,7 +180,9 @@ pub struct EventCache {
 impl EventCache {
     pub fn new(lifespan: u64, capacity: usize) -> Self {
         Self {
-            cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(lifespan, capacity))),
+            cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(
+                lifespan, capacity,
+            ))),
         }
     }
 
@@ -216,7 +196,7 @@ impl EventCache {
 
         // Lock the mutex to access the cache
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().await;
             if let Some(cached_result) = cache.cache_get(&query) {
                 return Ok(cached_result.clone());
             }
@@ -229,7 +209,7 @@ impl EventCache {
 
         // Lock the mutex to update the cache
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().await;
             cache.cache_set(query, result.clone());
         }
 
@@ -327,7 +307,7 @@ mod tests {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
         let _ = hashed_client.add_relay("wss://relay.damus.io").await;
-        let mut multi_client = MultiClient::new();
+        let multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
             "npub1xtscya34g58tk0z605fvr788k263gsu6cy9x0mhnm87echrgufzsevkk5s",
@@ -343,7 +323,7 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
-        let mut cache = EventCache::new(30, 300);
+        let cache = EventCache::new(30, 300);
 
         for _ in 0..100 {
             let result1 = cache

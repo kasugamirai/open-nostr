@@ -4,8 +4,8 @@ use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
 
 use crate::{
     nostr::{
-        fetch::{get_metadata, get_newest_event},
         multiclient::{EventCache, MultiClient},
+        utils::get_newest_event,
     },
     utils::format::format_create_at,
 };
@@ -29,69 +29,46 @@ pub fn Avatar(props: AvatarProps) -> Element {
     let mut root_nickname = use_signal(|| "Nostr Account".to_string());
     let event_cache = use_context::<Signal<EventCache>>();
     let repost_event = use_signal(|| props.repost_event.clone());
-
     use_effect(use_reactive(
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
             spawn({
                 let multiclient = multiclient.clone();
                 let event_cache = event_cache.clone();
-                let repost_event = props.repost_event.clone();
-                // let mut nickname = nickname.clone();
-                // let mut avatar = avatar.clone();
+                let mut nickname = nickname.clone();
+                let mut avatar = avatar.clone();
                 async move {
-                    let hc_client = multiclient.read().get_client(&relay_name).unwrap();
+                    let hc_client = {
+                        let multiclient = multiclient.read();
+                        if let Some(client) = multiclient.get_client(&relay_name).await {
+                            client
+                        } else {
+                            tracing::error!("client not found");
+                            return;
+                        }
+                    };
 
-                    {
-                        let events = event_cache.read().cached_get_events_of(
-                            &hc_client,
-                            vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
-                            None,
-                        ).await;
-    
-                        match events {
-                            Ok(events) => {
-                                if let Some(event) = get_newest_event(&events) {
-                                    if let Ok(metadata) = Metadata::from_json(&event.content) {
-                                        nickname.set(metadata.display_name.unwrap_or_else(|| {
-                                            metadata.name.unwrap_or("Nostr Account".to_string())
-                                        }));
-                                        avatar.set(metadata.picture.unwrap_or_else(|| {
-                                            "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
-                                        }));
-                                    }
+                    let events = event_cache.read().cached_get_events_of(
+                        &hc_client,
+                        vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
+                        None,
+                    ).await;
+
+                    match events {
+                        Ok(events) => {
+                            if let Some(event) = get_newest_event(&events) {
+                                if let Ok(metadata) = Metadata::from_json(&event.content) {
+                                    nickname.set(metadata.display_name.unwrap_or_else(|| {
+                                        metadata.name.unwrap_or("Nostr Account".to_string())
+                                    }));
+                                    avatar.set(metadata.picture.unwrap_or_else(|| {
+                                        "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
+                                    }));
                                 }
-                            }
-                            Err(e) => {
-                                tracing::error!("get_metadata error: {:?}", e);
                             }
                         }
-                    }
-                    {
-                        if let Some(event) = repost_event {
-                            let events = event_cache.read().cached_get_events_of(
-                                &hc_client,
-                                vec![Filter::new().author(event.pubkey).kind(Kind::Metadata)],
-                                None,
-                            ).await;
-    
-                            match events {
-                                Ok(events) => {
-                                    if let Some(event) = get_newest_event(&events) {
-                                        if let Ok(metadata) = Metadata::from_json(&event.content) {
-                                            root_nickname.set(metadata.display_name.unwrap_or_else(|| {
-                                                metadata.name.unwrap_or("Nostr Account".to_string())
-                                            }));
-                                            root_pic.set(metadata.picture.unwrap_or_else(|| {
-                                                "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
-                                            }));
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    tracing::error!("get_metadata error: {:?}", e);
-                                }
-                            }
+                        Err(e) => {
+                            tracing::error!("get_metadata error: {:?}", e);
                         }
                     }
                 }
@@ -194,4 +171,3 @@ pub fn Avatar(props: AvatarProps) -> Element {
         }
     }
 }
-
