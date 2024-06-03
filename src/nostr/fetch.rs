@@ -317,17 +317,17 @@ pub async fn get_following(
     let events = client.get_events_of(vec![filter], timeout).await?;
     let mut ret: Vec<String> = vec![];
     if let Some(latest_event) = events.iter().max_by_key(|event| event.created_at()) {
-        for tag in latest_event.tags() {
+        ret.extend(latest_event.tags().iter().filter_map(|tag| {
             if let TagKind::SingleLetter(SingleLetterTag {
                 character: Alphabet::P,
                 uppercase: false,
             }) = tag.kind()
             {
-                if let Some(content) = tag.content() {
-                    ret.push(content.to_string());
-                }
+                tag.content().map(String::from)
+            } else {
+                None
             }
-        }
+        }));
     }
     Ok(ret)
 }
