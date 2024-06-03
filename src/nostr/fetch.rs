@@ -12,7 +12,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::time::Duration;
 use thiserror::Error;
-use wasm_bindgen_test::console_log;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -342,10 +341,41 @@ pub async fn get_followers(
         vec![public_key.to_hex()],
     );
     let events = client.get_events_of(vec![filter], timeout).await?;
-    let ret: Vec<String> = events
+
+    // HashMap to store the latest event for each author
+    let mut author_latest_event: HashMap<PublicKey, Event> = HashMap::new();
+
+    // Find the latest event for each author
+    for event in events {
+        let author = event.author();
+        author_latest_event
+            .entry(author)
+            .and_modify(|existing_event| {
+                if event.created_at() > existing_event.created_at() {
+                    *existing_event = event.clone();
+                }
+            })
+            .or_insert(event);
+    }
+
+    // Filter the latest events based on the "p" tags containing the public_key
+    let ret: Vec<String> = author_latest_event
         .into_iter()
-        .map(|event| event.author().to_hex())
+        .filter_map(|(_, event)| {
+            if event.tags().iter().any(|tag| match tag.kind() {
+                TagKind::SingleLetter(SingleLetterTag {
+                    character: Alphabet::P,
+                    uppercase: false,
+                }) => tag.content() == Some(&public_key.to_hex()),
+                _ => false,
+            }) {
+                Some(event.author().to_hex())
+            } else {
+                None
+            }
+        })
         .collect();
+
     Ok(ret)
 }
 
