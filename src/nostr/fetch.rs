@@ -2,11 +2,9 @@ use super::utils::get_newest_event;
 use super::utils::get_oldest_event;
 use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
-use nostr_sdk::base64::alphabet;
 use nostr_sdk::TagKind;
 use nostr_sdk::{
     Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
-    SubscriptionId,
 };
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -16,7 +14,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
-use tokio::sync::Mutex;
+use tokio::sync::Mutex as TokioMutex;
 use wasm_bindgen_test::console_log;
 
 #[derive(Debug, Error)]
@@ -341,7 +339,7 @@ pub async fn get_followers(
     client: &Client,
     public_key: &PublicKey,
     exit: impl Fn() -> bool + Send + Sync + 'static,
-    followers_map: Arc<Mutex<HashMap<String, String>>>,
+    followers_set: Arc<TokioMutex<HashSet<String>>>,
 ) -> Result<(), Error> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
@@ -354,7 +352,7 @@ pub async fn get_followers(
             let exit = Arc::new(exit);
             let sub_id_1 = sub_id_1.clone();
             move |notification| {
-                let followers_map = followers_map.clone();
+                let followers_set = followers_set.clone();
                 let exit = exit.clone();
                 let sub_id_1 = sub_id_1.clone();
                 async move {
@@ -365,10 +363,10 @@ pub async fn get_followers(
                     } = notification
                     {
                         if sub_id == sub_id_1 {
-                            let author = event.author().to_hex().to_string();
-                            let mut followers_map = followers_map.lock().await;
-                            console_log!("{}", followers_map.len());
-                            followers_map.insert(author.clone(), author);
+                            let author = event.author().to_hex();
+                            let mut followers_set = followers_set.lock().await;
+                            console_log!("{}", followers_set.len());
+                            followers_set.insert(author);
                         }
                     }
                     Ok(exit())
@@ -402,7 +400,6 @@ mod tests {
     use nostr_sdk::key::SecretKey;
     use nostr_sdk::Client;
     use nostr_sdk::{ClientBuilder, FromBech32, Keys};
-    use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
@@ -591,18 +588,18 @@ mod tests {
         )
         .unwrap();
 
-        let followers_map = Arc::new(TokioMutex::new(HashMap::new()));
+        let followers_set = Arc::new(TokioMutex::new(HashSet::new()));
         let exit_cond = Arc::new(AtomicBool::new(false));
 
         let exit_clone = exit_cond.clone();
-        let followers_map_clone = followers_map.clone();
+        let followers_set_clone = followers_set.clone();
 
         spawn_local(async move {
             get_followers(
                 &client,
                 &public_key,
                 move || exit_clone.load(Ordering::SeqCst),
-                followers_map_clone,
+                followers_set_clone,
             )
             .await
             .unwrap();
@@ -615,7 +612,7 @@ mod tests {
         exit_cond.store(true, Ordering::SeqCst);
 
         // Check followers
-        let followers = followers_map.lock().await;
+        let followers = followers_set.lock().await;
         console_log!("followers: {:?}", followers);
         assert!(!followers.is_empty());
     }
