@@ -340,25 +340,24 @@ pub async fn get_followers(
         SingleLetterTag::lowercase(Alphabet::P),
         vec![public_key.to_hex()],
     );
+
     let events = client.get_events_of(vec![filter], timeout).await?;
 
-    // HashMap to store the latest event for each author
-    let mut author_latest_event: HashMap<PublicKey, Event> = HashMap::new();
+    // Use iterator to update the hashmap, ensuring only the latest event for each author is kept
+    let author_latest_event: HashMap<PublicKey, Event> =
+        events.into_iter().fold(HashMap::new(), |mut acc, event| {
+            let author = event.author();
+            acc.entry(author)
+                .and_modify(|existing_event: &mut Event| {
+                    if event.created_at() > existing_event.created_at() {
+                        *existing_event = event.clone();
+                    }
+                })
+                .or_insert(event);
+            acc
+        });
 
-    // Find the latest event for each author
-    for event in events {
-        let author = event.author();
-        author_latest_event
-            .entry(author)
-            .and_modify(|existing_event| {
-                if event.created_at() > existing_event.created_at() {
-                    *existing_event = event.clone();
-                }
-            })
-            .or_insert(event);
-    }
-
-    // Filter the latest events based on the "p" tags containing the public_key
+    // Filter the latest events based on the "p" tags containing the public_key and collect into Vec<String>
     let ret: Vec<String> = author_latest_event
         .into_iter()
         .filter_map(|(_, event)| {
