@@ -397,11 +397,17 @@ mod tests {
         nostr::note::{DisplayOrder, ReplyTrees},
         testhelper::event_from,
     };
+    use gloo_timers::future::sleep;
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::key::SecretKey;
+    use nostr_sdk::Client;
     use nostr_sdk::{ClientBuilder, FromBech32, Keys};
-    use std::thread;
+    use std::collections::HashMap;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
     use std::time::Duration;
+    use tokio::sync::Mutex as TokioMutex;
+    use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
@@ -577,7 +583,7 @@ mod tests {
     async fn test_get_followers() {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
-        client.add_relay("wss://nos.lol/").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
 
         let public_key = PublicKey::from_bech32(
@@ -585,14 +591,30 @@ mod tests {
         )
         .unwrap();
 
-        let followers_map = Arc::new(Mutex::new(HashMap::new()));
-        let exit_cond = || false;
+        let followers_map = Arc::new(TokioMutex::new(HashMap::new()));
+        let exit_cond = Arc::new(AtomicBool::new(false));
 
-        get_followers(&client, &public_key, exit_cond, followers_map.clone())
+        let exit_clone = exit_cond.clone();
+        let followers_map_clone = followers_map.clone();
+
+        spawn_local(async move {
+            get_followers(
+                &client,
+                &public_key,
+                move || exit_clone.load(Ordering::SeqCst),
+                followers_map_clone,
+            )
             .await
             .unwrap();
-        thread::sleep(Duration::from_secs(10));
-        //set exit condition to true
+        });
+
+        // Wait for 10 seconds
+        sleep(Duration::from_secs(10)).await;
+
+        // Signal the exit condition
+        exit_cond.store(true, Ordering::SeqCst);
+
+        // Check followers
         let followers = followers_map.lock().await;
         console_log!("followers: {:?}", followers);
         assert!(!followers.is_empty());
