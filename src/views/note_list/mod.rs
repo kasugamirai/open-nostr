@@ -26,7 +26,7 @@ pub fn NoteList(name: String) -> Element {
     let mut sub_current = use_signal(|| CustomSub::empty());
     let mut sub_index = use_signal(|| 0);
     let mut notes: Signal<Vec<Event>> = use_signal(|| Vec::new());
-    let mut paginator: Signal<Option<&EventPaginator>> = use_signal(|| None);
+    let mut paginator: Signal<Option<EventPaginator>> = use_signal(|| None);
 
     let multiclient = use_context::<Signal<MultiClient>>();
     let cb_database_db = use_context::<Signal<CBWebDatabase>>();
