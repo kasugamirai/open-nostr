@@ -4,14 +4,20 @@ use futures::{Future, Stream};
 use nostr_indexeddb::database::Order;
 use nostr_sdk::base64::alphabet;
 use nostr_sdk::TagKind;
-use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag};
+use nostr_sdk::{
+    Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
+    SubscriptionId,
+};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
 use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
+use tokio::sync::Mutex;
+use wasm_bindgen_test::console_log;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -334,48 +340,44 @@ pub async fn get_following(
 pub async fn get_followers(
     client: &Client,
     public_key: &PublicKey,
-    timeout: Option<std::time::Duration>,
-) -> Result<Vec<String>, Error> {
+    exit: impl Fn() -> bool + Send + Sync + 'static,
+    followers_map: Arc<Mutex<HashMap<String, String>>>,
+) -> Result<(), Error> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
         vec![public_key.to_hex()],
     );
+    let sub_id_1 = client.subscribe(vec![filter], None).await;
 
-    let events = client.get_events_of(vec![filter], timeout).await?;
-
-    // Use iterator to update the hashmap, ensuring only the latest event for each author is kept
-    let author_latest_event: HashMap<PublicKey, Event> =
-        events.into_iter().fold(HashMap::new(), |mut acc, event| {
-            let author = event.author();
-            acc.entry(author)
-                .and_modify(|existing_event: &mut Event| {
-                    if event.created_at() > existing_event.created_at() {
-                        *existing_event = event.clone();
+    client
+        .handle_notifications({
+            let exit = Arc::new(exit);
+            let sub_id_1 = sub_id_1.clone();
+            move |notification| {
+                let followers_map = followers_map.clone();
+                let exit = exit.clone();
+                let sub_id_1 = sub_id_1.clone();
+                async move {
+                    if let RelayPoolNotification::Event {
+                        subscription_id: sub_id,
+                        event,
+                        ..
+                    } = notification
+                    {
+                        if sub_id == sub_id_1 {
+                            let author = event.author().to_hex().to_string();
+                            let mut followers_map = followers_map.lock().await;
+                            console_log!("{}", followers_map.len());
+                            followers_map.insert(author.clone(), author);
+                        }
                     }
-                })
-                .or_insert(event);
-            acc
-        });
-
-    // Filter the latest events based on the "p" tags containing the public_key and collect into Vec<String>
-    let ret: Vec<String> = author_latest_event
-        .into_iter()
-        .filter_map(|(_, event)| {
-            if event.tags().iter().any(|tag| match tag.kind() {
-                TagKind::SingleLetter(SingleLetterTag {
-                    character: Alphabet::P,
-                    uppercase: false,
-                }) => tag.content() == Some(&public_key.to_hex()),
-                _ => false,
-            }) {
-                Some(event.author().to_hex())
-            } else {
-                None
+                    Ok(exit())
+                }
             }
         })
-        .collect();
+        .await?;
 
-    Ok(ret)
+    Ok(())
 }
 
 pub async fn query_events_from_db(
@@ -398,7 +400,10 @@ mod tests {
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::key::SecretKey;
     use nostr_sdk::{ClientBuilder, FromBech32, Keys};
+    use std::thread;
+    use std::time::Duration;
     use wasm_bindgen_test::*;
+
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test]
@@ -568,37 +573,27 @@ mod tests {
         }
         assert!(count > 7);
     }
-
-    #[wasm_bindgen_test]
-    async fn test_get_following() {
-        let client = Client::default();
-        client.add_relay("wss://relay.damus.io").await.unwrap();
-        client.connect().await;
-
-        let public_key = PublicKey::from_bech32(
-            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
-        )
-        .unwrap();
-
-        let timeout = Some(std::time::Duration::from_secs(5));
-        let following = get_following(&client, &public_key, timeout).await.unwrap();
-        console_log!("following: {:?}", following);
-        assert!(!following.is_empty());
-    }
-
     #[wasm_bindgen_test]
     async fn test_get_followers() {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol/").await.unwrap();
         client.connect().await;
 
         let public_key = PublicKey::from_bech32(
-            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+            "npub1sctag667a7np6p6ety2up94pnwwxhd2ep8n8afr2gtr47cwd4ewsvdmmjm",
         )
         .unwrap();
 
-        let timeout = Some(std::time::Duration::from_secs(5));
-        let followers = get_followers(&client, &public_key, timeout).await.unwrap();
+        let followers_map = Arc::new(Mutex::new(HashMap::new()));
+        let exit_cond = || false;
+
+        get_followers(&client, &public_key, exit_cond, followers_map.clone())
+            .await
+            .unwrap();
+        thread::sleep(Duration::from_secs(10));
+        //set exit condition to true
+        let followers = followers_map.lock().await;
         console_log!("followers: {:?}", followers);
         assert!(!followers.is_empty());
     }
