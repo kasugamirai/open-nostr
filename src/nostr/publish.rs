@@ -16,7 +16,7 @@ pub enum Error {
 
 pub async fn publish_text_note(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     content: &str,
     tags: Vec<Tag>,
 ) -> Result<EventId, Error> {
@@ -28,7 +28,7 @@ pub async fn publish_text_note(
 
 pub async fn repost(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     event: &Event,
     url: Option<UncheckedUrl>,
 ) -> Result<EventId, Error> {
@@ -40,7 +40,7 @@ pub async fn repost(
 
 pub async fn reaction(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     event: &Event,
     reaction: &str,
 ) -> Result<EventId, Error> {
@@ -52,7 +52,7 @@ pub async fn reaction(
 
 pub async fn new_channel(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     metadata: &Metadata,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::channel(metadata);
@@ -63,7 +63,7 @@ pub async fn new_channel(
 
 pub async fn set_channel_metadata(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     channel_id: EventId,
     metadata: &Metadata,
     url: Option<Url>,
@@ -76,7 +76,7 @@ pub async fn set_channel_metadata(
 
 pub async fn send_channel_msg(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     channel_id: EventId,
     msg: &str,
     relay_url: Url,
@@ -89,7 +89,7 @@ pub async fn send_channel_msg(
 
 pub async fn file_metadata(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     metadata: FileMetadata,
     description: &str,
 ) -> Result<EventId, Error> {
@@ -101,7 +101,7 @@ pub async fn file_metadata(
 
 pub async fn send_private_msg(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     receiver: PublicKey,
     message: &str,
     reply_to: Option<EventId>,
@@ -114,7 +114,7 @@ pub async fn send_private_msg(
 
 pub async fn delete_event(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     event_ids: Vec<EventId>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::delete(event_ids);
@@ -125,7 +125,7 @@ pub async fn delete_event(
 
 pub async fn set_relay_list(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     relays: Vec<(Url, Option<RelayMetadata>)>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::relay_list(relays);
@@ -136,7 +136,7 @@ pub async fn set_relay_list(
 
 pub async fn set_contact_list(
     client: &Client,
-    signer: NostrSigner,
+    signer: &NostrSigner,
     contacts: Vec<Contact>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::contact_list(contacts);
@@ -162,7 +162,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
@@ -177,7 +177,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let eid =
@@ -198,7 +198,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let eid =
@@ -223,7 +223,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let metadata = Metadata::new();
@@ -239,7 +239,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let metadata = Metadata::new();
@@ -258,7 +258,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let channel_id =
@@ -281,7 +281,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let metadata = FileMetadata::new(url, "image/jpeg", hash);
@@ -297,7 +297,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let receiver = PublicKey::from_bech32(
@@ -316,7 +316,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let event_id =
@@ -334,7 +334,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let relays = vec![
@@ -359,7 +359,7 @@ mod tests {
         )
         .unwrap();
         let key = Keys::new(private_key);
-        let signer = key.into();
+        let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         let contacts = vec![Contact::new(
