@@ -1,4 +1,3 @@
-use bitcoin::hashes::sha256::Hash as Sha256Hash;
 use nostr_sdk::{
     self, bitcoin,
     nips::{nip65::RelayMetadata, nip94::FileMetadata},
@@ -12,7 +11,7 @@ pub enum Error {
     #[error(transparent)]
     Client(#[from] nostr_sdk::client::Error),
     #[error(transparent)]
-    Singer(#[from] nostr_sdk::signer::Error),
+    Signer(#[from] nostr_sdk::signer::Error),
 }
 
 pub async fn publish_text_note(
@@ -148,6 +147,7 @@ pub async fn set_contact_list(
 
 #[cfg(test)]
 mod tests {
+    use bitcoin::hashes::sha256::Hash as Sha256Hash;
     use std::str::FromStr;
 
     use super::*;
