@@ -12,11 +12,10 @@ use nostr_sdk::{Metadata, Tag};
 use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
-use tokio::sync::Mutex as TokioMutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
 use wasm_bindgen_futures::spawn_local;
@@ -344,7 +343,7 @@ pub async fn get_following(
 pub async fn get_followers(
     client: &Client,
     public_key: &PublicKey,
-    exit: impl Fn() -> bool + Send + Sync + 'static,
+    exit: Arc<Mutex<Box<dyn Fn() -> bool + Send + Sync>>>,
 ) -> Result<impl Stream<Item = Result<String, Error>>, Error> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
@@ -355,7 +354,6 @@ pub async fn get_followers(
     let sub_id_1 = client.subscribe(vec![filter], None).await;
 
     let client_handle = client.clone();
-    let exit = Arc::new(exit);
 
     spawn_local(async move {
         client_handle
@@ -363,7 +361,7 @@ pub async fn get_followers(
                 let exit = Arc::clone(&exit);
                 move |notification| {
                     let tx = tx.clone();
-                    let exit = exit.clone();
+                    let exit = Arc::clone(&exit);
                     let sub_id = sub_id_1.clone();
                     async move {
                         if let RelayPoolNotification::Event {
@@ -379,7 +377,14 @@ pub async fn get_followers(
                                 }
                             }
                         }
-                        Ok(exit())
+
+                        // Check exit condition based on the locked state
+                        let should_exit = {
+                            let exit = exit.lock().unwrap();
+                            (*exit)()
+                        };
+
+                        Ok(should_exit) // Wrap the bool in an Ok result
                     }
                 }
             })
@@ -413,7 +418,7 @@ mod tests {
     use nostr_sdk::Client;
     use nostr_sdk::{ClientBuilder, FromBech32, Keys};
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
+    use std::sync::{Arc, Mutex};
     use std::time::Duration;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
@@ -587,7 +592,6 @@ mod tests {
         }
         assert!(count > 7);
     }
-
     #[wasm_bindgen_test]
     async fn test_get_followers() {
         let client = Client::default();
@@ -602,34 +606,44 @@ mod tests {
 
         let exit_cond = Arc::new(AtomicBool::new(false));
 
-        let exit_clone = exit_cond.clone();
+        // Using a box to store the closure
+        let exit_mutex: Arc<Mutex<Box<dyn Fn() -> bool + Send + Sync>>> =
+            Arc::new(Mutex::new(Box::new({
+                let exit_cond_clone = Arc::clone(&exit_cond);
+                move || exit_cond_clone.load(Ordering::SeqCst)
+            })));
 
-        let stream = get_followers(&client, &public_key, move || {
-            exit_clone.load(Ordering::SeqCst)
-        })
-        .await
-        .unwrap();
+        let stream = get_followers(&client, &public_key, Arc::clone(&exit_mutex))
+            .await
+            .unwrap();
 
-        spawn_local(async move {
-            // Wait for 10 seconds
-            sleep(Duration::from_secs(10)).await;
-            // Signal the exit condition
-            exit_cond.store(true, Ordering::SeqCst);
+        // Using spawn_local to run a task that will change the exit condition after 10 seconds.
+        spawn_local({
+            let exit_cond_clone = Arc::clone(&exit_cond);
+            async move {
+                sleep(Duration::from_secs(10)).await;
+                // Signal the exit condition
+                exit_cond_clone.store(true, Ordering::SeqCst);
+            }
         });
 
-        let mut followers = vec![];
+        let followers = Arc::new(Mutex::new(vec![]));
+        let followers_clone = Arc::clone(&followers);
         stream
-            .for_each(|follower| async {
-                match follower {
-                    Ok(follower) => {
-                        console_log!("follower: {:?}", follower);
-                        followers.push(follower);
+            .for_each(move |follower| {
+                let followers_inner = Arc::clone(&followers_clone);
+                async move {
+                    match follower {
+                        Ok(follower) => {
+                            console_log!("follower: {:?}", follower);
+                            followers_inner.lock().unwrap().push(follower);
+                        }
+                        Err(e) => console_log!("Error: {:?}", e),
                     }
-                    Err(e) => console_log!("Error: {:?}", e),
                 }
             })
             .await;
 
-        assert!(!followers.is_empty());
+        assert!(!followers.lock().unwrap().is_empty());
     }
 }
