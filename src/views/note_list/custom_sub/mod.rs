@@ -32,12 +32,15 @@ use tag::TagInput;
 pub struct CustomSubscriptionProps {
     on_save: EventHandler<CustomSub>,
     on_reload: EventHandler<CustomSub>,
-    subscription: CustomSub,
+    // subscription: CustomSub,
+    sub_name: String,
 }
 
 #[component]
 pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
+    let mut sub_name = use_signal(|| props.sub_name.clone());
     let mut sub_current = use_signal(|| props.subscription.clone());
+    let all_subs = use_context::<Vec<CustomSub>>();
     use_effect(use_reactive(
         (&props.subscription,),
         move |(subscription,)| {
@@ -102,7 +105,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
 
     rsx! {
         div {
-            class: "custom-sub",
+            class: "sub-style custom-sub",
             div {
                 class: "custom-sub-header",
                 div {
@@ -518,9 +521,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                 }
             }
-            // div {
-            //     "{sub_current.read().json()}"
-            // }
         }
     }
 }

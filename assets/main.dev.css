@@ -15044,6 +15044,7 @@ svg path {
 .content-feed {
   width: calc(100% - 240px);
   padding: 20px;
+  height: 100vh;
 }
 
 ::-webkit-scrollbar {

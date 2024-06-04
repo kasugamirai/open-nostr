@@ -46,7 +46,7 @@ pub fn Layout() -> Element {
     let mut show = use_signal(|| false);
 
     rsx! {
-        div{
+        aside {
             class: "menu-bar",
             div {
                 class: "menu",
@@ -233,14 +233,14 @@ pub fn Layout() -> Element {
                             Link {
                                 active_class: "active",
                                 class: "nav-item",
-                                to: Route::NoteList { name: urlencoding::encode(&sub.name.clone()).to_string() },
+                                to: Route::Subscription { name: urlencoding::encode(&sub.name.clone()).to_string() },
                                 "#{sub.name}"
                             }
                         }
                         Link {
                             active_class: "active",
                             class: "nav-item new-subscription-btn",
-                            to: Route::NoteList { name: "new".to_string() },
+                            to: Route::Subscription { name: "new".to_string() },
                             // href:"/newSubscription",
                             "New Subscription +"
                         }
@@ -259,7 +259,7 @@ pub fn Layout() -> Element {
             }
             Message{content:"{messageContent.clone()}"}
         }
-        div {
+        main {
             class: "content-feed",
             Outlet::<Route> {}
         }

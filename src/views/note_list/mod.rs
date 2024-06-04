@@ -84,7 +84,7 @@ pub fn NoteList(name: String) -> Element {
                     }
 
                     if old_name != edit_name {
-                        navigator().replace(Route::NoteList { name: edit_name });
+                        navigator().replace(Route::Subscription { name: edit_name });
                     }
                     tracing::info!("Update success: wait for reload");
                 }
@@ -152,7 +152,6 @@ pub fn NoteList(name: String) -> Element {
                 id: "note-list",
                 onscroll: move |_| {
                     let callback = Closure::wrap(Box::new({
-                        // let sub_current = sub_current.clone();
                         move || {
                             match get_scroll_info("note-list") {
                                 Ok(scroll_info) => {
@@ -173,19 +172,7 @@ pub fn NoteList(name: String) -> Element {
                     let throttled_callback = throttle(callback_js, 1000); // 300ms throttling delay
                     let func: &js_sys::Function = throttled_callback.as_ref().unchecked_ref();
                     func.call0(&JsValue::NULL).unwrap();
-                    // throttled_callback();
-                    // throttle(move || {
-                    //     get_scroll_info("note-list");
-                    // }, 100);
-                    // get_scroll_info("note-list");
-                    // e.data().get;
-                    // tracing::info!("scroll: {:?}", e.get_scroll_offset());
                 },
-                // List {
-                //     index: index(),
-                //     subscription: sub_current.read().clone(),
-                //     events: vec![],
-                // }
                 div {
                     class: "note-more-mod-box",
                     div {
@@ -201,13 +188,10 @@ pub fn NoteList(name: String) -> Element {
                     }
                 }
             }
-            div {
-                class: "sub-style",
-                CustomSubscription {
-                    on_save: handle_save,
-                    on_reload: handle_reload,
-                    subscription: sub_current.read().clone(),
-                }
+            CustomSubscription {
+                on_save: handle_save,
+                on_reload: handle_reload,
+                subscription: sub_current.read().clone(),
             }
         }
     }
