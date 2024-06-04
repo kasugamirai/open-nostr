@@ -4,7 +4,6 @@ use futures::Future;
 use futures::StreamExt;
 use gloo_timers::future::sleep;
 use nostr_indexeddb::database::Order;
-use nostr_sdk::TagKind;
 use nostr_sdk::{
     Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
     TagStandard,
@@ -597,8 +596,8 @@ mod tests {
     }
     #[wasm_bindgen_test]
     async fn test_get_followers() {
-        let client = Arc::new(Client::default());
-        client.add_relay("wss://nos.lol").await.unwrap();
+        let client = &Client::default();
+        let arc_client = Arc::new(client.clone());
         client.add_relay("wss://relay.damus.io").await.unwrap();
 
         client.connect().await;
@@ -612,7 +611,9 @@ mod tests {
         let exit_cond = Arc::new(AtomicBool::new(false));
 
         // Corrected function call
-        let stream = get_followers(client, &public_key, timeout).await.unwrap();
+        let stream = get_followers(arc_client, &public_key, timeout)
+            .await
+            .unwrap();
 
         // Using spawn_local to run a task that will change the exit condition after 15 seconds.
         spawn_local({

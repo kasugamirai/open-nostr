@@ -1,6 +1,6 @@
 use cached::{Cached, TimedCache};
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder, Event, Filter};
+use nostr_sdk::{Client, ClientBuilder, Event, Filter};
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
@@ -28,7 +28,7 @@ pub enum Error {
 
 #[derive(Debug, Clone)]
 pub struct HashedClient {
-    client: nostr_sdk::Client,
+    client: Arc<Client>,
     hash: u64,
 }
 
@@ -36,9 +36,12 @@ unsafe impl Send for HashedClient {}
 unsafe impl Sync for HashedClient {}
 
 impl HashedClient {
-    pub async fn new(client: nostr_sdk::Client) -> Self {
+    pub async fn new(client: Client) -> Self {
         let hash = Self::_hash(&client).await;
-        Self { client, hash }
+        Self {
+            client: Arc::new(client),
+            hash,
+        }
     }
 
     async fn _hash(client: &nostr_sdk::Client) -> u64 {
@@ -55,7 +58,7 @@ impl HashedClient {
         hasher.finish()
     }
 
-    pub fn client(&self) -> nostr_sdk::Client {
+    pub fn client(&self) -> Arc<Client> {
         self.client.clone()
     }
 
@@ -220,9 +223,12 @@ impl EventCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::nostr::fetch::EventPaginator;
     use nostr_sdk::FromBech32;
     use nostr_sdk::Kind;
     use nostr_sdk::PublicKey;
+    use tokio::sync::oneshot;
+    use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
     wasm_bindgen_test_configure!(run_in_browser);
     use wasm_bindgen_test::console_log;
@@ -338,6 +344,38 @@ mod tests {
         }
     }
 
+    #[wasm_bindgen_test]
+    async fn test_spawn_eventpaginator_multi_client() {
+        let public_key = PublicKey::from_bech32(
+            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+        )
+        .unwrap();
+
+        let client = nostr_sdk::Client::default();
+        let mut hashed_client = HashedClient::new(client).await;
+        let _ = hashed_client.add_relay("wss://relay.damus.io").await;
+        let multi_client = MultiClient::new();
+        multi_client
+            .register("client1".to_string(), hashed_client.clone())
+            .await;
+        let filter: Filter = Filter::new().kind(Kind::TextNote).author(public_key);
+        let hc = multi_client.get_client("client1").await.unwrap();
+        let c = hc.client();
+
+        // Create a oneshot channel.
+        let (tx, rx) = tokio::sync::oneshot::channel();
+
+        spawn_local(async move {
+            let mut paginator = EventPaginator::new(c, vec![filter], None, 10);
+            let e = paginator.next_page().await.unwrap();
+            console_log!("Events: {:?}", e);
+            tx.send(e.len()).unwrap(); // Send the length of `e` through the channel.
+        });
+
+        // Await the result from the oneshot channel.
+        let len = rx.await.unwrap();
+        assert!(len > 3, "Event length is not greater than 3");
+    }
     // this test is no needed
     // #[wasm_bindgen_test]
     // async fn test_multi_client_cached_query_many_times_no_cache() {
