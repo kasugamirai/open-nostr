@@ -60,7 +60,6 @@ pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
         if i.starts_with("nostr:") {
             let id = i.strip_prefix("nostr:").unwrap();
             let is_note = is_note_address(i);
-            tracing::info!("is_note: {:#?} {}", is_note, i);
             let _el = if is_note == AddressType::Note {
                 rsx! {
                     Quote {

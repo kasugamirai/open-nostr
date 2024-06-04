@@ -1,62 +1,34 @@
 use dioxus::prelude::*;
+use dioxus_elements::sub;
+use nostr_sdk::Timestamp;
 
 use crate::views::{note_list::custom_sub::CustomSubscription, NoteList};
 
 #[component]
 pub fn Subscription(name: String) -> Element {
-
-    let handle_save = move |value: CustomSub| {
-        spawn(async move {
-            let old_name = {
-                let sub_current_lock = sub_current();
-                sub_current_lock.name.clone()
-            };
-            let edit_value = value.clone();
-            tracing::info!("Update: {:?}", edit_value);
-
-            match cb_database_db()
-                .update_custom_sub(old_name.clone(), edit_value.clone())
-                .await
-            {
-                Ok(_) => {
-                    let edit_name = edit_value.name.clone();
-
-                    {
-                        sub_current.set(value.clone());
-                    }
-                    let index: usize = *sub_index.read();
-                    {
-                        let mut subs: Write<_, UnsyncStorage> = all_sub.write();
-                        subs[index] = sub_current().clone();
-                    }
-
-                    if old_name != edit_name {
-                        navigator().replace(Route::Subscription { name: edit_name });
-                    }
-                    tracing::info!("Update success: wait for reload");
-                }
-                Err(e) => {
-                    tracing::error!("Update error: {:?}", e);
-                }
-            }
-        });
-    };
-
-    let handle_reload = move |_: CustomSub| {
+    // let 
+    let mut relaod_flag = use_signal(|| Timestamp::now());
+    let mut sub_name = use_signal(|| name.clone());
+    
+    let handle_save = move |_| {
+        sub_name.set(name.clone());
         //todo
-        // index += 1;
-        // sub_current.set(value);
+        relaod_flag.set(Timestamp::now());
+    };
+    let handle_reload = move |_| {
+        relaod_flag.set(Timestamp::now());
     };
     rsx! {
         section {
-            class: "subscription",
+            class: "subscription h-full flex-box",
             NoteList{
-                name: name,
+                name: sub_name(),
+                reload_time: relaod_flag(),
             }
             CustomSubscription {
                 on_save: handle_save,
                 on_reload: handle_reload,
-                subscription: sub_current.read().clone(),
+                sub_name: sub_name.clone(),
             }
         }
     }

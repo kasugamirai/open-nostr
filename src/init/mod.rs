@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::nostr::multiclient::{EventCache, HashedClient};
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
@@ -27,6 +29,8 @@ pub fn App() -> Element {
     let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
+    let mut subs_map: Signal<HashMap<String, CustomSub>> =
+        use_context_provider(|| Signal::new(HashMap::<String, CustomSub>::new()));
     let mut all_users: Signal<Vec<User>> = use_context_provider(|| Signal::new(Vec::<User>::new()));
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
@@ -93,9 +97,13 @@ pub fn App() -> Element {
                             keep_alive: true,
                         };
                         db.save_custom_sub(custom_sub.clone()).await.unwrap();
+                        subs_map.write().insert(EXAMPLE_SUB_KEY.to_string(), custom_sub.clone());
+                        // TODO remove this line
                         all_sub.push(custom_sub);
                     } else {
                         for sub in subs {
+                            subs_map.write().insert(EXAMPLE_SUB_KEY.to_string(), sub.clone());
+                            // TODO remvoe this line
                             all_sub.push(sub);
                         }
                     }

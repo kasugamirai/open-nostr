@@ -2,105 +2,63 @@ pub(crate) mod custom_sub;
 pub mod note;
 pub mod reply;
 
-use std::{sync::Arc, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use dioxus::prelude::*;
-use nostr_sdk::{client, Event};
+use nostr_sdk::{Event, Timestamp};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::{
     nostr::{fetch::EventPaginator, multiclient::MultiClient},
-    store::{subscription::CustomSub, CBWebDatabase},
+    store::subscription::CustomSub,
     utils::js::{get_scroll_info, throttle},
-    Route,
 };
 
-use custom_sub::CustomSubscription;
 use note::Note;
 
 #[component]
-pub fn NoteList(name: String) -> Element {
-    tracing::info!("NoteList: {:?}", name);
-    // all custom subscriptions
-    let mut all_sub = use_context::<Signal<Vec<CustomSub>>>();
+pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
+    let mut reload_flag = use_signal(|| reload_time.clone());
+    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let mut sub_current = use_signal(|| CustomSub::empty());
-    let mut sub_index = use_signal(|| 0);
+    // let mut sub_index = use_signal(|| 0);
     let mut notes: Signal<Vec<Event>> = use_signal(|| Vec::new());
     let mut paginator: Signal<Option<EventPaginator>> = use_signal(|| None);
 
     let multiclient = use_context::<Signal<MultiClient>>();
-    let cb_database_db = use_context::<Signal<CBWebDatabase>>();
-    // use_r
-    use_effect(use_reactive((&name,), move |(s,)| {
-        for (i, sub) in all_sub.read().iter().enumerate() {
-            if sub.name == s {
-                sub_current.set(sub.clone());
-                sub_index.set(i);
-            }
+    use_effect(use_reactive((&name, &reload_time), move |(s, time)| {
+        let subs_map_lock = subs_map();
+        if subs_map_lock.contains_key(&s) {
+            let current = subs_map_lock.get(&s).unwrap();
+            sub_current.set(current.clone());
         }
+        reload_flag.set(time.clone());
     }));
     spawn(async move {
-        let sub = sub_current.read().clone();
-        let filters = sub.get_filters();
-        tracing::info!("Subscription: {:#?}", filters);
+        let sub_current = sub_current.read().clone();
+        let filters = sub_current.get_filters();
         let mut clients = multiclient();
-        let client_result = clients.get_or_create(&sub.relay_set).await;
+        let client_result = clients.get_or_create(&sub_current.relay_set).await;
 
         match client_result {
             Ok(hc) => {
                 let client = hc.client();
                 let paginator_result = EventPaginator::new(&client, filters, None, 40);
                 // paginator.set(Some(paginator_result));
-            },
+            }
             Err(e) => {
                 tracing::error!("Error: {:?}", e);
             }
         };
     });
-
-    let handle_save = move |value: CustomSub| {
-        spawn(async move {
-            let old_name = {
-                let sub_current_lock = sub_current();
-                sub_current_lock.name.clone()
-            };
-            let edit_value = value.clone();
-            tracing::info!("Update: {:?}", edit_value);
-
-            match cb_database_db()
-                .update_custom_sub(old_name.clone(), edit_value.clone())
-                .await
-            {
-                Ok(_) => {
-                    let edit_name = edit_value.name.clone();
-
-                    {
-                        sub_current.set(value.clone());
-                    }
-                    let index: usize = *sub_index.read();
-                    {
-                        let mut subs: Write<_, UnsyncStorage> = all_sub.write();
-                        subs[index] = sub_current().clone();
-                    }
-
-                    if old_name != edit_name {
-                        navigator().replace(Route::Subscription { name: edit_name });
-                    }
-                    tracing::info!("Update success: wait for reload");
-                }
-                Err(e) => {
-                    tracing::error!("Update error: {:?}", e);
-                }
-            }
-        });
-    };
     let handle_fetch = move || {
         spawn(async move {
-            let sub = sub_current.read().clone();
-            let filters = sub.get_filters();
-            tracing::info!("Subscription: {:#?}", filters);
+            let sub_current = sub_current.read().clone();
+            let filters = sub_current.get_filters();
             let mut clients = multiclient();
-            let client_result = clients.get_or_create(&sub.relay_set).await;
+            tracing::info!("Sub name: {:#?}", sub_current.name);
+            tracing::info!("RelaySet: {:?}", sub_current.relay_set);
+            let client_result = clients.get_or_create(&sub_current.relay_set).await;
 
             let hc = match client_result {
                 Ok(hc) => hc,
@@ -111,16 +69,11 @@ pub fn NoteList(name: String) -> Element {
             };
 
             let client = hc.client();
-            // TODO: use global client by this subscription
-            tracing::info!("Filters: {:#?}", filters);
-            // TODO: use the 'subscribe' function if this sub requires subscription
             match client
                 .get_events_of(filters, Some(Duration::from_secs(5)))
                 .await
             {
                 Ok(events) => {
-                    // TODO: add or append to database
-                    // notes.clear();
                     notes.extend(events);
                 }
                 Err(e) => {
@@ -133,22 +86,23 @@ pub fn NoteList(name: String) -> Element {
     let on_mounted = move |_| {
         if name.is_empty() {
             return;
+        }else {
+            let subs_map_lock = subs_map();
+            if !subs_map_lock.contains_key(&name) {
+                navigator().replace("/404");
+            }
         }
         handle_fetch();
     };
-    let mut index = use_signal(|| 0);
 
-    let handle_reload = move |_: CustomSub| {
-        //todo
-        index += 1;
-        // sub_current.set(value);
-    };
+    use_effect(use_reactive(&reload_flag(), move |_| {
+        handle_fetch();
+    }));
+
     rsx! {
-        div {
-            onmounted: on_mounted,
-            class:"flex-box",
             div {
-                class:"flex-box-left",
+                onmounted: on_mounted,
+                class:"flex-box-left h-full",
                 id: "note-list",
                 onscroll: move |_| {
                     let callback = Closure::wrap(Box::new({
@@ -188,119 +142,5 @@ pub fn NoteList(name: String) -> Element {
                     }
                 }
             }
-            CustomSubscription {
-                on_save: handle_save,
-                on_reload: handle_reload,
-                subscription: sub_current.read().clone(),
-            }
-        }
-    }
-}
-
-#[derive(PartialEq, Clone, Props)]
-pub struct ListProps {
-    index: i32,
-    subscription: CustomSub,
-    events: Vec<Event>,
-}
-
-#[component]
-pub fn List(props: ListProps) -> Element {
-    // let mut sub_current = use_signal(|| props.subscription.clone());
-
-    // let mut notes: Signal<Vec<Event>> = use_signal(std::vec::Vec::new);
-    // let mut index = use_signal(|| 1);
-
-    // let multiclient = use_context::<Signal<MultiClient>>();
-    let events = use_signal(|| props.events.clone());
-    // // get events from relay && set data to database and notes
-    // let handle_fetch = move || {
-    //     spawn(async move {
-    //         let sub = sub_current.read().clone();
-    //         let filters = sub.get_filters();
-    //         tracing::info!("Subscription: {:#?}", filters);
-    //         let mut clients = multiclient();
-    //         let client_result = clients.get_or_create(&sub.relay_set).await;
-
-    //         let hc = match client_result {
-    //             Ok(hc) => hc,
-    //             Err(e) => {
-    //                 tracing::error!("Error: {:?}", e);
-    //                 return;
-    //             }
-    //         };
-
-    //         let client = hc.client();
-    //         // TODO: use global client by this subscription
-    //         tracing::info!("Filters: {:#?}", filters);
-    //         // TODO: use the 'subscribe' function if this sub requires subscription
-    //         match client
-    //             .get_events_of(filters, Some(Duration::from_secs(5)))
-    //             .await
-    //         {
-    //             Ok(events) => {
-    //                 // TODO: add or append to database
-    //                 // notes.clear();
-    //                 notes.extend(events);
-    //             }
-    //             Err(e) => {
-    //                 tracing::error!("Error: {:?}", e);
-    //             }
-    //         }
-    //     })
-    // };
-
-    // let handle_load = move || {
-    //     let count = notes.read().len();
-    //     if count == 0 {
-    //         // let database = WebDatabase::open("events_database").await.unwrap();
-    //         // TODO: load from database
-    //         // if load_from_database.len() == 0 {
-    //         //     handle_fetch();
-    //         // } else {
-    //         //     set data to notes
-    //         // }
-    //         handle_fetch();
-    //     }
-    // };
-
-    // use_effect(use_reactive(
-    //     (&props.index, &props.subscription),
-    //     move |(i, sub)| {
-    //         if i != index() {
-    //             tracing::info!("Subscription changed: {:?}", index());
-    //             sub_current.set(sub);
-    //             index.set(i);
-    //             notes.clear();
-    //             handle_load();
-    //         }
-    //     },
-    // ));
-    let eles = use_memo(move || {
-        let mut eles = vec![];
-        for (i, note) in events.read().iter().enumerate() {
-            eles.push(rsx! {
-                Note {
-                    sub_name: props.subscription.name.clone(),
-                    event: note.clone(),
-                    relay_name: props.subscription.relay_set.clone(),
-                    note_index: i,
-                }
-            });
-        }
-        eles
-    });
-    rsx! {
-        // div {
-        //     class: "note-more-mod-box",
-        //     for (i, note) in events.read().clone().iter().enumerate() {
-        //         Note {
-        //             sub_name: props.subscription.name.clone(),
-        //             event: note.clone(),
-        //             relay_name: props.subscription.relay_set.clone(),
-        //             note_index: i,
-        //         }
-        //     }
-        // }
     }
 }
