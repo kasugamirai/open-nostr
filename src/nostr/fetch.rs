@@ -384,7 +384,7 @@ pub async fn get_followers(
                             (*exit)()
                         };
 
-                        Ok(should_exit) // Wrap the bool in an Ok result
+                        Ok(should_exit)
                     }
                 }
             })
@@ -595,7 +595,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_get_followers() {
         let client = Client::default();
-        client.add_relay("wss://relay.damus.io").await.unwrap();
+        //client.add_relay("wss://relay.damus.io").await.unwrap();
         client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
 
@@ -621,7 +621,8 @@ mod tests {
         spawn_local({
             let exit_cond_clone = Arc::clone(&exit_cond);
             async move {
-                sleep(Duration::from_secs(10)).await;
+                sleep(Duration::from_secs(5)).await;
+                console_log!("Setting exit condition");
                 // Signal the exit condition
                 exit_cond_clone.store(true, Ordering::SeqCst);
             }
@@ -637,12 +638,14 @@ mod tests {
                         Ok(follower) => {
                             console_log!("follower: {:?}", follower);
                             followers_inner.lock().unwrap().push(follower);
+                            console_log!("followers: {:?}", followers_inner.lock().unwrap().len());
                         }
                         Err(e) => console_log!("Error: {:?}", e),
                     }
                 }
             })
             .await;
+        console_log!("exist");
 
         assert!(!followers.lock().unwrap().is_empty());
     }
