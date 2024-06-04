@@ -2,6 +2,7 @@ use super::utils::get_newest_event;
 use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
+use gloo_timers::future::sleep;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::TagKind;
 use nostr_sdk::{
@@ -12,10 +13,12 @@ use nostr_sdk::{Metadata, Tag};
 use nostr_sdk::{NostrSigner, PublicKey};
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
+use tokio::sync::Mutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
 use wasm_bindgen_futures::spawn_local;
@@ -86,8 +89,8 @@ impl From<Event> for DecryptedMsg {
     }
 }
 
-pub struct EventPaginator<'a> {
-    client: &'a Client,
+pub struct EventPaginator {
+    client: Arc<Client>,
     filters: Vec<Filter>,
     oldest_timestamp: Option<Timestamp>,
     done: bool,
@@ -96,9 +99,12 @@ pub struct EventPaginator<'a> {
     last_event_ids: HashSet<EventId>,
 }
 
-impl<'a> EventPaginator<'a> {
+unsafe impl Send for EventPaginator {}
+unsafe impl Sync for EventPaginator {}
+
+impl EventPaginator {
     pub fn new(
-        client: &'a Client,
+        client: Arc<Client>,
         filters: Vec<Filter>,
         timeout: Option<Duration>,
         page_size: usize,
@@ -161,7 +167,7 @@ impl<'a> EventPaginator<'a> {
     }
 }
 
-impl<'a> Stream for EventPaginator<'a> {
+impl Stream for EventPaginator {
     type Item = Result<Vec<Event>, Error>;
 
     fn poll_next(
@@ -180,13 +186,13 @@ impl<'a> Stream for EventPaginator<'a> {
 pub struct DecryptedMsgPaginator<'a> {
     signer: &'a NostrSigner,
     target_pub_key: PublicKey,
-    paginator: EventPaginator<'a>,
+    paginator: EventPaginator,
 }
 
 impl<'a> DecryptedMsgPaginator<'a> {
     pub async fn new(
         signer: &'a NostrSigner,
-        client: &'a Client,
+        client: Arc<Client>,
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
@@ -341,9 +347,9 @@ pub async fn get_following(
 }
 
 pub async fn get_followers(
-    client: &Client,
-    public_key: &PublicKey,
-    exit: Arc<Mutex<Box<dyn Fn() -> bool + Send + Sync>>>,
+    client: Arc<Client>,
+    public_key: PublicKey,
+    timeout: Option<std::time::Duration>,
 ) -> Result<impl Stream<Item = Result<String, Error>>, Error> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
@@ -351,45 +357,43 @@ pub async fn get_followers(
     );
 
     let (tx, rx) = mpsc::unbounded_channel();
-    let sub_id_1 = client.subscribe(vec![filter], None).await;
+    let paginator = Arc::new(Mutex::new(EventPaginator::new(
+        client,
+        vec![filter],
+        timeout,
+        500,
+    )));
+    let exit_cond = Arc::new(AtomicBool::new(false));
 
-    let client_handle = client.clone();
-
-    spawn_local(async move {
-        client_handle
-            .handle_notifications({
-                let exit = Arc::clone(&exit);
-                move |notification| {
-                    let tx = tx.clone();
-                    let exit = Arc::clone(&exit);
-                    let sub_id = sub_id_1.clone();
-                    async move {
-                        if let RelayPoolNotification::Event {
-                            subscription_id: sub_id_received,
-                            event,
-                            ..
-                        } = notification
-                        {
-                            if sub_id_received == sub_id {
-                                let author = event.author().to_hex();
-                                if let Err(e) = tx.send(author) {
-                                    eprintln!("Failed to send follower: {:?}", e);
-                                }
-                            }
+    spawn_local({
+        let paginator = Arc::clone(&paginator);
+        let exit_cond = Arc::clone(&exit_cond);
+        async move {
+            while !exit_cond.load(Ordering::SeqCst) {
+                let mut paginator = paginator.lock().await;
+                if let Ok(events) = paginator.next_page().await {
+                    for event in events {
+                        let author = event.author().to_hex();
+                        if let Err(e) = tx.send(author) {
+                            eprintln!("Failed to send follower: {:?}", e);
                         }
 
-                        // Check exit condition based on the locked state
-                        let should_exit = {
-                            let exit = exit.lock().unwrap();
-                            (*exit)()
-                        };
-
-                        Ok(should_exit)
+                        if exit_cond.load(Ordering::SeqCst) {
+                            break;
+                        }
                     }
+
+                    if paginator.done {
+                        break;
+                    }
+                } else {
+                    break;
                 }
-            })
-            .await
-            .unwrap();
+            }
+
+            sleep(Duration::from_secs(1)).await;
+            exit_cond.store(true, Ordering::SeqCst);
+        }
     });
 
     Ok(UnboundedReceiverStream::new(rx).map(Ok))
@@ -418,7 +422,7 @@ mod tests {
     use nostr_sdk::Client;
     use nostr_sdk::{ClientBuilder, FromBech32, Keys};
     use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
     use std::time::Duration;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
@@ -528,7 +532,7 @@ mod tests {
 
         let page_size = 100;
         let timeout = Some(std::time::Duration::from_secs(5));
-        let mut paginator = EventPaginator::new(&client, vec![filter], timeout, page_size);
+        let mut paginator = EventPaginator::new(Arc::new(client), vec![filter], timeout, page_size);
 
         let mut count = 0;
         loop {
@@ -564,13 +568,18 @@ mod tests {
         let client = Client::new(&key);
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let singer = client.signer().await.unwrap();
+        let signer = client.signer().await.unwrap();
         let page_size = 3;
         let timeout = Some(std::time::Duration::from_secs(5));
-        let mut paginator =
-            DecryptedMsgPaginator::new(&singer, &client, target_pub_key, timeout, page_size)
-                .await
-                .unwrap();
+        let mut paginator = DecryptedMsgPaginator::new(
+            &signer,
+            Arc::new(client),
+            target_pub_key,
+            timeout,
+            page_size,
+        )
+        .await
+        .unwrap();
         let mut count = 0;
         while let Some(result) = paginator.next_page().await {
             match result {
@@ -594,34 +603,28 @@ mod tests {
     }
     #[wasm_bindgen_test]
     async fn test_get_followers() {
-        let client = Client::default();
-        //client.add_relay("wss://relay.damus.io").await.unwrap();
+        let client = Arc::new(Client::default());
         client.add_relay("wss://nos.lol").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+
         client.connect().await;
 
         let public_key = PublicKey::from_bech32(
-            "npub1sctag667a7np6p6ety2up94pnwwxhd2ep8n8afr2gtr47cwd4ewsvdmmjm",
+            "npub1ywc6w8qjnm6nlh8ct7qacg9qzl83aappkljkf8yyhnwa7eema4psjgw6nr",
         )
         .unwrap();
 
+        let timeout = Some(std::time::Duration::from_secs(5));
         let exit_cond = Arc::new(AtomicBool::new(false));
 
-        // Using a box to store the closure
-        let exit_mutex: Arc<Mutex<Box<dyn Fn() -> bool + Send + Sync>>> =
-            Arc::new(Mutex::new(Box::new({
-                let exit_cond_clone = Arc::clone(&exit_cond);
-                move || exit_cond_clone.load(Ordering::SeqCst)
-            })));
+        // Corrected function call
+        let stream = get_followers(client, public_key, timeout).await.unwrap();
 
-        let stream = get_followers(&client, &public_key, Arc::clone(&exit_mutex))
-            .await
-            .unwrap();
-
-        // Using spawn_local to run a task that will change the exit condition after 10 seconds.
+        // Using spawn_local to run a task that will change the exit condition after 15 seconds.
         spawn_local({
             let exit_cond_clone = Arc::clone(&exit_cond);
             async move {
-                sleep(Duration::from_secs(5)).await;
+                sleep(Duration::from_secs(15)).await;
                 console_log!("Setting exit condition");
                 // Signal the exit condition
                 exit_cond_clone.store(true, Ordering::SeqCst);
@@ -637,8 +640,8 @@ mod tests {
                     match follower {
                         Ok(follower) => {
                             console_log!("follower: {:?}", follower);
-                            followers_inner.lock().unwrap().push(follower);
-                            console_log!("followers: {:?}", followers_inner.lock().unwrap().len());
+                            followers_inner.lock().await.push(follower);
+                            console_log!("followers: {:?}", followers_inner.lock().await.len());
                         }
                         Err(e) => console_log!("Error: {:?}", e),
                     }
@@ -647,6 +650,6 @@ mod tests {
             .await;
         console_log!("exist");
 
-        assert!(!followers.lock().unwrap().is_empty());
+        assert!(!followers.lock().await.is_empty());
     }
 }
