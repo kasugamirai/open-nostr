@@ -89,6 +89,7 @@ impl From<Event> for DecryptedMsg {
     }
 }
 
+#[allow(clippy::arc_with_non_send_sync)]
 pub struct EventPaginator {
     client: Arc<Client>,
     filters: Vec<Filter>,

@@ -35,6 +35,7 @@ pub struct HashedClient {
 unsafe impl Send for HashedClient {}
 unsafe impl Sync for HashedClient {}
 
+#[allow(clippy::arc_with_non_send_sync)]
 impl HashedClient {
     pub async fn new(client: Client) -> Self {
         let hash = Self::_hash(&client).await;
@@ -227,7 +228,7 @@ mod tests {
     use nostr_sdk::FromBech32;
     use nostr_sdk::Kind;
     use nostr_sdk::PublicKey;
-    use tokio::sync::oneshot;
+    //use tokio::sync::oneshot;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
     wasm_bindgen_test_configure!(run_in_browser);
@@ -268,14 +269,16 @@ mod tests {
         let client = nostr_sdk::Client::default();
         let mut hashed_client = HashedClient::new(client).await;
         let _ = hashed_client.add_relay("wss://relay.damus.io").await;
-        let mut multi_client = MultiClient::new();
+        let multi_client = MultiClient::new();
 
         let public_key = PublicKey::from_bech32(
             "npub1xtscya34g58tk0z605fvr788k263gsu6cy9x0mhnm87echrgufzsevkk5s",
         )
         .unwrap();
         // Register the client
-        multi_client.register("client1".to_string(), hashed_client.clone());
+        multi_client
+            .register("client1".to_string(), hashed_client.clone())
+            .await;
 
         let filter: Filter = Filter::new()
             .kind(Kind::TextNote)
@@ -284,7 +287,7 @@ mod tests {
         // Prepare filters
         let filters = vec![filter];
 
-        let mut cache = EventCache::new(30, 300);
+        let cache = EventCache::new(30, 300);
 
         // Perform the first query (this should not hit the cache)
         let result1 = cache
@@ -320,7 +323,9 @@ mod tests {
         )
         .unwrap();
         // Register the client
-        multi_client.register("client1".to_string(), hashed_client.clone());
+        multi_client
+            .register("client1".to_string(), hashed_client.clone())
+            .await;
 
         let filter: Filter = Filter::new()
             .kind(Kind::TextNote)
