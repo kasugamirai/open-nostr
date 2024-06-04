@@ -364,9 +364,9 @@ mod tests {
 
         // Create a oneshot channel.
         let (tx, rx) = tokio::sync::oneshot::channel();
+        let mut paginator = EventPaginator::new(c, vec![filter], None, 10);
 
         spawn_local(async move {
-            let mut paginator = EventPaginator::new(c, vec![filter], None, 10);
             let e = paginator.next_page().await.unwrap();
             console_log!("Events: {:?}", e);
             tx.send(e.len()).unwrap(); // Send the length of `e` through the channel.
