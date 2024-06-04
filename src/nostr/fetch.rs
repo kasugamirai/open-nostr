@@ -350,7 +350,7 @@ pub async fn get_followers(
     client: Arc<Client>,
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
-) -> Result<impl Stream<Item = Result<String, Error>>, Error> {
+) -> impl Stream<Item = String> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
         vec![public_key.to_hex()],
@@ -390,7 +390,7 @@ pub async fn get_followers(
         }
     });
 
-    Ok(UnboundedReceiverStream::new(rx).map(Ok))
+    UnboundedReceiverStream::new(rx).filter_map(|res| async { Some(res) })
 }
 
 pub async fn query_events_from_db(
@@ -595,6 +595,7 @@ mod tests {
         }
         assert!(count > 7);
     }
+
     #[wasm_bindgen_test]
     async fn test_get_followers() {
         let client = &Client::default();
@@ -611,18 +612,13 @@ mod tests {
         let timeout = Some(std::time::Duration::from_secs(5));
         let exit_cond = Arc::new(AtomicBool::new(false));
 
-        // Corrected function call
-        let stream = get_followers(arc_client, &public_key, timeout)
-            .await
-            .unwrap();
+        let stream = get_followers(arc_client, &public_key, timeout).await;
 
-        // Using spawn_local to run a task that will change the exit condition after 15 seconds.
         spawn_local({
             let exit_cond_clone = Arc::clone(&exit_cond);
             async move {
                 sleep(Duration::from_secs(15)).await;
                 console_log!("Setting exit condition");
-                // Signal the exit condition
                 exit_cond_clone.store(true, Ordering::SeqCst);
             }
         });
@@ -633,18 +629,12 @@ mod tests {
             .for_each(move |follower| {
                 let followers_inner = Arc::clone(&followers_clone);
                 async move {
-                    match follower {
-                        Ok(follower) => {
-                            console_log!("follower: {:?}", follower);
-                            followers_inner.lock().await.push(follower);
-                            console_log!("followers: {:?}", followers_inner.lock().await.len());
-                        }
-                        Err(e) => console_log!("Error: {:?}", e),
-                    }
+                    followers_inner.lock().await.push(follower);
+                    console_log!("followers: {:?}", followers_inner.lock().await.len());
                 }
             })
             .await;
-        console_log!("exist");
+        console_log!("exit");
 
         assert!(!followers.lock().await.is_empty());
     }
