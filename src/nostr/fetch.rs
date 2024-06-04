@@ -7,6 +7,7 @@ use nostr_indexeddb::database::Order;
 use nostr_sdk::TagKind;
 use nostr_sdk::{
     Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
+    TagStandard,
 };
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -332,10 +333,9 @@ pub async fn get_following(
     let mut ret: Vec<String> = vec![];
     if let Some(latest_event) = events.iter().max_by_key(|event| event.created_at()) {
         ret.extend(latest_event.tags().iter().filter_map(|tag| {
-            if let TagKind::SingleLetter(SingleLetterTag {
-                character: Alphabet::P,
-                uppercase: false,
-            }) = tag.kind()
+            if let Some(TagStandard::PublicKey {
+                uppercase: false, ..
+            }) = <nostr_sdk::Tag as Clone>::clone(tag).to_standardized()
             {
                 tag.content().map(String::from)
             } else {
@@ -645,5 +645,22 @@ mod tests {
         console_log!("exist");
 
         assert!(!followers.lock().await.is_empty());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_following() {
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        let public_key = PublicKey::from_bech32(
+            "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9",
+        )
+        .unwrap();
+
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let following = get_following(&client, &public_key, timeout).await.unwrap();
+        console_log!("following: {:?}", following);
+        assert!(!following.is_empty());
     }
 }
