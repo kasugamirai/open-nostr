@@ -357,31 +357,25 @@ pub async fn get_followers(
     );
 
     let (tx, rx) = mpsc::unbounded_channel();
-    let paginator = Arc::new(Mutex::new(EventPaginator::new(
-        client,
-        vec![filter],
-        timeout,
-        500,
-    )));
-    let exit_cond = Arc::new(AtomicBool::new(false));
 
     spawn_local({
-        let paginator = Arc::clone(&paginator);
-        let exit_cond = Arc::clone(&exit_cond);
+        let paginator = Arc::new(Mutex::new(EventPaginator::new(
+            client,
+            vec![filter],
+            timeout,
+            500,
+        )));
+        let exit_cond = Arc::new(AtomicBool::new(false));
         async move {
             while !exit_cond.load(Ordering::SeqCst) {
                 let mut paginator = paginator.lock().await;
                 if let Ok(events) = paginator.next_page().await {
-                    for event in events {
+                    events.iter().for_each(|event| {
                         let author = event.author().to_hex();
                         if let Err(e) = tx.send(author) {
                             eprintln!("Failed to send follower: {:?}", e);
                         }
-
-                        if exit_cond.load(Ordering::SeqCst) {
-                            break;
-                        }
-                    }
+                    });
 
                     if paginator.done {
                         break;
@@ -610,7 +604,7 @@ mod tests {
         client.connect().await;
 
         let public_key = PublicKey::from_bech32(
-            "npub1ywc6w8qjnm6nlh8ct7qacg9qzl83aappkljkf8yyhnwa7eema4psjgw6nr",
+            "npub1zfss807aer0j26mwp2la0ume0jqde3823rmu97ra6sgyyg956e0s6xw445",
         )
         .unwrap();
 
