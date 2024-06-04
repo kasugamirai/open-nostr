@@ -348,7 +348,7 @@ pub async fn get_following(
 
 pub async fn get_followers(
     client: Arc<Client>,
-    public_key: PublicKey,
+    public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
 ) -> Result<impl Stream<Item = Result<String, Error>>, Error> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
@@ -612,7 +612,7 @@ mod tests {
         let exit_cond = Arc::new(AtomicBool::new(false));
 
         // Corrected function call
-        let stream = get_followers(client, public_key, timeout).await.unwrap();
+        let stream = get_followers(client, &public_key, timeout).await.unwrap();
 
         // Using spawn_local to run a task that will change the exit condition after 15 seconds.
         spawn_local({
