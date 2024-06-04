@@ -1,6 +1,7 @@
 use super::utils::get_newest_event;
 use super::utils::get_oldest_event;
-use futures::{Future, Stream};
+use futures::Future;
+use futures::StreamExt;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::TagKind;
 use nostr_sdk::{
@@ -14,7 +15,11 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
+use tokio::sync::mpsc;
 use tokio::sync::Mutex as TokioMutex;
+use tokio_stream::wrappers::UnboundedReceiverStream;
+use tokio_stream::Stream;
+use wasm_bindgen_futures::spawn_local;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -30,6 +35,8 @@ pub enum Error {
     Signer(#[from] nostr_sdk::signer::Error),
     #[error(transparent)]
     Database(#[from] nostr_indexeddb::database::DatabaseError),
+    #[error("Channel send error: {0}")]
+    ChannelSend(#[from] tokio::sync::mpsc::error::TrySendError<String>),
     #[error("error: {0}")]
     Other(String),
 }
@@ -338,42 +345,49 @@ pub async fn get_followers(
     client: &Client,
     public_key: &PublicKey,
     exit: impl Fn() -> bool + Send + Sync + 'static,
-    followers_set: Arc<TokioMutex<HashSet<String>>>,
-) -> Result<(), Error> {
+) -> Result<impl Stream<Item = Result<String, Error>>, Error> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
         vec![public_key.to_hex()],
     );
+
+    let (tx, rx) = mpsc::unbounded_channel();
     let sub_id_1 = client.subscribe(vec![filter], None).await;
 
-    client
-        .handle_notifications({
-            let exit = Arc::new(exit);
-            let sub_id_1 = sub_id_1.clone();
-            move |notification| {
-                let followers_set = followers_set.clone();
-                let exit = exit.clone();
-                let sub_id_1 = sub_id_1.clone();
-                async move {
-                    if let RelayPoolNotification::Event {
-                        subscription_id: sub_id,
-                        event,
-                        ..
-                    } = notification
-                    {
-                        if sub_id == sub_id_1 {
-                            let author = event.author().to_hex();
-                            let mut followers_set = followers_set.lock().await;
-                            followers_set.insert(author);
-                        }
-                    }
-                    Ok(exit())
-                }
-            }
-        })
-        .await?;
+    let client_handle = client.clone();
+    let exit = Arc::new(exit);
 
-    Ok(())
+    spawn_local(async move {
+        client_handle
+            .handle_notifications({
+                let exit = Arc::clone(&exit);
+                move |notification| {
+                    let tx = tx.clone();
+                    let exit = exit.clone();
+                    let sub_id = sub_id_1.clone();
+                    async move {
+                        if let RelayPoolNotification::Event {
+                            subscription_id: sub_id_received,
+                            event,
+                            ..
+                        } = notification
+                        {
+                            if sub_id_received == sub_id {
+                                let author = event.author().to_hex();
+                                if let Err(e) = tx.send(author) {
+                                    eprintln!("Failed to send follower: {:?}", e);
+                                }
+                            }
+                        }
+                        Ok(exit())
+                    }
+                }
+            })
+            .await
+            .unwrap();
+    });
+
+    Ok(UnboundedReceiverStream::new(rx).map(Ok))
 }
 
 pub async fn query_events_from_db(
@@ -401,7 +415,6 @@ mod tests {
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
-    use tokio::sync::Mutex as TokioMutex;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
 
@@ -574,6 +587,7 @@ mod tests {
         }
         assert!(count > 7);
     }
+
     #[wasm_bindgen_test]
     async fn test_get_followers() {
         let client = Client::default();
@@ -586,32 +600,36 @@ mod tests {
         )
         .unwrap();
 
-        let followers_set = Arc::new(TokioMutex::new(HashSet::new()));
         let exit_cond = Arc::new(AtomicBool::new(false));
 
         let exit_clone = exit_cond.clone();
-        let followers_set_clone = followers_set.clone();
+
+        let stream = get_followers(&client, &public_key, move || {
+            exit_clone.load(Ordering::SeqCst)
+        })
+        .await
+        .unwrap();
 
         spawn_local(async move {
-            get_followers(
-                &client,
-                &public_key,
-                move || exit_clone.load(Ordering::SeqCst),
-                followers_set_clone,
-            )
-            .await
-            .unwrap();
+            // Wait for 10 seconds
+            sleep(Duration::from_secs(10)).await;
+            // Signal the exit condition
+            exit_cond.store(true, Ordering::SeqCst);
         });
 
-        // Wait for 10 seconds
-        sleep(Duration::from_secs(10)).await;
+        let mut followers = vec![];
+        stream
+            .for_each(|follower| async {
+                match follower {
+                    Ok(follower) => {
+                        console_log!("follower: {:?}", follower);
+                        followers.push(follower);
+                    }
+                    Err(e) => console_log!("Error: {:?}", e),
+                }
+            })
+            .await;
 
-        // Signal the exit condition
-        exit_cond.store(true, Ordering::SeqCst);
-
-        // Check followers
-        let followers = followers_set.lock().await;
-        console_log!("followers: {:?}", followers);
         assert!(!followers.is_empty());
     }
 }
