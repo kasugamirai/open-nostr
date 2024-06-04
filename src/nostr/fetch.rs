@@ -3,10 +3,9 @@ use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
 use gloo_timers::future::sleep;
-use nostr_indexeddb::database::Order;
 use nostr_sdk::{
     Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
-    TagStandard,
+    SubscribeAutoCloseOptions, TagStandard,
 };
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -18,9 +17,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
+use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
+
 use wasm_bindgen_futures::spawn_local;
 
 #[derive(Debug, Error)]
@@ -393,13 +395,59 @@ pub async fn get_followers(
     UnboundedReceiverStream::new(rx).filter_map(|res| async { Some(res) })
 }
 
-pub async fn query_events_from_db(
-    client: &Client,
-    filters: Vec<Filter>,
-) -> Result<Vec<Event>, Error> {
-    let events = client.database().query(filters, Order::Desc).await?;
-    Ok(events)
+/*
+pub enum NotificationMsg {
+    Emoji(String),
+    Reply(String),
+    Repost(String),
+    Quote(String),
 }
+
+pub async fn sub_notification(
+    client: Arc<Client>,
+    filters: Vec<Filter>,
+    sub_opts: Option<SubscribeAutoCloseOptions>,
+    stop_flag: Arc<AtomicBool>,
+) -> impl Stream<Item = NotificationMsg> {
+    // Create a channel for sending notifications
+    let (tx, rx): (
+        mpsc::UnboundedSender<NotificationMsg>,
+        mpsc::UnboundedReceiver<NotificationMsg>,
+    ) = mpsc::unbounded_channel();
+
+    client.subscribe(filters, sub_opts).await;
+
+    // Launch a task to handle notifications
+    spawn_local(async move {
+        client
+            .handle_notifications(move |notification| {
+                let tx_clone = tx.clone();
+                let stop_flag_inner = Arc::clone(&stop_flag);
+                async move {
+                    if let RelayPoolNotification::Event { event, .. } = notification {
+                        let msg = match event.kind() {
+                            Kind::Repost => NotificationMsg::Repost(event.content().to_string()),
+                            //todo: add more notification types
+                            _ => return Ok(!stop_flag_inner.load(Ordering::SeqCst)), // Load the stop flag
+                        };
+
+                        if let Err(e) = tx_clone.send(msg) {
+                            tracing::error!("Failed to send notification: {:?}", e);
+                        }
+                    }
+                    Ok(!stop_flag_inner.load(Ordering::SeqCst)) // Load the stop flag
+                }
+            })
+            .await
+            .unwrap();
+    });
+
+    // Return the stream of notifications
+    UnboundedReceiverStream::new(rx)
+        .filter_map(|msg| async move { Some(msg) })
+        .boxed()
+}
+*/
 
 #[cfg(test)]
 mod tests {
@@ -411,6 +459,7 @@ mod tests {
         testhelper::event_from,
     };
     use gloo_timers::future::sleep;
+    use nostr_indexeddb::database::Order;
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::key::SecretKey;
     use nostr_sdk::Client;
@@ -642,6 +691,7 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_get_following() {
         let client = Client::default();
+        let client = Arc::new(client);
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
 
@@ -655,4 +705,11 @@ mod tests {
         console_log!("following: {:?}", following);
         assert!(!following.is_empty());
     }
+
+    /*
+    #[wasm_bindgen_test]
+    async fn test_sub_notification() {
+        todo!("Implement this test");
+    }
+    */
 }
