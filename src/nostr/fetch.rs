@@ -3,6 +3,7 @@ use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
 use gloo_timers::future::sleep;
+use nostr_sdk::event::kind;
 use nostr_sdk::nips::nip10::Marker;
 use nostr_sdk::{
     Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
@@ -402,6 +403,7 @@ pub enum NotificationMsg {
     Reply(Event),
     Repost(Event),
     Quote(Event),
+    ZapReceipt(Event),
 }
 
 pub async fn sub_notification(
@@ -427,6 +429,7 @@ pub async fn sub_notification(
                                 NotificationMsg::Reply(*event)
                             }
                         }
+                        Kind::ZapReceipt => NotificationMsg::ZapReceipt(*event),
                         _ => continue,
                     };
 
@@ -857,6 +860,9 @@ mod tests {
                 }
                 NotificationMsg::Repost(r_event) => {
                     console_log!("Received Repost event: {:?}", r_event);
+                }
+                NotificationMsg::ZapReceipt(r_event) => {
+                    console_log!("Received ZapReceipt event: {:?}", r_event);
                 }
             }
             // Set the stop flag to true to exit.
