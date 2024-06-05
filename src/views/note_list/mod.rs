@@ -16,6 +16,7 @@ use crate::{
     },
     store::subscription::CustomSub,
     utils::js::{get_scroll_info, throttle},
+    components::icons::LOADING,
 };
 
 use note::Note;
@@ -56,6 +57,7 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
         }
         reload_flag.set(time.clone());
     }));
+
     let handle_fetch = move || {
         spawn(async move {
             if !is_loading() {
@@ -130,6 +132,12 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
                                 event: note.clone(),
                                 relay_name: sub_current().relay_set.clone(),
                                 note_index: i,
+                            }
+                        }
+                        if is_loading() {
+                            div {
+                                class: "laoding-box",
+                                dangerous_inner_html: "{LOADING}"
                             }
                         }
                     }

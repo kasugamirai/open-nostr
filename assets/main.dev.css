@@ -13556,6 +13556,21 @@ body, html {
   right: 0;
 }
 
+.laoding-box {
+  width: fit-content;
+  height: fit-content;
+  margin: 10px auto;
+  animation: Loading 4s infinite;
+}
+
+@keyframes Loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 input[type=datetime-local] {
   appearance: none;
   -webkit-appearance: none;
