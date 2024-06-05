@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil, Kind};
 
 use crate::{
-    components::{icons::*, Avatar},
+    components::{icons::*, Avatar, ModalManager},
     nostr::note::TextNote,
     utils::{format::format_note_content, js::note_srcoll_into_view},
     views::note_list::reply::Reply,
@@ -228,7 +228,7 @@ pub fn Note(props: NoteProps) -> Element {
 #[component]
 pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
     let mut edit = use_signal(|| false);
-
+    let mut modal_manager = use_context::<Signal<ModalManager>>();
     // close when click outside
     let root_click_pos = use_context::<Signal<(f64, f64)>>();
     let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
@@ -244,25 +244,10 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
             edit.set(false);
         }
     }));
-
-    rsx! {
-        div {
-            onclick: move |event| {
-                // Save the coordinates of the event relative to the screen
-                pos.set(event.screen_coordinates().to_tuple());
-            },
-            class: "relative",
+    let popover = {
+        rsx! {
             div {
-                class: "more-trigger",
-                div {
-                    onclick: move |_| {
-                        edit.set(!edit());
-                    },
-                    dangerous_inner_html: "{MORE}"
-                }
-            }
-            div {
-                class: "show-{edit} note-more-box",
+                class: "show-true note-more-box",
                 div {
                     class:"note-more-content-box",
                     div {
@@ -308,6 +293,28 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                     }
                 }
             }
+        }
+    };
+    rsx! {
+        div {
+            onclick: move |event| {
+                // Save the coordinates of the event relative to the screen
+                pos.set(event.screen_coordinates().to_tuple());
+            },
+            class: "relative",
+            div {
+                class: "more-trigger",
+                div {
+                    onclick: move |e| {
+                        let (x, y) = e.page_coordinates().to_tuple();
+                        edit.set(!edit());
+                        let popover_modal_id = modal_manager.write().add_popover(popover.clone(), (x, y));
+                        modal_manager.write().open_modal(&popover_modal_id);
+                    },
+                    dangerous_inner_html: "{MORE}"
+                }
+            }
+
         }
     }
 }

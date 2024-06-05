@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::components::{ModalManager, ModalManagerProvider};
 use crate::nostr::multiclient::{EventCache, HashedClient};
 use crate::store::subscription::{CustomHashTag, FilterTemp};
 use crate::store::user::NoLogin;
@@ -32,11 +33,13 @@ pub fn App() -> Element {
     let mut subs_map: Signal<HashMap<String, CustomSub>> =
         use_context_provider(|| Signal::new(HashMap::<String, CustomSub>::new()));
     let mut all_users: Signal<Vec<User>> = use_context_provider(|| Signal::new(Vec::<User>::new()));
+
     // theme class name
     let theme = use_context_provider(|| Signal::new(String::from("light")));
 
     let mut router = use_signal(|| rsx! {div{}});
 
+    use_context_provider(|| Signal::new(ModalManager::new()));
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
     // hook: on mounted
     let on_mounted = move |_| {
@@ -159,6 +162,7 @@ pub fn App() -> Element {
             id: "app",
             class: "{theme}",
             {router}
+            ModalManagerProvider {}
         }
     }
 }
