@@ -1,7 +1,7 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use indextree::{Arena, NodeId};
-use nostr_sdk::{Event, EventId, FromBech32, PublicKey};
+use nostr_sdk::{Client, Event, EventId, Filter, FromBech32, PublicKey};
 use serde::Serialize;
 
 /// Utility function to get all children of a specified node in an Arena.
@@ -82,3 +82,12 @@ pub fn get_newest_event(events: &[Event]) -> Option<&Event> {
 pub fn get_oldest_event(events: &[Event]) -> Option<&Event> {
     events.iter().min_by_key(|event| event.created_at())
 }
+/*
+pub async fn query_events_from_db(
+    client: &Client,
+    filters: Vec<Filter>,
+) -> Result<Vec<Event>, Error> {
+    let events = client.database().query(filters, Order::Desc).await?;
+    Ok(events)
+}
+*/
