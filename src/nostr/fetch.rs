@@ -141,13 +141,14 @@ impl EventPaginator {
             .map(|f| {
                 let mut f = f.clone();
                 if let Some(timestamp) = self.oldest_timestamp {
-                    f = f.until(timestamp);
+                    f = f.until(timestamp - 1);
                 }
                 f = f.limit(self.page_size);
                 f
             })
             .collect::<Vec<_>>();
 
+        tracing::info!("updated_filters: {:#?}", self.oldest_timestamp);
         let events = self
             .client
             .get_events_of(updated_filters.clone(), self.timeout)

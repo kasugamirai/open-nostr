@@ -6,17 +6,18 @@ use std::{collections::HashMap, time::Duration};
 
 use dioxus::prelude::*;
 use dioxus_elements::p;
+use nostr_indexeddb::database::Order;
 use nostr_sdk::{Event, Timestamp};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::{
+    components::icons::LOADING,
     nostr::{
         fetch::{self, EventPaginator},
         multiclient::MultiClient,
     },
     store::subscription::CustomSub,
     utils::js::{get_scroll_info, throttle},
-    components::icons::LOADING,
 };
 
 use note::Note;
@@ -31,23 +32,32 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
     let mut paginator = use_signal(|| None);
     let multiclient = use_context::<Signal<MultiClient>>();
     let mut is_loading = use_signal(|| false);
-    spawn(async move {
-        let sub_current = sub_current.read().clone();
-        let filters = sub_current.get_filters();
-        let mut clients = multiclient();
-        let client_result = clients.get_or_create(&sub_current.relay_set).await;
 
-        match client_result {
-            Ok(hc) => {
-                let client = hc.client();
-                let paginator_result = EventPaginator::new(client, filters, None, 40);
-                paginator.set(Some(paginator_result));
+
+    let handle_fetch = move || {
+        spawn(async move {
+            if !is_loading() {
+                is_loading.set(true);
+                // if let Some(paginator_lock) = paginator() {
+                let mut paginator_write: Write<Option<EventPaginator>, UnsyncStorage> =
+                    paginator.write();
+                let result = paginator_write.as_mut();
+                if let Some(paginator) = result {
+                    let events = paginator.next_page().await;
+                    match events {
+                        Ok(events) => {
+                            notes.extend(events.iter().cloned());
+
+                            is_loading.set(false);
+                        }
+                        Err(e) => {
+                            tracing::error!("Error: {:?}", e);
+                        }
+                    }
+                }
             }
-            Err(e) => {
-                tracing::error!("Error: {:?}", e);
-            }
-        };
-    });
+        });
+    };
 
     use_effect(use_reactive((&name, &reload_time), move |(s, time)| {
         let subs_map_lock = subs_map();
@@ -55,29 +65,41 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
             let current = subs_map_lock.get(&s).unwrap();
             sub_current.set(current.clone());
         }
-        reload_flag.set(time.clone());
-    }));
 
-    let handle_fetch = move || {
         spawn(async move {
-            if !is_loading() {
-                is_loading.set(true);
-                // if let Some(paginator_lock) = paginator() {
-                let mut paginator_write = paginator.unwrap();
-                let result = paginator_write.next_page().await;
-                match result {
-                    Ok(events) => {
-                        notes.extend(events.iter().cloned());
+            let sub_current = sub_current.read().clone();
+            let filters = sub_current.get_filters();
+            let mut clients = multiclient();
+            let client_result = clients.get_or_create(&sub_current.relay_set).await;
+            match client_result {
+                Ok(hc) => {
+                    let client = hc.client();
+                    {
+                        let paginator_result = EventPaginator::new(client.clone(), filters.clone(), None, 40);
+                        paginator.set(Some(paginator_result));
+                        // notes.clear();
+                        reload_flag.set(time.clone());
                     }
-                    Err(e) => {
-                        tracing::error!("Error: {:?}", e);
+                    {
+                        let stored_events = client.database().query(filters.clone(), Order::Desc).await;
+                        match stored_events {
+                            Ok(events) => {
+                                notes.set(events);
+                            }
+                            Err(e) => { // Rename the binding from Err to e
+                                // notes.set(vec![]);
+                                
+                            }
+                        }
+                        handle_fetch();
                     }
                 }
-                is_loading.set(false);
-            }
+                Err(e) => {
+                    tracing::error!("Error: {:?}", e);
+                }
+            };
         });
-    };
-
+    }));
     let on_mounted = move |_| {
         if name.is_empty() {
             return;
@@ -87,10 +109,10 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
                 navigator().replace("/404");
             }
         }
-        handle_fetch();
+        // handle_fetch();
     };
 
-    use_effect(use_reactive(&reload_flag(), move |_| {
+    use_effect(use_reactive(&reload_flag(), move |next_reload_flag| {
         handle_fetch();
     }));
 
