@@ -18,6 +18,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
+use wasm_bindgen_test::console_log;
 //use tokio::sync::mpsc::unbounded_channel;
 //use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
@@ -408,59 +409,36 @@ pub async fn sub_notification(
     stop_flag: Arc<AtomicBool>,
 ) -> Result<impl Stream<Item = NotificationMsg>, Error> {
     // Create a channel for sending notifications
-    let (tx, rx): (
-        mpsc::UnboundedSender<NotificationMsg>,
-        mpsc::UnboundedReceiver<NotificationMsg>,
-    ) = mpsc::unbounded_channel();
+    let (tx, rx) = mpsc::unbounded_channel();
 
     spawn_local(async move {
-        if let Err(e) = client
-            .handle_notifications(move |notification| {
-                let tx_clone = tx.clone();
-                let stop_flag_inner = Arc::clone(&stop_flag);
-                async move {
-                    if let RelayPoolNotification::Event { event, .. } = notification {
-                        let msg = match event.kind() {
-                            Kind::Repost => NotificationMsg::Repost(*event),
-                            Kind::Reaction => NotificationMsg::Emoji(*event),
-                            Kind::TextNote => {
-                                if event.tags().iter().any(|tag| {
-                                    matches!(
-                                        tag.as_standardized(),
-                                        Some(TagStandard::Event {
-                                            marker: Some(Marker::Root),
-                                            ..
-                                        })
-                                    )
-                                }) {
-                                    NotificationMsg::Reply(*event)
-                                } else if event.content().contains("nostr:nevent") {
-                                    NotificationMsg::Quote(*event)
-                                } else {
-                                    return Ok(!stop_flag_inner.load(Ordering::SeqCst));
-                                    // Load the stop flag
-                                }
-                            }
-                            _ => return Ok(!stop_flag_inner.load(Ordering::SeqCst)), // Load the stop flag
-                        };
+        let mut notifications = client.notifications();
 
-                        if let Err(e) = tx_clone.send(msg) {
-                            tracing::error!("Failed to send notification: {:?}", e);
+        while !stop_flag.load(Ordering::SeqCst) {
+            while let Ok(notification) = notifications.recv().await {
+                if let RelayPoolNotification::Event { event, .. } = notification {
+                    let msg = match event.kind() {
+                        Kind::Repost => NotificationMsg::Repost(*event),
+                        Kind::Reaction => NotificationMsg::Emoji(*event),
+                        Kind::TextNote => {
+                            if event.content().contains("nostr") {
+                                NotificationMsg::Quote(*event)
+                            } else {
+                                NotificationMsg::Reply(*event)
+                            }
                         }
+                        _ => continue,
+                    };
+
+                    if tx.send(msg).is_err() {
+                        break;
                     }
-                    Ok(!stop_flag_inner.load(Ordering::SeqCst)) // Load the stop flag
                 }
-            })
-            .await
-        {
-            tracing::error!("Failed to handle notifications: {:?}", e);
+            }
         }
     });
 
-    // Return the stream of notifications
-    Ok(UnboundedReceiverStream::new(rx)
-        .filter_map(|msg| async move { Some(msg) })
-        .boxed())
+    Ok(UnboundedReceiverStream::new(rx).boxed())
 }
 
 #[cfg(test)]
@@ -719,13 +697,15 @@ mod tests {
         console_log!("following: {:?}", following);
         assert!(!following.is_empty());
     }
-
+    /*
     #[wasm_bindgen_test]
     async fn test_sub_notification() {
-        let secretKey = "nsec12pksy3jxd37uadmxqh974tpkh7dmk5wd2udrdqk7dfjn9ekx86gqdhmsla";
         let public_key = "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9";
         let pubkey = PublicKey::from_bech32(public_key).unwrap();
-        let filter = Filter::new().kind(Kind::TextNote).author(pubkey);
+        let filter = Filter::new().custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![pubkey.to_hex()],
+        );
 
         // Setup a client with keys
         let keys = Keys::generate();
@@ -742,16 +722,8 @@ mod tests {
             .await
             .unwrap();
 
-        // Set a timeout to stop the subscriber after 10 seconds
-        let stop_flag_clone = Arc::clone(&stop_flag);
-        spawn_local(async move {
-            sleep(Duration::from_secs(10)).await;
-            stop_flag_clone.store(true, Ordering::SeqCst);
-        });
-
         let kind = Kind::TextNote;
         let content = "Hello, World!";
-        //let tag1 = Tag::custom(nostr_sdk::TagKind::Emoji, vec!["🤣😂"]);
 
         let tag = Tag::custom(
             nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
@@ -779,14 +751,100 @@ mod tests {
             .sign_event_builder(ebuild)
             .await
             .unwrap();
-        console_log!("{:?}", e);
         match client.send_event(e).await {
             Ok(_) => console_log!("Event sent"),
             Err(e) => console_log!("Error sending event: {:?}", e),
         }
 
-        // Process the stream
-        while let Some(received_event) = stream.next().await {
+        // Process the stream and keep listening
+        while !stop_flag.load(Ordering::SeqCst) {
+            if let Some(received_event) = stream.next().await {
+                console_log!("Received event");
+                match received_event {
+                    NotificationMsg::Reply(r_event) => {
+                        console_log!("Received Reply event: {:?}", r_event);
+                    }
+                    NotificationMsg::Quote(q_event) => {
+                        console_log!("Received Quote event: {:?}", q_event);
+                    }
+                    NotificationMsg::Emoji(r_event) => {
+                        console_log!("Received Reaction event: {:?}", r_event);
+                    }
+                    NotificationMsg::Repost(r_event) => {
+                        console_log!("Received Repost event: {:?}", r_event);
+                    }
+                }
+            }
+        }
+
+        console_log!("exit");
+
+        // Optionally: Check that the stop flag has been set
+        assert!(stop_flag.load(Ordering::SeqCst));
+    }
+
+    */
+
+    #[wasm_bindgen_test]
+    async fn test_sub_notification_with_exist() {
+        let public_key = "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9";
+        let pubkey = PublicKey::from_bech32(public_key).unwrap();
+        let filter = Filter::new().custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![pubkey.to_hex()],
+        );
+
+        // Setup a client with keys
+        let keys = Keys::generate();
+        let client = Client::new(&keys);
+
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+        client.subscribe(vec![filter], None).await;
+
+        let stop_flag = Arc::new(AtomicBool::new(false));
+
+        // Start subscriber
+        let mut stream = sub_notification(Arc::new(client.clone()), stop_flag.clone())
+            .await
+            .unwrap();
+
+        let kind = Kind::TextNote;
+        let content = "Hello, World!";
+
+        let tag = Tag::custom(
+            nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
+                character: Alphabet::P,
+                uppercase: false,
+            }),
+            vec!["03f9cfd948e95aeb04f780382344f7c1cfc0210d9af3f4006bb6d451c7b08692"],
+        );
+
+        let tag2 = Tag::custom(
+            nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
+                character: Alphabet::E,
+                uppercase: false,
+            }),
+            vec!["102fb3ba0b17b5a6fe1057094e70b581e8f12854e38cf0112f5782b21a5bb188"],
+        );
+
+        let tags = vec![tag, tag2];
+
+        let ebuild = EventBuilder::new(kind, content, tags);
+        let e = client
+            .signer()
+            .await
+            .unwrap()
+            .sign_event_builder(ebuild)
+            .await
+            .unwrap();
+        match client.send_event(e).await {
+            Ok(_) => console_log!("Event sent"),
+            Err(e) => console_log!("Error sending event: {:?}", e),
+        }
+
+        // Process the stream and keep listening
+        if let Some(received_event) = stream.next().await {
             match received_event {
                 NotificationMsg::Reply(r_event) => {
                     console_log!("Received Reply event: {:?}", r_event);
@@ -794,13 +852,20 @@ mod tests {
                 NotificationMsg::Quote(q_event) => {
                     console_log!("Received Quote event: {:?}", q_event);
                 }
-                _ => {
-                    console_log!("Received other type of event.");
+                NotificationMsg::Emoji(r_event) => {
+                    console_log!("Received Reaction event: {:?}", r_event);
+                }
+                NotificationMsg::Repost(r_event) => {
+                    console_log!("Received Repost event: {:?}", r_event);
                 }
             }
+            // Set the stop flag to true to exit.
+            stop_flag.store(true, Ordering::SeqCst);
         }
-        console_log!("exist");
+
+        console_log!("exit");
+
         // Optionally: Check that the stop flag has been set
-        //assert!(stop_flag.load(Ordering::SeqCst));
+        assert!(stop_flag.load(Ordering::SeqCst));
     }
 }
