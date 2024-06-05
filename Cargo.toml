@@ -51,7 +51,8 @@ js-sys = "0.3.69"
 cached = "0.51.3"
 urlencoding = "*"
 tokio = { version = "1", features = ["sync"] }
-anyhow = "1.0.40"
+gloo-timers = "0.2.0"
+tokio-stream = "0.1"
 
 [features]
 default = []
