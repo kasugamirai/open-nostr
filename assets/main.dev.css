@@ -564,6 +564,26 @@ video {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
 }
 
+.btn, .btn-primary {
+  background-color: #9f74eb;
+  transition: background-color 0.3s;
+}
+.btn-primary:hover {
+  background-color: #FFC8C8;
+}
+.btn-secondary {
+  background-color: #fc80bc;
+}
+.btn-secondary:hover {
+  background-color: #FFC1E0;
+}
+.btn-success {
+  background-color: #93f4ab;
+}
+.btn-success:hover {
+  background-color: #C5FCD0;
+}
+
 * {
   padding: 0;
   margin: 0;
@@ -13536,6 +13556,21 @@ body, html {
   right: 0;
 }
 
+.laoding-box {
+  width: fit-content;
+  height: fit-content;
+  margin: 10px auto;
+  animation: Loading 4s infinite;
+}
+
+@keyframes Loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 input[type=datetime-local] {
   appearance: none;
   -webkit-appearance: none;
@@ -13870,7 +13905,7 @@ svg path {
   font-size: 16px;
 }
 
-.com-input_card-input .btn {
+.com-input_card-input .btn, .com-input_card-input .btn-primary {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13882,12 +13917,12 @@ svg path {
   cursor: pointer;
 }
 
-.com-input_card-input .btn svg {
+.com-input_card-input .btn svg, .com-input_card-input .btn-primary svg {
   width: 16px;
   height: 16px;
 }
 
-.com-input_card-input .btn path {
+.com-input_card-input .btn path, .com-input_card-input .btn-primary path {
   fill: var(--bgc-0);
 }
 
@@ -15044,6 +15079,7 @@ svg path {
 .content-feed {
   width: calc(100% - 240px);
   padding: 20px;
+  height: 100vh;
 }
 
 ::-webkit-scrollbar {

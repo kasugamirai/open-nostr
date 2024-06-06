@@ -72,7 +72,6 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
         });
     }));
     let handle_save = move || {
-        tracing::info!("relay_sets: 111");
         let duplicate_names = {
             let relay_sets = relay_sets.read();
             let mut names_set = HashSet::new();

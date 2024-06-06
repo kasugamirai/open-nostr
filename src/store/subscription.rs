@@ -106,7 +106,7 @@ impl FilterTemp {
                 filter = filter
                     .kinds([Kind::TextNote, Kind::Repost])
                     .hashtags(&hashtag.tags)
-                    .limit(5);
+                    .limit(20);
             }
             FilterTemp::Accounts(accounts) => {
                 filter = filter.kinds(

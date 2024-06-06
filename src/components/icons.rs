@@ -53,3 +53,5 @@ pub const TAGSICON: &str = include_str!("../../public/svgs/tagsicon.svg");
 //Relay icon
 pub const BOTTOMRIGHT: &str = include_str!("../../public/svgs/bottomRight.svg");
 pub const UPPERRIGHT: &str = include_str!("../../public/svgs/upperRight.svg");
+
+pub const LOADING: &str = include_str!("../../public/svgs/spinner.svg");

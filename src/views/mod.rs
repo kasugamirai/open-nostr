@@ -10,7 +10,8 @@ mod relay;
 mod search;
 mod settings;
 mod test;
-mod newSubscription;
+mod subscription;
+mod new_subscription;
 
 pub use bookmark::Bookmark;
 pub use channel::Channel;
@@ -24,5 +25,6 @@ pub use relay::Relay;
 pub use search::Search;
 pub use settings::Settings;
 pub use test::Test;
-pub use newSubscription::NewSubscription;
+pub use new_subscription::NewSubscription;
+pub use subscription::Subscription;
 

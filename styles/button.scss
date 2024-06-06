@@ -1,0 +1,22 @@
+.btn {
+    background-color: $primay_color;
+    transition: background-color 0.3s;
+    &-primary {
+        @extend .btn;
+        &:hover {
+            background-color: $primay_color_hover;
+        }
+    }
+    &-secondary {
+        background-color: $secondary_color;
+        &:hover {
+            background-color: $secondary_color_hover;
+        }
+    }
+    &-success {
+        background-color: $success_color;
+        &:hover {
+            background-color: $success_color_hover;
+        }
+    }
+}

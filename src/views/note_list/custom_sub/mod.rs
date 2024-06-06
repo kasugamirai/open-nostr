@@ -8,13 +8,16 @@ mod limit;
 pub mod relays;
 mod tag;
 
+use std::collections::HashMap;
+
 use chrono::format;
 use dioxus::prelude::*;
+use dioxus_elements::tr;
 use regex::Regex;
 
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, Switch},
-    store::subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+    store::{subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag}, CBWebDatabase},
     utils::{contants::NUM_AND_LETTER_REG, js::alert},
     Route, // utils::js::{export_to_clipboard, import_from_clipboard},
 };
@@ -32,28 +35,76 @@ use tag::TagInput;
 pub struct CustomSubscriptionProps {
     on_save: EventHandler<CustomSub>,
     on_reload: EventHandler<CustomSub>,
-    subscription: CustomSub,
+    sub_name: String,
 }
 
 #[component]
 pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
-    let mut sub_current = use_signal(|| props.subscription.clone());
-    use_effect(use_reactive(
-        (&props.subscription,),
-        move |(subscription,)| {
-            sub_current.set(subscription.clone());
-        },
-    ));
+    let mut sub_name = use_signal(|| props.sub_name.clone());
+    let mut sub_current = use_signal(|| CustomSub::empty());
+    let mut old_sub = use_signal(|| CustomSub::empty());
+    // let all_subs = use_context::<Vec<CustomSub>>();
+    let mut subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
+    let cb_database_db = use_context::<Signal<CBWebDatabase>>();
+    use_effect(use_reactive((&props.sub_name,), move |(sub_name_new,)| {
+        sub_name.set(sub_name_new.clone());
+        {
+            let subs_map_lock = subs_map();
+            if subs_map_lock.contains_key(&sub_name_new) {
+                let current = subs_map_lock.get(&sub_name_new).unwrap();
+                sub_current.set(current.clone());
+                old_sub.set(current.clone());
+            }
+        }
+    }));
     let mut edit = use_context_provider(|| Signal::new(false));
 
     let handle_reset = move |_| {
-        sub_current.set(props.subscription.clone());
+        sub_current.set(old_sub.read().clone());
         edit.set(false);
     };
 
-    let handle_save = move |_| {
-        props.on_save.call(sub_current().clone());
-        edit.set(false);
+    let handle_save = move || {
+        // TODO: save sub 
+        spawn(async move {
+            let old_name = sub_name();
+            let edit_value = sub_current();
+            tracing::info!("old name: {:#?}", old_name);
+            tracing::info!("Update: {:#?}", edit_value);
+            match cb_database_db()
+                .update_custom_sub(old_name.clone(), edit_value.clone())
+                .await
+            {
+                Ok(_) => {
+                    let edit_name = edit_value.name.clone();
+                    // update the current subscription
+                    // {
+                    //     sub_current.set(value.clone());
+                    // }
+                    {
+                        let mut subs_map = subs_map.write();
+                        subs_map.insert(edit_name.clone(), edit_value.clone());
+                        if old_name != edit_name {
+                            subs_map.remove(&old_name);
+                        };
+                    }
+
+                    if old_name != edit_name {
+                        navigator().replace(Route::Subscription { name: edit_name });
+                    } else {
+                        props.on_save.call(sub_current().clone());
+                        edit.set(false);
+                    }
+                    tracing::info!("Update success: wait for reload");
+                }
+                Err(e) => {
+                    tracing::error!("Update error: {:?}", e);
+                    // alert("Update error");
+                    alert(format!("Update error: {:?}", e)).await;
+                    edit.set(false);
+                }
+            }
+        });
     };
 
     let handle_reload = move |_| {
@@ -83,9 +134,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
             sub.name = v;
         };
         {
-            let sub = sub_current();
-            tracing::info!("save sub: {:#?}", sub);
-            props.on_save.call(sub.clone());
+            handle_save();
         }
     };
     let handle_change_replyset = move |v: RelaySet| {
@@ -96,13 +145,14 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
         {
             let sub = sub_current();
             tracing::info!("save sub: {:#?}", sub);
-            props.on_save.call(sub.clone());
+            // props.on_save.call(sub.clone());
+            handle_save();
         }
     };
 
     rsx! {
         div {
-            class: "custom-sub",
+            class: "sub-style custom-sub",
             div {
                 class: "custom-sub-header",
                 div {
@@ -220,7 +270,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         if edit() {
                             button {
                               class: "btn-circle btn-circle-true",
-                              onclick: handle_save,
+                              onclick: move |_| {
+                                handle_save();
+                              },
                               dangerous_inner_html: "{TRUE}"
                             }
                             button {
@@ -518,9 +570,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     }
                 }
             }
-            // div {
-            //     "{sub_current.read().json()}"
-            // }
         }
     }
 }

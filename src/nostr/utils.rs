@@ -66,8 +66,6 @@ pub fn is_note_address(address: &str) -> AddressType {
         let id = address.strip_prefix("nostr:").unwrap();
         let is_note = id.starts_with("note") && EventId::from_bech32(id).is_ok();
         let is_mention = id.starts_with("npub") && PublicKey::from_bech32(id).is_ok();
-        tracing::info!("is_note: {:#?} {}", is_note, id);
-        tracing::info!("is_mention: {:#?} {}", is_mention, id);
         if is_note {
             return AddressType::Note;
         } else if is_mention {

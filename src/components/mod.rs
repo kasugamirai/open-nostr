@@ -9,6 +9,7 @@ mod switch;
 mod message;
 mod quote;
 mod mention;
+mod modal_manager;
 
 pub mod icons;
 
@@ -23,3 +24,4 @@ pub use switch::Switch;
 pub use message::Message;
 pub use quote::Quote;
 pub use mention::Mention;
+pub use modal_manager::{ModalManager, ModalManagerProvider};
