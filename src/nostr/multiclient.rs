@@ -1,11 +1,11 @@
 use cached::{Cached, TimedCache};
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Client, ClientBuilder, Event, Filter};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Notify};
 
 use crate::init::NOSTR_DB_NAME;
 use crate::store::{self, CBWebDatabase, CAPYBASTR_DBNAME};
@@ -24,6 +24,8 @@ pub enum Error {
     IndexDb(#[from] nostr_indexeddb::IndexedDBError),
     #[error("Client not found")]
     ClientNotFound,
+    #[error("query failed or not cached")]
+    QueryFailedOrNotCahed,
 }
 
 #[derive(Debug, Clone)]
@@ -176,9 +178,14 @@ impl MultiClient {
     }
 }
 
+type Cache = Arc<Mutex<TimedCache<NostrQuery, Vec<Event>>>>;
+type PendingQueries = Arc<Mutex<HashSet<NostrQuery>>>;
+
 #[derive(Debug, Clone)]
 pub struct EventCache {
-    cache: Arc<Mutex<TimedCache<NostrQuery, Vec<Event>>>>,
+    cache: Cache,
+    pending_queries: PendingQueries,
+    notify: Arc<Notify>,
 }
 
 impl EventCache {
@@ -187,6 +194,8 @@ impl EventCache {
             cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(
                 lifespan, capacity,
             ))),
+            pending_queries: Arc::new(Mutex::new(HashSet::new())),
+            notify: Arc::new(Notify::new()),
         }
     }
 
@@ -198,7 +207,7 @@ impl EventCache {
     ) -> Result<Vec<Event>, Error> {
         let query = NostrQuery::new(client.hash(), &filters);
 
-        // Lock the mutex to access the cache
+        // First, check the cache
         {
             let mut cache = self.cache.lock().await;
             if let Some(cached_result) = cache.cache_get(&query) {
@@ -206,16 +215,46 @@ impl EventCache {
             }
         }
 
-        let result = client
-            .client
-            .get_events_of(filters.clone(), timeout)
-            .await?;
+        // If not cached, check if query is already pending
+        {
+            let mut pending_queries = self.pending_queries.lock().await;
+            if pending_queries.contains(&query) {
+                drop(pending_queries); // Drop the lock before waiting
+                self.notify.notified().await; // Wait for the ongoing query to finish
+                let mut cache = self.cache.lock().await;
+                if let Some(cached_result) = cache.cache_get(&query) {
+                    return Ok(cached_result.clone());
+                } else {
+                    return Err(Error::QueryFailedOrNotCahed);
+                }
+            } else {
+                pending_queries.insert(query.clone());
+            }
+        }
 
-        // Lock the mutex to update the cache
+        // Perform the query
+        let result = match client.client.get_events_of(filters.clone(), timeout).await {
+            Ok(result) => result,
+            Err(e) => {
+                let mut pending_queries = self.pending_queries.lock().await;
+                pending_queries.remove(&query);
+                self.notify.notify_waiters();
+                return Err(Error::Client(e));
+            }
+        };
+
+        // Cache the result
         {
             let mut cache = self.cache.lock().await;
-            cache.cache_set(query, result.clone());
+            cache.cache_set(query.clone(), result.clone());
         }
+
+        // Remove from pending and notify other waiters
+        {
+            let mut pending_queries = self.pending_queries.lock().await;
+            pending_queries.remove(&query);
+        }
+        self.notify.notify_waiters();
 
         Ok(result)
     }
