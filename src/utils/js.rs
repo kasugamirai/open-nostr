@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 use serde_json::Value;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast;
 use std::cell::RefCell;
 use std::rc::Rc;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 use web_sys::window;
 #[wasm_bindgen]
 extern "C" {
@@ -81,8 +81,6 @@ pub async fn alert(msg: String) {
     eval.send(msg.into()).unwrap();
 }
 
-
-
 pub async fn note_srcoll_into_view(node_id: &str) {
     let eval: UseEval = eval(
         r#"
@@ -99,7 +97,8 @@ pub async fn note_srcoll_into_view(node_id: &str) {
         let mut map = serde_json::Map::new();
         map.insert("nodeId".into(), node_id.into());
         Value::Object(map)
-    }).unwrap();
+    })
+    .unwrap();
 }
 
 // 定义节流函数
@@ -110,7 +109,10 @@ pub fn throttle(callback: JsValue, delay: u32) -> JsValue {
 
     let throttled = Closure::wrap(Box::new(move || {
         let window = window().expect("no global `window` exists");
-        let now = window.performance().expect("should have `performance` on window").now();
+        let now = window
+            .performance()
+            .expect("should have `performance` on window")
+            .now();
 
         if *is_throttling.borrow() {
             return;
@@ -123,10 +125,12 @@ pub fn throttle(callback: JsValue, delay: u32) -> JsValue {
             *is_throttling_clone.borrow_mut() = false;
         }) as Box<dyn Fn()>);
 
-        window.set_timeout_with_callback_and_timeout_and_arguments_0(
-            reset_throttling.as_ref().unchecked_ref(),
-            delay as i32,
-        ).expect("should register `setTimeout` OK");
+        window
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                reset_throttling.as_ref().unchecked_ref(),
+                delay as i32,
+            )
+            .expect("should register `setTimeout` OK");
 
         if now - *last_call_time.borrow() >= delay as f64 {
             *last_call_time.borrow_mut() = now;
@@ -143,10 +147,8 @@ pub fn throttle(callback: JsValue, delay: u32) -> JsValue {
 
 #[wasm_bindgen]
 pub fn get_scroll_info(scrollid: &str) -> Result<ScrollInfo, JsValue> {
-    match {
-        let window = window();
-        window
-    } {
+    let res = { window() };
+    match res {
         None => {
             log("no global `window` exists");
             Err(JsValue::from_str("no global `window` exists"))
@@ -170,11 +172,8 @@ pub fn get_scroll_info(scrollid: &str) -> Result<ScrollInfo, JsValue> {
                             let scroll_height = content.scroll_height();
                             let client_height = content.client_height();
 
-                            let scroll_info = ScrollInfo::new(
-                                scroll_top,
-                                scroll_height,
-                                client_height,
-                            );
+                            let scroll_info =
+                                ScrollInfo::new(scroll_top, scroll_height, client_height);
                             Ok(scroll_info)
                         }
                     }
