@@ -24,8 +24,10 @@ pub fn Avatar(props: AvatarProps) -> Element {
 
     // Using signals for reactive state management
     let mut nickname = use_signal(|| "Nostr Account".to_string());
-    let mut avatar = use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
-    let mut root_pic = use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
+    let mut avatar =
+        use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
+    let mut root_pic =
+        use_signal(|| "https://avatars.githubusercontent.com/u/1024025?v=4".to_string());
     let mut root_nickname = use_signal(|| "Nostr Account".to_string());
     let event_cache = use_context::<Signal<EventCache>>();
     let repost_event = use_signal(|| props.repost_event.clone());
@@ -35,8 +37,6 @@ pub fn Avatar(props: AvatarProps) -> Element {
             spawn({
                 let multiclient = multiclient.clone();
                 let event_cache = event_cache.clone();
-                let mut nickname = nickname.clone();
-                let mut avatar = avatar.clone();
                 async move {
                     let hc_client = {
                         let multiclient = multiclient.read();
@@ -48,11 +48,14 @@ pub fn Avatar(props: AvatarProps) -> Element {
                         }
                     };
 
-                    let events = event_cache.read().cached_get_events_of(
-                        &hc_client,
-                        vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
-                        None,
-                    ).await;
+                    let events = event_cache
+                        .read()
+                        .cached_get_events_of(
+                            &hc_client,
+                            vec![Filter::new().author(pubkey).kind(Kind::Metadata)],
+                            None,
+                        )
+                        .await;
 
                     match events {
                         Ok(events) => {
@@ -62,7 +65,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
                                         metadata.name.unwrap_or("Nostr Account".to_string())
                                     }));
                                     avatar.set(metadata.picture.unwrap_or_else(|| {
-                                        "https://avatars.githubusercontent.com/u/1024025?v=4".to_string()
+                                        "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                            .to_string()
                                     }));
                                 }
                             }
@@ -76,47 +80,51 @@ pub fn Avatar(props: AvatarProps) -> Element {
         },
     ));
 
-
     // Fetching metadata for the repost event, if any
-    // use_effect(use_reactive(
-    //     (&props.repost_event, &props.relay_name),
-    //     move |(repost_event, relay_name)| {
-    //         let multiclient = multiclient();
-    //         spawn(async move {
-    //             if let Some(event) = repost_event {
-    //                 if let Some(client) = multiclient.get_client(&relay_name) {
-    //                     let filter = Filter::new().author(event.pubkey).kind(Kind::Metadata);
-    //                     let client = client.client();
-    //                     let event_result = client
-    //                         .database()
-    //                         .query(vec![filter], Order::Desc)
-    //                         .await
-    //                         .unwrap();
-    //                     if let Some(event) = get_newest_event(&event_result) {
-    //                         let metadata = Metadata::from_json(&event.content).unwrap();
-    //                         root_pic.set(metadata.picture.unwrap_or_else(|| {
-    //                             "https://avatars.githubusercontent.com/u/1024025?v=4"
-    //                                 .to_string()
-    //                         }));
-    //                         root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
-    //                     }
-    //                     match get_metadata(&client, &event.pubkey, None).await {
-    //                         Ok(metadata) => {
-    //                             root_pic.set(metadata.picture.unwrap_or_else(|| {
-    //                                 "https://avatars.githubusercontent.com/u/1024025?v=4"
-    //                                     .to_string()
-    //                             }));
-    //                             root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
-    //                         }
-    //                         Err(e) => {
-    //                             tracing::error!("get_metadata error: {:?}", e);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         });
-    //     },
-    // ));
+    use_effect(use_reactive(
+        (&props.repost_event, &props.relay_name),
+        move |(repost_event, relay_name)| {
+            spawn({
+                let multiclient = multiclient.clone();
+                let event_cache = event_cache.clone();
+                async move {
+                    if let Some(event) = repost_event {
+                        let hc_client = {
+                            let multiclient = multiclient.read();
+                            if let Some(client) = multiclient.get_client(&relay_name).await {
+                                client
+                            } else {
+                                tracing::error!("client not found");
+                                return;
+                            }
+                        };
+                        let filter = Filter::new().author(event.pubkey).kind(Kind::Metadata);
+
+                        let events = event_cache
+                            .read()
+                            .cached_get_events_of(&hc_client, vec![filter], None)
+                            .await;
+
+                        match events {
+                            Ok(events) => {
+                                if let Some(event) = get_newest_event(&events) {
+                                    let metadata = Metadata::from_json(&event.content).unwrap();
+                                    root_pic.set(metadata.picture.unwrap_or_else(|| {
+                                        "https://avatars.githubusercontent.com/u/1024025?v=4"
+                                            .to_string()
+                                    }));
+                                    root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!("get_metadata error: {:?}", e);
+                            }
+                        }
+                    }
+                }
+            });
+        },
+    ));
 
     // Rendering based on whether there's a repost event
     if let Some(event) = repost_event() {
