@@ -398,6 +398,7 @@ pub async fn get_followers(
     UnboundedReceiverStream::new(rx).filter_map(|res| async { Some(res) })
 }
 
+#[derive(Debug, Clone)]
 pub enum NotificationMsg {
     Emoji(Event),
     Reply(Event),
@@ -406,42 +407,62 @@ pub enum NotificationMsg {
     ZapReceipt(Event),
 }
 
-pub async fn sub_notification(
-    client: Arc<Client>,
-    stop_flag: Arc<AtomicBool>,
-) -> Result<impl Stream<Item = NotificationMsg>, Error> {
-    // Create a channel for sending notifications
-    let (tx, rx) = mpsc::unbounded_channel();
+pub struct NotificationPaginator {
+    paginator: EventPaginator,
+}
 
-    spawn_local(async move {
-        let mut notifications = client.notifications();
+impl NotificationPaginator {
+    pub fn new(
+        client: Arc<Client>,
+        public_key: PublicKey,
+        timeout: Option<std::time::Duration>,
+        page_size: usize,
+    ) -> Self {
+        let create_filter = |kind| {
+            Filter::new().kind(kind).custom_tag(
+                SingleLetterTag::lowercase(Alphabet::P),
+                vec![public_key.to_hex()],
+            )
+        };
 
-        while !stop_flag.load(Ordering::SeqCst) {
-            while let Ok(notification) = notifications.recv().await {
-                if let RelayPoolNotification::Event { event, .. } = notification {
-                    let msg = match event.kind() {
-                        Kind::Repost => NotificationMsg::Repost(*event),
-                        Kind::Reaction => NotificationMsg::Emoji(*event),
-                        Kind::TextNote => {
-                            if event.content().contains("nostr") {
-                                NotificationMsg::Quote(*event)
-                            } else {
-                                NotificationMsg::Reply(*event)
-                            }
-                        }
-                        Kind::ZapReceipt => NotificationMsg::ZapReceipt(*event),
-                        _ => continue,
-                    };
+        let filters = vec![
+            create_filter(Kind::Reaction),
+            create_filter(Kind::TextNote),
+            create_filter(Kind::Repost),
+            create_filter(Kind::ZapReceipt),
+        ];
 
-                    if tx.send(msg).is_err() {
-                        break;
+        Self {
+            paginator: EventPaginator::new(client, filters, timeout, page_size),
+        }
+    }
+
+    pub async fn next_page(&mut self) -> Result<Vec<NotificationMsg>, Error> {
+        let events = self.paginator.next_page().await?;
+        let mut ret = vec![];
+        for event in events {
+            match event.kind() {
+                Kind::Reaction => {
+                    ret.push(NotificationMsg::Emoji(event));
+                }
+                Kind::TextNote => {
+                    if event.content.contains("nostr:") {
+                        ret.push(NotificationMsg::Quote(event));
+                    } else {
+                        ret.push(NotificationMsg::Reply(event));
                     }
                 }
+                Kind::Repost => {
+                    ret.push(NotificationMsg::Repost(event));
+                }
+                Kind::ZapReceipt => {
+                    ret.push(NotificationMsg::ZapReceipt(event));
+                }
+                _ => {}
             }
         }
-    });
-
-    Ok(UnboundedReceiverStream::new(rx).boxed())
+        Ok(ret)
+    }
 }
 
 #[cfg(test)]
@@ -700,178 +721,37 @@ mod tests {
         console_log!("following: {:?}", following);
         assert!(!following.is_empty());
     }
-    /*
+
     #[wasm_bindgen_test]
-    async fn test_sub_notification() {
-        let public_key = "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9";
-        let pubkey = PublicKey::from_bech32(public_key).unwrap();
-        let filter = Filter::new().custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![pubkey.to_hex()],
-        );
-
-        // Setup a client with keys
-        let keys = Keys::generate();
-        let client = Client::new(&keys);
-
+    async fn test_get_notification_paginator() {
+        let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        client.subscribe(vec![filter], None).await;
 
-        let stop_flag = Arc::new(AtomicBool::new(false));
+        let public_key = PublicKey::from_bech32(
+            "npub1zfss807aer0j26mwp2la0ume0jqde3823rmu97ra6sgyyg956e0s6xw445",
+        )
+        .unwrap();
 
-        // Start subscriber
-        let mut stream = sub_notification(Arc::new(client.clone()), stop_flag.clone())
-            .await
-            .unwrap();
-
-        let kind = Kind::TextNote;
-        let content = "Hello, World!";
-
-        let tag = Tag::custom(
-            nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
-                character: Alphabet::P,
-                uppercase: false,
-            }),
-            vec!["03f9cfd948e95aeb04f780382344f7c1cfc0210d9af3f4006bb6d451c7b08692"],
-        );
-
-        let tag2 = Tag::custom(
-            nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
-                character: Alphabet::E,
-                uppercase: false,
-            }),
-            vec!["102fb3ba0b17b5a6fe1057094e70b581e8f12854e38cf0112f5782b21a5bb188"],
-        );
-
-        let tags = vec![tag, tag2];
-
-        let ebuild = EventBuilder::new(kind, content, tags);
-        let e = client
-            .signer()
-            .await
-            .unwrap()
-            .sign_event_builder(ebuild)
-            .await
-            .unwrap();
-        match client.send_event(e).await {
-            Ok(_) => console_log!("Event sent"),
-            Err(e) => console_log!("Error sending event: {:?}", e),
-        }
-
-        // Process the stream and keep listening
-        while !stop_flag.load(Ordering::SeqCst) {
-            if let Some(received_event) = stream.next().await {
-                console_log!("Received event");
-                match received_event {
-                    NotificationMsg::Reply(r_event) => {
-                        console_log!("Received Reply event: {:?}", r_event);
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let mut paginator = NotificationPaginator::new(Arc::new(client), public_key, timeout, 100);
+        let mut count = 0;
+        loop {
+            let result = paginator.next_page().await;
+            match result {
+                Ok(events) => {
+                    if paginator.paginator.done {
+                        break;
                     }
-                    NotificationMsg::Quote(q_event) => {
-                        console_log!("Received Quote event: {:?}", q_event);
-                    }
-                    NotificationMsg::Emoji(r_event) => {
-                        console_log!("Received Reaction event: {:?}", r_event);
-                    }
-                    NotificationMsg::Repost(r_event) => {
-                        console_log!("Received Repost event: {:?}", r_event);
-                    }
+                    console_log!("events are: {:?}", events);
+                    count += events.len();
+                }
+                Err(e) => {
+                    console_log!("Error fetching events: {:?}", e);
+                    break;
                 }
             }
         }
-
-        console_log!("exit");
-
-        // Optionally: Check that the stop flag has been set
-        assert!(stop_flag.load(Ordering::SeqCst));
-    }
-
-    */
-
-    #[wasm_bindgen_test]
-    async fn test_sub_notification_with_exist() {
-        let public_key = "npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9";
-        let pubkey = PublicKey::from_bech32(public_key).unwrap();
-        let filter = Filter::new().custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![pubkey.to_hex()],
-        );
-
-        // Setup a client with keys
-        let keys = Keys::generate();
-        let client = Client::new(&keys);
-
-        client.add_relay("wss://relay.damus.io").await.unwrap();
-        client.connect().await;
-        client.subscribe(vec![filter], None).await;
-
-        let stop_flag = Arc::new(AtomicBool::new(false));
-
-        // Start subscriber
-        let mut stream = sub_notification(Arc::new(client.clone()), stop_flag.clone())
-            .await
-            .unwrap();
-
-        let kind = Kind::TextNote;
-        let content = "Hello, World!";
-
-        let tag = Tag::custom(
-            nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
-                character: Alphabet::P,
-                uppercase: false,
-            }),
-            vec!["03f9cfd948e95aeb04f780382344f7c1cfc0210d9af3f4006bb6d451c7b08692"],
-        );
-
-        let tag2 = Tag::custom(
-            nostr_sdk::TagKind::SingleLetter(SingleLetterTag {
-                character: Alphabet::E,
-                uppercase: false,
-            }),
-            vec!["102fb3ba0b17b5a6fe1057094e70b581e8f12854e38cf0112f5782b21a5bb188"],
-        );
-
-        let tags = vec![tag, tag2];
-
-        let ebuild = EventBuilder::new(kind, content, tags);
-        let e = client
-            .signer()
-            .await
-            .unwrap()
-            .sign_event_builder(ebuild)
-            .await
-            .unwrap();
-        match client.send_event(e).await {
-            Ok(_) => console_log!("Event sent"),
-            Err(e) => console_log!("Error sending event: {:?}", e),
-        }
-
-        // Process the stream and keep listening
-        if let Some(received_event) = stream.next().await {
-            match received_event {
-                NotificationMsg::Reply(r_event) => {
-                    console_log!("Received Reply event: {:?}", r_event);
-                }
-                NotificationMsg::Quote(q_event) => {
-                    console_log!("Received Quote event: {:?}", q_event);
-                }
-                NotificationMsg::Emoji(r_event) => {
-                    console_log!("Received Reaction event: {:?}", r_event);
-                }
-                NotificationMsg::Repost(r_event) => {
-                    console_log!("Received Repost event: {:?}", r_event);
-                }
-                NotificationMsg::ZapReceipt(r_event) => {
-                    console_log!("Received ZapReceipt event: {:?}", r_event);
-                }
-            }
-            // Set the stop flag to true to exit.
-            stop_flag.store(true, Ordering::SeqCst);
-        }
-
-        console_log!("exit");
-
-        // Optionally: Check that the stop flag has been set
-        assert!(stop_flag.load(Ordering::SeqCst));
+        assert!(count > 0);
     }
 }
