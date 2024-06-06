@@ -439,28 +439,22 @@ impl NotificationPaginator {
 
     pub async fn next_page(&mut self) -> Result<Vec<NotificationMsg>, Error> {
         let events = self.paginator.next_page().await?;
-        let mut ret = vec![];
-        for event in events {
-            match event.kind() {
-                Kind::Reaction => {
-                    ret.push(NotificationMsg::Emoji(event));
-                }
+        let ret: Vec<NotificationMsg> = events
+            .into_iter()
+            .filter_map(|event| match event.kind() {
+                Kind::Reaction => Some(NotificationMsg::Emoji(event)),
                 Kind::TextNote => {
                     if event.content.contains("nostr:") {
-                        ret.push(NotificationMsg::Quote(event));
+                        Some(NotificationMsg::Quote(event))
                     } else {
-                        ret.push(NotificationMsg::Reply(event));
+                        Some(NotificationMsg::Reply(event))
                     }
                 }
-                Kind::Repost => {
-                    ret.push(NotificationMsg::Repost(event));
-                }
-                Kind::ZapReceipt => {
-                    ret.push(NotificationMsg::ZapReceipt(event));
-                }
-                _ => {}
-            }
-        }
+                Kind::Repost => Some(NotificationMsg::Repost(event)),
+                Kind::ZapReceipt => Some(NotificationMsg::ZapReceipt(event)),
+                _ => None,
+            })
+            .collect();
         Ok(ret)
     }
 }
