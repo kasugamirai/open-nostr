@@ -437,8 +437,8 @@ impl NotificationPaginator {
         }
     }
 
-    pub async fn next_page(&mut self) -> Result<Vec<NotificationMsg>, Error> {
-        let events = self.paginator.next_page().await?;
+    pub async fn next_page(&mut self) -> Option<Vec<NotificationMsg>> {
+        let events = self.paginator.next_page().await.ok()?;
         let ret: Vec<NotificationMsg> = events
             .into_iter()
             .filter_map(|event| match event.kind() {
@@ -455,7 +455,7 @@ impl NotificationPaginator {
                 _ => None,
             })
             .collect();
-        Ok(ret)
+        Some(ret)
     }
 }
 
@@ -733,15 +733,15 @@ mod tests {
         loop {
             let result = paginator.next_page().await;
             match result {
-                Ok(events) => {
+                Some(events) => {
                     if paginator.paginator.done {
                         break;
                     }
                     console_log!("events are: {:?}", events);
                     count += events.len();
                 }
-                Err(e) => {
-                    console_log!("Error fetching events: {:?}", e);
+                None => {
+                    console_log!("No more events or an error occurred.");
                     break;
                 }
             }
