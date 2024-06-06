@@ -243,14 +243,14 @@ impl<'a> DecryptedMsgPaginator<'a> {
         futures::future::try_join_all(futures).await
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>, Error>> {
+    pub async fn next_page(&mut self) -> Option<Vec<DecryptedMsg>> {
         if self.paginator.done {
             return None;
         }
 
         if let Ok(events) = self.paginator.next_page().await {
             let decrypt_results = self.convert_events(events).await;
-            return Some(decrypt_results);
+            return decrypt_results.ok();
         }
 
         None
@@ -634,23 +634,12 @@ mod tests {
         .await
         .unwrap();
         let mut count = 0;
-        while let Some(result) = paginator.next_page().await {
-            match result {
-                Ok(events) => {
-                    if paginator.paginator.done {
-                        break;
-                    }
-                    console_log!("events are: {:?}", events);
-                    for e in &events {
-                        console_log!("event: {:?}", e.content);
-                    }
-                    count += events.len();
-                }
-                Err(e) => {
-                    console_log!("Error fetching events: {:?}", e);
-                    break;
-                }
+        while let Some(events) = paginator.next_page().await {
+            console_log!("events are: {:?}", events);
+            for e in &events {
+                console_log!("event: {:?}", e.content);
             }
+            count += events.len();
         }
         assert!(count > 7);
     }
