@@ -418,19 +418,7 @@ impl NotificationPaginator {
         timeout: Option<std::time::Duration>,
         page_size: usize,
     ) -> Self {
-        let create_filter = |kind| {
-            Filter::new().kind(kind).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![public_key.to_hex()],
-            )
-        };
-
-        let filters = vec![
-            create_filter(Kind::Reaction),
-            create_filter(Kind::TextNote),
-            create_filter(Kind::Repost),
-            create_filter(Kind::ZapReceipt),
-        ];
+        let filters = create_notification_filters(&public_key);
 
         Self {
             paginator: EventPaginator::new(client, filters, timeout, page_size),
@@ -439,24 +427,43 @@ impl NotificationPaginator {
 
     pub async fn next_page(&mut self) -> Option<Vec<NotificationMsg>> {
         let events = self.paginator.next_page().await.ok()?;
-        let ret: Vec<NotificationMsg> = events
-            .into_iter()
-            .filter_map(|event| match event.kind() {
-                Kind::Reaction => Some(NotificationMsg::Emoji(event)),
-                Kind::TextNote => {
-                    if event.content.contains("nostr:") {
-                        Some(NotificationMsg::Quote(event))
-                    } else {
-                        Some(NotificationMsg::Reply(event))
-                    }
-                }
-                Kind::Repost => Some(NotificationMsg::Repost(event)),
-                Kind::ZapReceipt => Some(NotificationMsg::ZapReceipt(event)),
-                _ => None,
-            })
-            .collect();
-        Some(ret)
+        Some(process_notification_events(events))
     }
+}
+
+pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
+    let create_filter = |kind| {
+        Filter::new().kind(kind).custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![public_key.to_hex()],
+        )
+    };
+
+    vec![
+        create_filter(Kind::Reaction),
+        create_filter(Kind::TextNote),
+        create_filter(Kind::Repost),
+        create_filter(Kind::ZapReceipt),
+    ]
+}
+
+pub fn process_notification_events(events: Vec<Event>) -> Vec<NotificationMsg> {
+    events
+        .into_iter()
+        .filter_map(|event| match event.kind() {
+            Kind::Reaction => Some(NotificationMsg::Emoji(event)),
+            Kind::TextNote => {
+                if event.content.contains("nostr:") {
+                    Some(NotificationMsg::Quote(event))
+                } else {
+                    Some(NotificationMsg::Reply(event))
+                }
+            }
+            Kind::Repost => Some(NotificationMsg::Repost(event)),
+            Kind::ZapReceipt => Some(NotificationMsg::ZapReceipt(event)),
+            _ => None,
+        })
+        .collect()
 }
 
 #[cfg(test)]
