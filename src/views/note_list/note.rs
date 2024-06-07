@@ -33,7 +33,20 @@ pub fn Note(props: NoteProps) -> Element {
 
     let mut show_detail = use_signal(|| false);
     let mut detail = use_signal(|| String::new());
-    let event = use_signal(|| props.event.clone());
+    let mut event = use_signal(|| props.event.clone());
+    let mut notetext = use_signal(|| props.event.content.clone());
+    let mut pk = use_signal(|| props.event.author().clone());
+    let mut eid = use_signal(|| props.event.id().clone());
+    let mut e_id = use_signal(|| eid().to_hex());
+
+    use_effect(use_reactive(&props.event, move |newest_event| {
+        event.set(newest_event.clone());
+        notetext.set(newest_event.content.clone());
+        pk.set(newest_event.author().clone());
+        eid.set(newest_event.id().clone());
+        e_id.set(newest_event.id().clone().to_hex());
+    }));
+
     let mut element = use_signal(|| {
         rsx! {
             div {
@@ -42,7 +55,6 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
     });
-    let notetext = use_signal(|| props.event.content.clone());
     let repost_text = use_signal(|| {
         if props.event.kind() == Kind::Repost {
             match Event::from_json(&props.event.content) {
@@ -65,15 +77,12 @@ pub fn Note(props: NoteProps) -> Element {
         }
     });
 
-    let pk = use_signal(|| props.event.author().clone());
-    let eid = use_signal(|| props.event.id().clone());
     let optional_str_ref: String = match props.relay_name.clone() {
         Some(s) => s,
         None => String::from("default"),
     };
     let relay_name = use_signal(|| optional_str_ref.clone());
     let is_repost = props.event.kind() == Kind::Repost;
-    let e_id = use_signal(|| eid().to_hex());
     let is_highlight = use_signal(|| {
         props.is_tree
             && props
@@ -82,21 +91,20 @@ pub fn Note(props: NoteProps) -> Element {
                 .unwrap_or("".to_string())
                 .contains("com-post--active")
     });
-    let _future = use_resource(move || async move {
-        spawn(async move {
-            let data = if is_repost {
-                repost_text().clone()
-            } else {
-                notetext().clone()
-            };
-            element.set(format_note_content(&data, &relay_name()));
-        });
-    });
-    spawn(async move {
-        if is_highlight() {
-            note_srcoll_into_view(&e_id()).await;
+
+    use_effect(use_reactive(&props.event, move |_| {
+        let data = if is_repost {
+            repost_text().clone()
+        } else {
+            notetext().clone()
         };
-    });
+        element.set(format_note_content(&data, &relay_name()));
+        spawn(async move {
+            if is_highlight() {
+                note_srcoll_into_view(&e_id()).await;
+            };
+        });
+    }));
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
@@ -111,7 +119,7 @@ pub fn Note(props: NoteProps) -> Element {
                 Avatar {
                     pubkey: pk.read().clone(),
                     timestamp: props.event.created_at.as_u64(),
-                    relay_name: "default".to_string(),
+                    relay_name: &relay_name(),
                     repost_event: match props.event.kind() {
                         Kind::Repost => {
                             let repost_event = Event::from_json(&props.event.content).unwrap();
@@ -218,6 +226,10 @@ pub fn Note(props: NoteProps) -> Element {
                             dangerous_inner_html: "{DOWN}",
                         }
                     }
+                }
+                div{
+                    style: "display: none",
+                    {event().clone().as_json()}
                 }
 
             }

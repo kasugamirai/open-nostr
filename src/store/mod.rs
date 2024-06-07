@@ -195,7 +195,7 @@ impl CBWebDatabase {
         old_name: String,
         new_relay_set: RelaySet,
     ) -> Result<(), CBwebDatabaseError> {
-        if old_name == DEFAULT_RELAY_SET_KEY {
+        if old_name == DEFAULT_RELAY_SET_KEY && new_relay_set.name != DEFAULT_RELAY_SET_KEY {
             return Err(CBwebDatabaseError::InvalidOperation(
                 "Cannot rename the default relay set".to_string(),
             ));

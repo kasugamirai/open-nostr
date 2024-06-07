@@ -232,6 +232,7 @@
   @include position(absolute,(right,7px),(bottom,0));
   background-color: var(--bgc-0);
   color: var(--bgc-5);
+  cursor: pointer;
 }
 .re-text::after {
   @include position(absolute,(right,0),(top,20px));
@@ -275,6 +276,7 @@
   height: 50px;
 }
 .qt-text-content{
+  width: calc(100% - 134px);
   flex: 1; 
   font-size: 14px; 
   line-height: 20px; 

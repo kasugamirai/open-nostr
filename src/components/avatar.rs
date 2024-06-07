@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use nostr_indexeddb::database::Order;
 use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
 
 use crate::{
@@ -16,6 +15,8 @@ pub struct AvatarProps {
     timestamp: u64,
     relay_name: String,
     repost_event: Option<Event>,
+    #[props(default = false)]
+    is_text_ellipsis: bool,
 }
 
 #[component]
@@ -143,7 +144,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
                     alt: "avatar",
                 }
                 div {
-                    class: "profile flex flex-col max-width-80",
+                    class: format!("profile flex flex-col {}", if props.is_text_ellipsis { "max-width-80" } else {""}),
                     span {
                         class: "nickname font-size-16 txt-1 text-overflow",
                         {root_nickname}
@@ -158,14 +159,14 @@ pub fn Avatar(props: AvatarProps) -> Element {
     } else {
         rsx! {
             div {
-                class: "post-avatar flex items-center min-width-120",
+                class: format!("post-avatar flex items-center {}", if props.is_text_ellipsis { "min-width-120" } else {""}),
                 img {
                     class: "square-40 radius-20 mr-12",
                     src: "{avatar}",
                     alt: "avatar",
                 }
                 div {
-                    class: "profile flex flex-col max-width-80",
+                    class: format!("profile flex flex-col {}", if props.is_text_ellipsis { "max-width-80" } else {""}),
                     span {
                         class: "nickname font-size-16 txt-1 text-overflow",
                         "{nickname}"

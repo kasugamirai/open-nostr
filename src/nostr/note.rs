@@ -48,6 +48,9 @@ impl TextNote {
     pub fn get_root(&self) -> Option<EventId> {
         self.root
     }
+    pub fn get_reply_to(&self) -> Option<EventId> {
+        self.reply_to
+    }
 
     fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
@@ -135,7 +138,7 @@ impl TryFrom<Event> for TextNote {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReplyTrees {
     id2id: HashMap<EventId, NodeId>,
     arena: Arena<TextNote>,

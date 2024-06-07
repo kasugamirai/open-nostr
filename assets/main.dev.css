@@ -15310,6 +15310,7 @@ svg path {
   bottom: 0;
   background-color: var(--bgc-0);
   color: var(--bgc-5);
+  cursor: pointer;
 }
 
 .re-text::after {
@@ -15360,6 +15361,7 @@ svg path {
 }
 
 .qt-text-content {
+  width: calc(100% - 134px);
   flex: 1;
   font-size: 14px;
   line-height: 20px;

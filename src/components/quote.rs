@@ -47,8 +47,9 @@ pub fn Quote(props: QouteProps) -> Element {
                         ele.set(rsx! {
                         div {
                             class: "quote flex items-center display-flex-box items-center",
+                            style: "margin-left: -52px;",
                             div {
-                                class: "font-weight-bold display-flex-box items-center justify-content-center w-52",
+                                class: "font-weight-bold quote-box-style",
                                 "Qt:"
                             }
                             div {
@@ -57,6 +58,7 @@ pub fn Quote(props: QouteProps) -> Element {
                                     pubkey: pk,
                                     timestamp: timestamp,
                                     relay_name: relay_name.clone(),
+                                    is_text_ellipsis: true,
                                 }
                                 div {
                                     class: "relative qt-text-content",
