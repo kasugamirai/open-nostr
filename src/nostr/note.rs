@@ -52,48 +52,43 @@ impl TextNote {
         self.reply_to
     }
 
-    fn process_tags(event: &Event, text_note: &mut Self) -> Result<(), Error> {
+    fn process_tags(event: &Event, text_note: &mut TextNote) -> Result<(), Error> {
         let mut no_marker_array: Vec<EventId> = vec![];
 
-        for tag in event.iter_tags() {
-            let tag_standard = tag.as_standardized();
-            let new_tag = match tag_standard {
-                Some(tag) => tag.clone(),
-                None => match normalize_e_tag(tag) {
-                    Ok(Some(normalized_tag)) => normalized_tag,
-                    _ => continue,
-                },
-            };
-
-            if let TagStandard::Event {
-                event_id, marker, ..
-            } = new_tag
-            {
-                match marker {
-                    Some(Marker::Root) => text_note.root = Some(event_id),
-                    Some(Marker::Reply) => text_note.reply_to = Some(event_id),
-                    None => no_marker_array.push(event_id),
-                    _ => {}
+        event
+            .iter_tags()
+            .filter_map(|tag| {
+                let tag_standard = <nostr_sdk::Tag as Clone>::clone(tag).to_standardized();
+                tag_standard.or_else(|| normalize_e_tag(tag).ok().flatten())
+            })
+            .for_each(|new_tag| {
+                if let TagStandard::Event {
+                    event_id, marker, ..
+                } = new_tag
+                {
+                    match marker {
+                        Some(Marker::Root) => text_note.root = Some(event_id),
+                        Some(Marker::Reply) => text_note.reply_to = Some(event_id),
+                        None => no_marker_array.push(event_id),
+                        _ => {}
+                    }
                 }
-            }
-        }
+            });
 
-        if let (None, Some(reply)) = (&text_note.root, &text_note.reply_to) {
+        if let (None, Some(reply)) = (text_note.root.as_ref(), text_note.reply_to.as_ref()) {
             text_note.root = Some(*reply);
         }
-        // Assign root to reply_to if it is a reply to root
-        if let (Some(root), None) = (&text_note.root, &text_note.reply_to) {
+        if let (Some(root), None) = (text_note.root.as_ref(), text_note.reply_to.as_ref()) {
             text_note.reply_to = Some(*root);
         }
 
-        // Handle case where no marker is present
         if text_note.reply_to.is_none() {
             match no_marker_array.len() {
                 1 => {
                     text_note.root = no_marker_array.first().cloned();
                     text_note.reply_to = no_marker_array.first().cloned();
                 }
-                n if n >= 2 => {
+                2.. => {
                     text_note.root = no_marker_array.first().cloned();
                     text_note.reply_to = no_marker_array.get(1).cloned();
                 }
@@ -102,6 +97,7 @@ impl TextNote {
                 }
             }
         }
+
         Ok(())
     }
 }

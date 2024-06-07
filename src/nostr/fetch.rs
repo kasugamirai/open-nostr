@@ -3,12 +3,7 @@ use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
 use gloo_timers::future::sleep;
-use nostr_sdk::event::kind;
-use nostr_sdk::nips::nip10::Marker;
-use nostr_sdk::{
-    Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
-    SubscribeAutoCloseOptions, TagStandard,
-};
+use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag, TagStandard};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
 use nostr_sdk::{NostrSigner, PublicKey};
@@ -19,7 +14,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
-use wasm_bindgen_test::console_log;
 //use tokio::sync::mpsc::unbounded_channel;
 //use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
