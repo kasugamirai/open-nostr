@@ -19,7 +19,6 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let mut rootid = use_signal(|| root_id.clone());
     let mut highlight_note_id = use_signal(|| note_id.clone());
     let multiclient = use_context::<Signal<MultiClient>>();
-    let all_sub = use_context::<Signal<Vec<CustomSub>>>();
     let subs_map = use_context::<Signal<HashMap<String,CustomSub>>>();
     let mut replytree_manager = use_context::<Signal<ReplyTreeManager>>();
 

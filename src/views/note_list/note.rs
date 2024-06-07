@@ -66,7 +66,6 @@ pub fn Note(props: NoteProps) -> Element {
             &props.clsname,
         ),
         move |(newest_event, subname, is_tree, clsname)| {
-            tracing::info!("event: {:?}", newest_event);
             {
                 event.set(newest_event.clone());
                 let subs_map = subs_map.read();
