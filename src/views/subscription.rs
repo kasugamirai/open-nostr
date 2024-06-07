@@ -9,6 +9,7 @@ pub fn Subscription(name: String) -> Element {
     // let 
     let mut relaod_flag = use_signal(|| Timestamp::now());
     let mut sub_name = use_signal(|| name.clone());
+    let mut is_cache = use_signal(|| true);
     
     let handle_save = move |_| {
         sub_name.set(name.clone());
@@ -17,6 +18,7 @@ pub fn Subscription(name: String) -> Element {
     };
     let handle_reload = move |_| {
         relaod_flag.set(Timestamp::now());
+        is_cache.set(false);
     };
     rsx! {
         section {
@@ -24,6 +26,7 @@ pub fn Subscription(name: String) -> Element {
             NoteList{
                 name: sub_name(),
                 reload_time: relaod_flag(),
+                is_cache: is_cache(),
             }
             CustomSubscription {
                 on_save: handle_save,
