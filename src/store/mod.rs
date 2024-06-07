@@ -49,15 +49,12 @@ impl CBWebDatabase {
                         create_store_params.key_path(Some(&key_path));
                         let user_store = evt
                             .db()
-                            .create_object_store_with_params(USER_CF, &create_store_params)
-                            .unwrap();
-                        user_store
-                            .create_index_with_params(
-                                "name",
-                                &key_path,
-                                IdbIndexParameters::new().unique(true),
-                            )
-                            .unwrap();
+                            .create_object_store_with_params(USER_CF, &create_store_params)?;
+                        user_store.create_index_with_params(
+                            "name",
+                            &key_path,
+                            IdbIndexParameters::new().unique(true),
+                        )?;
                     }
 
                     {
@@ -67,15 +64,12 @@ impl CBWebDatabase {
                         create_store_params.key_path(Some(&key_path));
                         let relay_set_store = evt
                             .db()
-                            .create_object_store_with_params(RELAY_SET_CF, &create_store_params)
-                            .unwrap();
-                        relay_set_store
-                            .create_index_with_params(
-                                "name",
-                                &key_path,
-                                IdbIndexParameters::new().unique(true),
-                            )
-                            .unwrap();
+                            .create_object_store_with_params(RELAY_SET_CF, &create_store_params)?;
+                        relay_set_store.create_index_with_params(
+                            "name",
+                            &key_path,
+                            IdbIndexParameters::new().unique(true),
+                        )?;
                     }
 
                     {
@@ -85,20 +79,17 @@ impl CBWebDatabase {
                         create_store_params.key_path(Some(&key_path));
                         let custom_sub_store = evt
                             .db()
-                            .create_object_store_with_params(CUSTOM_SUB_CF, &create_store_params)
-                            .unwrap();
-                        custom_sub_store
-                            .create_index_with_params(
-                                "name",
-                                &key_path,
-                                IdbIndexParameters::new().unique(true),
-                            )
-                            .unwrap();
+                            .create_object_store_with_params(CUSTOM_SUB_CF, &create_store_params)?;
+                        custom_sub_store.create_index_with_params(
+                            "name",
+                            &key_path,
+                            IdbIndexParameters::new().unique(true),
+                        )?;
                     }
 
                     {
                         // Init misc store
-                        let _misc_store = evt.db().create_object_store(MISC_CF).unwrap();
+                        let _misc_store = evt.db().create_object_store(MISC_CF)?;
                     }
                 }
                 Ok(())

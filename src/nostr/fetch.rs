@@ -34,7 +34,7 @@ pub enum Error {
     Signer(#[from] nostr_sdk::signer::Error),
     #[error(transparent)]
     Database(#[from] nostr_indexeddb::database::DatabaseError),
-    #[error("Channel send error: {0}")]
+    #[error(transparent)]
     ChannelSend(#[from] tokio::sync::mpsc::error::TrySendError<String>),
     #[error("error: {0}")]
     Other(String),
