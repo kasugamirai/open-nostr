@@ -1,5 +1,4 @@
 use nostr_sdk::{
-    self,
     nips::{nip65::RelayMetadata, nip94::FileMetadata},
     Client, Contact, Event, EventBuilder, EventId, Metadata, NostrSigner, PublicKey, Tag,
     Timestamp, UncheckedUrl, Url,

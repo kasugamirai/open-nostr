@@ -1,5 +1,8 @@
+use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
-use nostr_sdk::prelude::*;
+use nostr_sdk::{
+    Client, Filter, RelayMessage, RelayPoolNotification, SubscribeAutoCloseOptions, SubscriptionId,
+};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
@@ -45,9 +48,7 @@ impl Register {
     }
 
     pub async fn set_stop_flag(&self, sub_id: &SubscriptionId, value: bool) {
-        if let dashmap::mapref::entry::Entry::Occupied(mut entry) =
-            self.handlers.entry(sub_id.clone())
-        {
+        if let Entry::Occupied(mut entry) = self.handlers.entry(sub_id.clone()) {
             let (_, stop_flag) = entry.get_mut();
             let mut stop_flag = stop_flag.write().await;
             *stop_flag = value;
@@ -116,6 +117,8 @@ impl Register {
 mod tests {
     use super::*;
     use crate::testhelper::{sleep, test_hander::create_console_log_handler};
+    use nostr_sdk::FromBech32;
+    use nostr_sdk::{EventId, Filter, PublicKey, SubscriptionId};
     use std::rc::Rc;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;

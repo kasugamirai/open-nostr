@@ -14,8 +14,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
-//use tokio::sync::mpsc::unbounded_channel;
-//use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
@@ -281,7 +279,7 @@ pub async fn get_metadata(
     let events = client.get_events_of(vec![filter], timeout).await?;
     if let Some(event) = get_newest_event(&events) {
         let metadata = Metadata::from_json(&event.content)?;
-        client.database().save_event(event).await.unwrap();
+        client.database().save_event(event).await?;
         Ok(metadata)
     } else {
         Err(Error::Other("No metadata found".to_string()))
@@ -373,7 +371,7 @@ pub async fn get_followers(
                     events.iter().for_each(|event| {
                         let author = event.author().to_hex();
                         if let Err(e) = tx.send(author) {
-                            eprintln!("Failed to send follower: {:?}", e);
+                            tracing::error!("Failed to send follower: {:?}", e);
                         }
                     });
 

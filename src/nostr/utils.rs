@@ -1,7 +1,7 @@
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use indextree::{Arena, NodeId};
-use nostr_sdk::{Client, Event, EventId, Filter, FromBech32, PublicKey};
+use nostr_sdk::{Event, EventId, FromBech32, PublicKey};
 use serde::Serialize;
 
 /// Utility function to get all children of a specified node in an Arena.
