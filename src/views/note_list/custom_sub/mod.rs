@@ -81,8 +81,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     // {
                     //     sub_current.set(value.clone());
                     // }
-                    {
+                    {   
                         let mut subs_map: Write<HashMap<String, CustomSub>, UnsyncStorage> = subs_map.write();
+                        tracing::info!("Update success: update subs_map {:?}", edit_value);
                         subs_map.insert(edit_name.clone(), edit_value.clone());
                         if old_name != edit_name {
                             subs_map.remove(&old_name);

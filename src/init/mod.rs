@@ -105,7 +105,7 @@ pub fn App() -> Element {
                         all_sub.push(custom_sub);
                     } else {
                         for sub in subs {
-                            subs_map.write().insert(EXAMPLE_SUB_KEY.to_string(), sub.clone());
+                            subs_map.write().insert(sub.name.clone(), sub.clone());
                             // TODO remvoe this line
                             all_sub.push(sub);
                         }
