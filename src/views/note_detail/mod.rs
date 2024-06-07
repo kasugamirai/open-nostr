@@ -23,7 +23,6 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let mut replytree_manager = use_context::<Signal<ReplyTreeManager>>();
 
     use_effect(use_reactive((&root_id, &note_id), move |(root, note)| {
-        tracing::info!("root: {:?}, note: {:?}", root, note);
         rootid.set(root);
         highlight_note_id.set(note);
     }));
@@ -124,16 +123,43 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                     // all_replies.de
                     all_replies = vec_unique(all_replies, |e| e.id.clone());
 
-                    tracing::info!("all_replies: ---------------------- {:?}", all_replies);
                     render_notes.write().accept(all_replies).unwrap();
                     refresh.set(Timestamp::now());
-                    tracing::info!("render_notes build complete: yyds");
                 }
             }
         },
     ));
-    let mut note_tree = use_signal(|| {
-        rsx! {
+    // let mut note_tree = use_signal(|| {
+    //     rsx! {
+    //         div {
+    //             class: "note-detail-mode-content",
+    //             div {
+    //                 class: "relative z-1",
+    //                 {render_note_tree(&render_notes(), rootid(), highlight_note_id(), sub_name())}
+    //             }
+    //         }
+    //     }
+    // });
+    // use_effect(move || {
+    //     // tracing::info!("refresh_time: {:?}", refresh_time);
+    //     let (newest_render_notes, newest_highlight_note_id) = (render_notes(), highlight_note_id());
+    //     tracing::info!("rerender start: yyds");
+    //     note_tree.set(rsx! {
+    //         div {
+    //             class: "note-detail-mode-content",
+    //             div {
+    //                 class: "relative z-1",
+    //                 {render_note_tree(&newest_render_notes, rootid(), newest_highlight_note_id, sub_name())}
+    //             }
+    //         }
+    //     });
+    //     tracing::info!("rerender complete: yyds");
+    // });
+    rsx! {
+        div {
+            // onmounted: on_mounted,
+            class: "note-detail-mode-box",
+            // {note_tree()}
             div {
                 class: "note-detail-mode-content",
                 div {
@@ -141,31 +167,6 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                     {render_note_tree(&render_notes(), rootid(), highlight_note_id(), sub_name())}
                 }
             }
-        }
-    });
-    use_effect(use_reactive(
-        &refresh(),
-        move |refresh_time| {
-            tracing::info!("refresh_time: {:?}", refresh_time);
-            let (newest_render_notes, newest_highlight_note_id) = (render_notes(), highlight_note_id());
-            tracing::info!("rerender start: yyds");
-            note_tree.set(rsx! {
-                div {
-                    class: "note-detail-mode-content",
-                    div {
-                        class: "relative z-1",
-                        {render_note_tree(&newest_render_notes, rootid(), newest_highlight_note_id, sub_name())}
-                    }
-                }
-            });
-            tracing::info!("rerender complete: yyds");
-        },
-    ));
-    rsx! {
-        div {
-            // onmounted: on_mounted,
-            class: "note-detail-mode-box",
-            {note_tree()}
             div {
                 class:"width-500",
             }
@@ -179,12 +180,6 @@ fn render_note_tree(
     highlight_note_id: String,
     sub_name: String,
 ) -> Element {
-    tracing::info!(
-        "render_note_tree: {:?} {:?} {:?}",
-        root_id,
-        highlight_note_id,
-        sub_name
-    );
     let root_node = tree.get_note_by_id(&EventId::from_hex(&root_id).unwrap());
     if let Some(root_note) = root_node {
         let root_id = root_note.get_root().unwrap_or(root_note.inner.id);
