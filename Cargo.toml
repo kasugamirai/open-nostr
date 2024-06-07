@@ -22,6 +22,7 @@ nostr-sdk = { version = "0.31", default-features = false, features = [
     "nip57",
     "nip59",
 ] }
+dashmap = "4.0.1"
 nostr-indexeddb = "0.31"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }

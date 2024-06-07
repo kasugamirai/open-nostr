@@ -1,5 +1,5 @@
+use dashmap::DashMap;
 use nostr_sdk::prelude::*;
-use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
@@ -23,13 +23,12 @@ pub type NotificationHandler = Arc<
         + Sync,
 >;
 
-// Type aliases for complex types
 type HandlerStatus = Arc<RwLock<bool>>;
-type HandlerMap = HashMap<SubscriptionId, (NotificationHandler, HandlerStatus)>;
+type HandlerMap = DashMap<SubscriptionId, (NotificationHandler, HandlerStatus)>;
 
 #[derive(Clone)]
 pub struct Register {
-    handlers: Arc<RwLock<HandlerMap>>,
+    handlers: Arc<HandlerMap>,
 }
 
 impl Default for Register {
@@ -41,14 +40,13 @@ impl Default for Register {
 impl Register {
     pub fn new() -> Self {
         Self {
-            handlers: Arc::new(RwLock::new(HashMap::new())),
+            handlers: Arc::new(DashMap::new()),
         }
     }
 
     pub async fn set_stop_flag(&self, sub_id: &SubscriptionId, value: bool) {
-        let mut handlers = self.handlers.write().await;
-        if let Some((_, flag)) = handlers.get_mut(sub_id) {
-            let mut stop_flag = flag.write().await;
+        if let Some(entry) = self.handlers.get_mut(sub_id) {
+            let mut stop_flag = entry.value().1.write().await;
             *stop_flag = value;
         }
     }
@@ -64,14 +62,13 @@ impl Register {
         client
             .subscribe_with_id(sub_id.clone(), filters, opts)
             .await;
-        let mut handlers = self.handlers.write().await;
-        handlers.insert(sub_id.clone(), (handler, Arc::new(RwLock::new(false))));
+        self.handlers
+            .insert(sub_id.clone(), (handler, Arc::new(RwLock::new(false))));
         Ok(())
     }
 
     pub async fn remove_subscription(&self, sub_id: &SubscriptionId) {
-        let mut handlers = self.handlers.write().await;
-        handlers.remove(sub_id);
+        self.handlers.remove(sub_id);
     }
 
     async fn handle_notification(
@@ -85,11 +82,11 @@ impl Register {
             ..
         } = &notification
         {
-            let handlers = self.handlers.read().await;
-            if let Some((handler, stop_flag)) = handlers.get(subscription_id) {
+            if let Some(entry) = self.handlers.get(subscription_id) {
+                let (handler, stop_flag) = entry.value();
                 let result = (handler)(notification.clone()).await?;
-                let stop_flag = stop_flag.read().await;
-                return Ok(result || *stop_flag); // Return true if result is true or stop_flag is true
+                let stop_flag_val = *stop_flag.read().await;
+                return Ok(result || stop_flag_val);
             }
         }
         Ok(false)
@@ -101,11 +98,10 @@ impl Register {
             .handle_notifications(|notification| {
                 let register = self.clone();
                 async move {
-                    if register.handle_notification(notification).await? {
-                        Ok(true)
-                    } else {
-                        Ok(false)
-                    }
+                    register
+                        .handle_notification(notification)
+                        .await
+                        .map_err(Into::into)
                 }
             })
             .await?;
@@ -115,11 +111,9 @@ impl Register {
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-
-    use crate::testhelper::{sleep, test_hander::create_console_log_handler};
-
     use super::*;
+    use crate::testhelper::{sleep, test_hander::create_console_log_handler};
+    use std::rc::Rc;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
 
@@ -225,7 +219,7 @@ mod tests {
 
         sleep(2000).await.unwrap();
 
-        //query seen on relay
+        // Query seen on relay
         let relays = client
             .database()
             .event_seen_on_relays(event_id)
@@ -280,7 +274,7 @@ mod tests {
             .await
             .unwrap();
 
-        // uncomment the following line to see the logs
+        // Uncomment the following line to see the logs
         // register.handle_notifications(&client).await.unwrap();
     }
 }
