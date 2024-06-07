@@ -45,8 +45,11 @@ impl Register {
     }
 
     pub async fn set_stop_flag(&self, sub_id: &SubscriptionId, value: bool) {
-        if let Some(entry) = self.handlers.get_mut(sub_id) {
-            let mut stop_flag = entry.value().1.write().await;
+        if let dashmap::mapref::entry::Entry::Occupied(mut entry) =
+            self.handlers.entry(sub_id.clone())
+        {
+            let (_, stop_flag) = entry.get_mut();
+            let mut stop_flag = stop_flag.write().await;
             *stop_flag = value;
         }
     }
@@ -195,6 +198,8 @@ mod tests {
                 .unwrap();
         let client = Rc::new(Client::default());
         client.add_relay("wss://nos.lol").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nostr.oxtr.dev").await.unwrap();
         client.connect().await;
         let register = Register::default();
         let filter = Filter::new().id(event_id).limit(1);
