@@ -1,6 +1,6 @@
 use js_sys::Promise;
-use nostr_sdk::JsonUtil;
 use nostr_sdk::Event;
+use nostr_sdk::JsonUtil;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_test::*;
@@ -26,7 +26,7 @@ pub mod test_data {
     pub const R_EVENT_770: &str = r#"{"id":"770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b","tags":[],"content":"How it started 🤖.......... How it's going 🥜\n\nhttps://m.primal.net/IHQz.png ","created_at":1715871171,"sig":"90a8abf718b28c51e24bce9f95f92250379e6c612937b9f113d2b24dc43492aacdd6c43a220c02e480300a6d84139bfdeb70e2fdd08330f81ef9683b627baf56","pubkey":"50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63","kind":1}"#;
     pub const R_EVENT_70c: &str = r#"{"content":"Not gonna lie the throw back is sexy","created_at":1715871480,"id":"70cfdf05fa80ce6b4a54668788eef31ff7d5a23b74f54943ec9e5a91cb5806f1","kind":1,"pubkey":"3b7fc823611f1aeaea63ee3bf69b25b8aa16ec6e81d1afc39026808fe194354f","sig":"76a90208faa44bbf95d6d9f1100f9667a7f038c32a9b19ac60abe5c4d75a5ba13f74e74fd0830c28920815bd2ac5f2b8ee0bf6b47b32d57b660ab8a7847d5690","tags":[["e","770e3b604de378c67570ce3c521e2fd51c1a59aa85c22ef9aeab7b5f5e2f5e1b","","root"],["p","50d94fc2d8580c682b071a542f8b1e31a200b0508bab95a33bef0855df281d63"]]}"#;
 }
-
+#[cfg(test)]
 pub mod test_hander {
     use nostr_sdk::prelude::*;
     use std::sync::Arc;
@@ -58,16 +58,19 @@ pub mod test_hander {
     }
 }
 
+#[cfg(test)]
 pub fn event_from(raw: &str) -> Event {
     Event::from_json(raw).unwrap()
 }
 
+#[cfg(test)]
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = window, js_name = setTimeout)]
     fn set_timeout(closure: &Closure<dyn FnMut()>, time: u32) -> i32;
 }
 
+#[cfg(test)]
 pub async fn sleep(ms: u32) -> Result<(), JsValue> {
     let promise = Promise::new(&mut |resolve, _| {
         let closure = Closure::once(move || {
