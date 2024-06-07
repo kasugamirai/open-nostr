@@ -1,8 +1,8 @@
-use async_std::sync::RwLock;
 use nostr_sdk::prelude::*;
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::sync::RwLock;
 
 #[derive(Error, Debug)]
 pub enum RegisterError {
