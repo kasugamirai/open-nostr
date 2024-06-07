@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use nostr_indexeddb::database::Order;
 use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
 
 use crate::{

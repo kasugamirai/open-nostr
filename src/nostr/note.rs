@@ -135,7 +135,7 @@ impl TryFrom<Event> for TextNote {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ReplyTrees {
     id2id: HashMap<EventId, NodeId>,
     arena: Arena<TextNote>,
