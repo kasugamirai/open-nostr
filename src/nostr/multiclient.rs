@@ -1,7 +1,7 @@
 use cached::{Cached, TimedCache};
+use dashmap::DashMap;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Client, ClientBuilder, Event, Filter};
-use std::collections::{HashMap, HashSet};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::Arc;
 use std::time::Duration;
@@ -25,7 +25,7 @@ pub enum Error {
     #[error("Client not found")]
     ClientNotFound,
     #[error("query failed or not cached")]
-    QueryFailedOrNotCahed,
+    QueryFailedOrNotCached,
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +119,7 @@ impl NostrQuery {
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: Arc<Mutex<HashMap<String, HashedClient>>>,
+    clients: Arc<DashMap<String, HashedClient>>,
 }
 
 impl Default for MultiClient {
@@ -131,19 +131,17 @@ impl Default for MultiClient {
 impl MultiClient {
     pub fn new() -> Self {
         Self {
-            clients: Arc::new(Mutex::new(HashMap::new())),
+            clients: Arc::new(DashMap::new()),
         }
     }
 
     pub async fn register(&self, name: String, hc: HashedClient) {
-        let mut clients = self.clients.lock().await;
-        clients.insert(name, hc);
+        self.clients.insert(name, hc);
     }
 
     pub async fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
-        let mut clients = self.clients.lock().await;
-        if let Some(client) = clients.remove(old_key) {
-            clients.insert(new_key, client);
+        if let Some((_, client)) = self.clients.remove(old_key) {
+            self.clients.insert(new_key, client);
             Ok(())
         } else {
             Err(format!("Client with key '{}' not found", old_key))
@@ -151,16 +149,12 @@ impl MultiClient {
     }
 
     pub async fn get_client(&self, name: &str) -> Option<HashedClient> {
-        let clients = self.clients.lock().await;
-        clients.get(name).cloned()
+        self.clients.get(name).map(|entry| entry.clone())
     }
 
     pub async fn get_or_create(&self, name: &str) -> Result<HashedClient, Error> {
-        {
-            let clients = self.clients.lock().await;
-            if let Some(client) = clients.get(name) {
-                return Ok(client.clone());
-            }
+        if let Some(client) = self.clients.get(name) {
+            return Ok(client.clone());
         }
 
         let database = CBWebDatabase::open(CAPYBASTR_DBNAME).await?;
@@ -179,7 +173,7 @@ impl MultiClient {
 }
 
 type Cache = Arc<Mutex<TimedCache<NostrQuery, Vec<Event>>>>;
-type PendingQueries = Arc<Mutex<HashSet<NostrQuery>>>;
+type PendingQueries = Arc<DashMap<NostrQuery, ()>>;
 
 #[derive(Debug, Clone)]
 pub struct EventCache {
@@ -194,7 +188,7 @@ impl EventCache {
             cache: Arc::new(Mutex::new(TimedCache::with_lifespan_and_capacity(
                 lifespan, capacity,
             ))),
-            pending_queries: Arc::new(Mutex::new(HashSet::new())),
+            pending_queries: Arc::new(DashMap::new()),
             notify: Arc::new(Notify::new()),
         }
     }
@@ -217,18 +211,16 @@ impl EventCache {
 
         // If not cached, check if query is already pending
         {
-            let mut pending_queries = self.pending_queries.lock().await;
-            if pending_queries.contains(&query) {
-                drop(pending_queries); // Drop the lock before waiting
+            if self.pending_queries.contains_key(&query) {
                 self.notify.notified().await; // Wait for the ongoing query to finish
                 let mut cache = self.cache.lock().await;
                 if let Some(cached_result) = cache.cache_get(&query) {
                     return Ok(cached_result.clone());
                 } else {
-                    return Err(Error::QueryFailedOrNotCahed);
+                    return Err(Error::QueryFailedOrNotCached);
                 }
             } else {
-                pending_queries.insert(query.clone());
+                self.pending_queries.insert(query.clone(), ());
             }
         }
 
@@ -236,8 +228,7 @@ impl EventCache {
         let result = match client.client.get_events_of(filters.clone(), timeout).await {
             Ok(result) => result,
             Err(e) => {
-                let mut pending_queries = self.pending_queries.lock().await;
-                pending_queries.remove(&query);
+                self.pending_queries.remove(&query);
                 self.notify.notify_waiters();
                 return Err(Error::Client(e));
             }
@@ -250,10 +241,7 @@ impl EventCache {
         }
 
         // Remove from pending and notify other waiters
-        {
-            let mut pending_queries = self.pending_queries.lock().await;
-            pending_queries.remove(&query);
-        }
+        self.pending_queries.remove(&query);
         self.notify.notify_waiters();
 
         Ok(result)
