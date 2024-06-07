@@ -3,6 +3,8 @@ use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
 use gloo_timers::future::sleep;
+use nostr_sdk::event::kind;
+use nostr_sdk::nips::nip10::Marker;
 use nostr_sdk::{
     Alphabet, Client, Event, EventId, Filter, Kind, RelayPoolNotification, SingleLetterTag,
     SubscribeAutoCloseOptions, TagStandard,
@@ -17,8 +19,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
-use tokio::sync::mpsc::unbounded_channel;
-use tokio::sync::mpsc::UnboundedReceiver;
+use wasm_bindgen_test::console_log;
+//use tokio::sync::mpsc::unbounded_channel;
+//use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
@@ -241,14 +244,14 @@ impl<'a> DecryptedMsgPaginator<'a> {
         futures::future::try_join_all(futures).await
     }
 
-    pub async fn next_page(&mut self) -> Option<Result<Vec<DecryptedMsg>, Error>> {
+    pub async fn next_page(&mut self) -> Option<Vec<DecryptedMsg>> {
         if self.paginator.done {
             return None;
         }
 
         if let Ok(events) = self.paginator.next_page().await {
             let decrypt_results = self.convert_events(events).await;
-            return Some(decrypt_results);
+            return decrypt_results.ok();
         }
 
         None
@@ -396,59 +399,73 @@ pub async fn get_followers(
     UnboundedReceiverStream::new(rx).filter_map(|res| async { Some(res) })
 }
 
-/*
+#[derive(Debug, Clone)]
 pub enum NotificationMsg {
-    Emoji(String),
-    Reply(String),
-    Repost(String),
-    Quote(String),
+    Emoji(Event),
+    Reply(Event),
+    Repost(Event),
+    Quote(Event),
+    ZapReceipt(Event),
 }
 
-pub async fn sub_notification(
-    client: Arc<Client>,
-    filters: Vec<Filter>,
-    sub_opts: Option<SubscribeAutoCloseOptions>,
-    stop_flag: Arc<AtomicBool>,
-) -> impl Stream<Item = NotificationMsg> {
-    // Create a channel for sending notifications
-    let (tx, rx): (
-        mpsc::UnboundedSender<NotificationMsg>,
-        mpsc::UnboundedReceiver<NotificationMsg>,
-    ) = mpsc::unbounded_channel();
+pub struct NotificationPaginator {
+    paginator: EventPaginator,
+}
 
-    client.subscribe(filters, sub_opts).await;
+impl NotificationPaginator {
+    pub fn new(
+        client: Arc<Client>,
+        public_key: PublicKey,
+        timeout: Option<std::time::Duration>,
+        page_size: usize,
+    ) -> Self {
+        let filters = create_notification_filters(&public_key);
 
-    // Launch a task to handle notifications
-    spawn_local(async move {
-        client
-            .handle_notifications(move |notification| {
-                let tx_clone = tx.clone();
-                let stop_flag_inner = Arc::clone(&stop_flag);
-                async move {
-                    if let RelayPoolNotification::Event { event, .. } = notification {
-                        let msg = match event.kind() {
-                            Kind::Repost => NotificationMsg::Repost(event.content().to_string()),
-                            //todo: add more notification types
-                            _ => return Ok(!stop_flag_inner.load(Ordering::SeqCst)), // Load the stop flag
-                        };
+        Self {
+            paginator: EventPaginator::new(client, filters, timeout, page_size),
+        }
+    }
 
-                        if let Err(e) = tx_clone.send(msg) {
-                            tracing::error!("Failed to send notification: {:?}", e);
-                        }
-                    }
-                    Ok(!stop_flag_inner.load(Ordering::SeqCst)) // Load the stop flag
+    pub async fn next_page(&mut self) -> Option<Vec<NotificationMsg>> {
+        let events = self.paginator.next_page().await.ok()?;
+        Some(process_notification_events(events))
+    }
+}
+
+pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
+    let create_filter = |kind| {
+        Filter::new().kind(kind).custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![public_key.to_hex()],
+        )
+    };
+
+    vec![
+        create_filter(Kind::Reaction),
+        create_filter(Kind::TextNote),
+        create_filter(Kind::Repost),
+        create_filter(Kind::ZapReceipt),
+    ]
+}
+
+pub fn process_notification_events(events: Vec<Event>) -> Vec<NotificationMsg> {
+    events
+        .into_iter()
+        .filter_map(|event| match event.kind() {
+            Kind::Reaction => Some(NotificationMsg::Emoji(event)),
+            Kind::TextNote => {
+                if event.content.contains("nostr:") {
+                    Some(NotificationMsg::Quote(event))
+                } else {
+                    Some(NotificationMsg::Reply(event))
                 }
-            })
-            .await
-            .unwrap();
-    });
-
-    // Return the stream of notifications
-    UnboundedReceiverStream::new(rx)
-        .filter_map(|msg| async move { Some(msg) })
-        .boxed()
+            }
+            Kind::Repost => Some(NotificationMsg::Repost(event)),
+            Kind::ZapReceipt => Some(NotificationMsg::ZapReceipt(event)),
+            _ => None,
+        })
+        .collect()
 }
-*/
 
 #[cfg(test)]
 mod tests {
@@ -464,7 +481,7 @@ mod tests {
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::key::SecretKey;
     use nostr_sdk::Client;
-    use nostr_sdk::{ClientBuilder, FromBech32, Keys};
+    use nostr_sdk::{ClientBuilder, EventBuilder, FromBech32, Keys};
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::Arc;
     use std::time::Duration;
@@ -625,23 +642,12 @@ mod tests {
         .await
         .unwrap();
         let mut count = 0;
-        while let Some(result) = paginator.next_page().await {
-            match result {
-                Ok(events) => {
-                    if paginator.paginator.done {
-                        break;
-                    }
-                    console_log!("events are: {:?}", events);
-                    for e in &events {
-                        console_log!("event: {:?}", e.content);
-                    }
-                    count += events.len();
-                }
-                Err(e) => {
-                    console_log!("Error fetching events: {:?}", e);
-                    break;
-                }
+        while let Some(events) = paginator.next_page().await {
+            console_log!("events are: {:?}", events);
+            for e in &events {
+                console_log!("event: {:?}", e.content);
             }
+            count += events.len();
         }
         assert!(count > 7);
     }
@@ -707,10 +713,36 @@ mod tests {
         assert!(!following.is_empty());
     }
 
-    /*
     #[wasm_bindgen_test]
-    async fn test_sub_notification() {
-        todo!("Implement this test");
+    async fn test_get_notification_paginator() {
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        let public_key = PublicKey::from_bech32(
+            "npub1zfss807aer0j26mwp2la0ume0jqde3823rmu97ra6sgyyg956e0s6xw445",
+        )
+        .unwrap();
+
+        let timeout = Some(std::time::Duration::from_secs(5));
+        let mut paginator = NotificationPaginator::new(Arc::new(client), public_key, timeout, 100);
+        let mut count = 0;
+        loop {
+            let result = paginator.next_page().await;
+            match result {
+                Some(events) => {
+                    if paginator.paginator.done {
+                        break;
+                    }
+                    console_log!("events are: {:?}", events);
+                    count += events.len();
+                }
+                None => {
+                    console_log!("No more events or an error occurred.");
+                    break;
+                }
+            }
+        }
+        assert!(count > 0);
     }
-    */
 }
