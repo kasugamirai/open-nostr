@@ -16,6 +16,7 @@ pub const DOWN: &str = include_str!("../../public/static/down.svg");
 pub const COPY_ALL: &str = include_str!("../../public/static/copy_all.svg");
 pub const QRCODE: &str = include_str!("../../public/svgs/qrcode.svg");
 pub const ARROW_UP: &str = include_str!("../../public/static/arrow_up.svg");
+pub const ACTIONS_MORE: &str = include_str!("../../public/svgs/actionsMore.svg");
 
 // slider icons
 pub const HOME: &str = include_str!("../../public/svgs/home.svg");
