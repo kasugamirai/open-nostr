@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Event, EventId};
+use nostr_sdk::{Event, EventId, Timestamp};
 
 use crate::{
     nostr::{
@@ -22,13 +22,11 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let all_sub = use_context::<Signal<Vec<CustomSub>>>();
     let mut replytree_manager = use_context::<Signal<ReplyTreeManager>>();
 
-    use_effect(use_reactive(
-        (&root_id.clone(), &note_id.clone()),
-        move |(root, note)| {
-            rootid.set(root);
-            highlight_note_id.set(note);
-        },
-    ));
+    use_effect(use_reactive((&root_id, &note_id), move |(root, note)| {
+        tracing::info!("root: {:?}, note: {:?}", root, note);
+        rootid.set(root);
+        highlight_note_id.set(note);
+    }));
 
     let tree_exists = {
         let manager = replytree_manager.read();
@@ -90,7 +88,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
         }
     });
     let mut render_notes = use_signal(|| ReplyTrees::default());
-
+    let mut refresh = use_signal(|| Timestamp::now());
     use_effect(use_reactive(
         (&tree(), &highlight_note_id()),
         move |(newest_tree, newest_highlight_event_id)| {
@@ -128,7 +126,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
 
                     tracing::info!("all_replies: ---------------------- {:?}", all_replies);
                     render_notes.write().accept(all_replies).unwrap();
-
+                    refresh.set(Timestamp::now());
                     tracing::info!("render_notes build complete: yyds");
                 }
             }
@@ -146,17 +144,20 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
         }
     });
     use_effect(use_reactive(
-        (&render_notes(), &highlight_note_id()),
-        move |(newest_render_notes, newest_highlight_note_id)| {
+        &refresh(),
+        move |refresh_time| {
+            tracing::info!("refresh_time: {:?}", refresh_time);
+            let (newest_render_notes, newest_highlight_note_id) = (render_notes(), highlight_note_id());
+            tracing::info!("rerender start: yyds");
             note_tree.set(rsx! {
                 div {
                     class: "note-detail-mode-content",
                     div {
                         class: "relative z-1",
-                        {render_note_tree(&newest_render_notes.clone(), rootid().clone(), newest_highlight_note_id.clone(), sub_name())}
+                        {render_note_tree(&newest_render_notes, rootid(), newest_highlight_note_id, sub_name())}
                     }
                 }
-        });
+            });
             tracing::info!("rerender complete: yyds");
         },
     ));
@@ -178,6 +179,12 @@ fn render_note_tree(
     highlight_note_id: String,
     sub_name: String,
 ) -> Element {
+    tracing::info!(
+        "render_note_tree: {:?} {:?} {:?}",
+        root_id,
+        highlight_note_id,
+        sub_name
+    );
     let root_node = tree.get_note_by_id(&EventId::from_hex(&root_id).unwrap());
     if let Some(root_note) = root_node {
         let root_id = root_note.get_root().unwrap_or(root_note.inner.id);
