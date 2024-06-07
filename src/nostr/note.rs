@@ -158,30 +158,23 @@ impl Default for ReplyTrees {
 }
 
 impl ReplyTrees {
-    pub fn accept(&mut self, events: Vec<Event>) -> Result<(), Error> {
-        let text_notes: Vec<TextNote> = events
-            .into_iter()
-            .filter_map(|e| TextNote::try_from(e).ok())
-            .collect();
-
-        for event in text_notes.into_iter() {
-            let node_id = self.arena.new_node(event.clone());
-            self.id2id.insert(event.inner.id, node_id);
-            self.notes.push(event);
-        }
-
-        for tn in &self.notes {
-            if let Some(node_id) = self.id2id.get(&tn.inner.id) {
-                if let Some(reply_to) = &tn.reply_to {
-                    if let Some(p_node_id) = self.id2id.get(reply_to) {
-                        p_node_id.append(*node_id, &mut self.arena);
-                    }
-                }
-            } else {
-                return Err(Error::NodeIdNotFound);
+    pub fn accept(&mut self, events: Vec<Event>) {
+        let mut text_notes = Vec::new();
+        for event in events {
+            if let Ok(text_note) = TextNote::try_from(event) {
+                let node_id = self.arena.new_node(text_note.clone());
+                self.id2id.insert(text_note.inner.id, node_id);
+                text_notes.push((text_note, node_id));
             }
         }
-        Ok(())
+
+        for (text_note, node_id) in text_notes {
+            if let Some(reply_to) = &text_note.reply_to {
+                if let Some(&parent_id) = self.id2id.get(reply_to) {
+                    parent_id.append(node_id, &mut self.arena);
+                }
+            }
+        }
     }
 
     pub fn get_note_by_id(&self, id: &EventId) -> Option<&TextNote> {
@@ -270,7 +263,7 @@ impl ReplyTreeManager {
 
     pub fn accept_event(&mut self, root_id: EventId, events: Vec<Event>) {
         let tree = self.get_or_create_tree(root_id);
-        tree.accept(events).unwrap();
+        tree.accept(events);
     }
 
     pub fn modify_tree_with_event<F>(&mut self, root_id: &EventId, event: Event, modify: F)
@@ -366,7 +359,7 @@ mod tests {
     fn test_get_note() {
         let event = event_from(ROOT_NOTE);
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(vec![event]).unwrap();
+        reply_tree.accept(vec![event]);
         let event_id =
             EventId::parse("c3d8e01d3884d8914583ef1da76e3e1732824228e89cfda3b5fe1164bbb9dd38")
                 .unwrap();
@@ -384,7 +377,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events).unwrap();
+        reply_tree.accept(events);
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
@@ -410,7 +403,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events).unwrap();
+        reply_tree.accept(events);
         let r_children = reply_tree.get_replies(
             &EventId::parse("9a708c373de54236d7707feb8c7ae21aa8a204eb9f6dc289de05f90a9e311651")
                 .unwrap(),
@@ -427,7 +420,7 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(events).unwrap();
+        reply_tree.accept(events);
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),
@@ -446,8 +439,8 @@ mod tests {
             .map(|raw: &&str| event_from(raw))
             .collect();
         let mut reply_tree = ReplyTrees::default();
-        reply_tree.accept(root).unwrap();
-        reply_tree.accept(replies).unwrap();
+        reply_tree.accept(root);
+        reply_tree.accept(replies);
         let ancestors = reply_tree.get_ancestors(
             &EventId::parse("b916e11013514ad0d8c5d8005e2c760c4557cc3c261f4f98ec6f1748c7c8b541")
                 .unwrap(),

@@ -123,7 +123,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                     // all_replies.de
                     all_replies = vec_unique(all_replies, |e| e.id.clone());
 
-                    render_notes.write().accept(all_replies).unwrap();
+                    render_notes.write().accept(all_replies);
                     refresh.set(Timestamp::now());
                 }
             }

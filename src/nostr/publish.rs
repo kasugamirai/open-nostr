@@ -165,6 +165,7 @@ mod tests {
         let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nostr.oxtr.dev").await.unwrap();
         client.connect().await;
         let result = publish_text_note(&client, signer, "Hello, world!", vec![]).await;
         assert!(result.is_ok());
