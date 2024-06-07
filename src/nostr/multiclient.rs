@@ -16,11 +16,11 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Client error: {0}")]
+    #[error(transparent)]
     Client(#[from] nostr_sdk::client::Error),
-    #[error("Store error: {0}")]
+    #[error(transparent)]
     Store(#[from] store::error::CBwebDatabaseError),
-    #[error("IndexDb error: {0}")]
+    #[error(transparent)]
     IndexDb(#[from] nostr_indexeddb::IndexedDBError),
     #[error("Client not found")]
     ClientNotFound,
