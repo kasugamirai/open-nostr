@@ -21,8 +21,18 @@ use crate::{
 
 use note::Note;
 
+#[derive(Debug, Clone, Props, PartialEq)]
+pub struct NoteListProps {
+    pub name: String,
+    pub reload_time: Timestamp,
+    #[props(default=true)]
+    pub is_cache: bool,
+}
+
+
 #[component]
-pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
+pub fn NoteList(props: NoteListProps) -> Element {
+    let NoteListProps {name, reload_time, is_cache} = props;
     let mut reload_flag = use_signal(|| reload_time.clone());
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let mut sub_current = use_signal(|| CustomSub::empty());
@@ -46,7 +56,6 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
                     match events {
                         Ok(events) => {
                             notes.extend(events.iter().cloned());
-
                             is_loading.set(false);
                         }
                         Err(e) => {
@@ -59,7 +68,7 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
         });
     };
 
-    use_effect(use_reactive((&name, &reload_time), move |(s, time)| {
+    use_effect(use_reactive((&name, &reload_time, &is_cache), move |(s, time, iscache)| {
         let subs_map_lock = subs_map();
         if subs_map_lock.contains_key(&s) {
             let current = subs_map_lock.get(&s).unwrap();
@@ -81,13 +90,19 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
                         reload_flag.set(time.clone());
                     }
                     {
+                        tracing::info!("is_cache: {:?}", iscache);
+                        if !iscache {
+                            notes.set(vec![]);
+                            handle_fetch();
+                            return;
+                        }
                         let stored_events = client.database().query(filters.clone(), Order::Desc).await;
                         match stored_events {
                             Ok(events) => {
                                 notes.set(events);
                             }
                             Err(e) => { // Rename the binding from Err to e
-                                // notes.set(vec![]);
+                                notes.set(vec![]);
                                 
                             }
                         }

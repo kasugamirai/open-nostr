@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 use dioxus::prelude::*;
@@ -19,7 +19,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let mut rootid = use_signal(|| root_id.clone());
     let mut highlight_note_id = use_signal(|| note_id.clone());
     let multiclient = use_context::<Signal<MultiClient>>();
-    let all_sub = use_context::<Signal<Vec<CustomSub>>>();
+    let subs_map = use_context::<Signal<HashMap<String,CustomSub>>>();
     let mut replytree_manager = use_context::<Signal<ReplyTreeManager>>();
 
     use_effect(use_reactive((&root_id, &note_id), move |(root, note)| {
@@ -39,11 +39,15 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
         move |(_root_id, sub_name)| {
             let root_event_id: EventId = EventId::from_hex(_root_id).unwrap();
             let clients = multiclient();
-            let _all_sub = all_sub();
+            // let _all_sub = all_sub();
+            let _subs_map = subs_map();
             spawn(async move {
                 // if tree not exists, fetch it
                 if !tree_exists {
-                    let sub = _all_sub.iter().find(|s| s.name == sub_name).unwrap();
+                    if !_subs_map.contains_key(&sub_name) {
+                        return;
+                    }
+                    let sub = _subs_map.get(&sub_name).unwrap();
                     if let Some(client) = clients.get_client(&sub.relay_set).await {
                         let client = client.client();
                         match get_event_by_id(&client, &root_event_id, None).await {

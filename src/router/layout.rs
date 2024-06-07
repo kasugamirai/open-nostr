@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{nostr::note::ReplyTreeManager, store::subscription::CustomSub};
 use dioxus::prelude::*;
 struct UserItem {
@@ -14,7 +16,7 @@ use crate::router::*;
 
 #[component]
 pub fn Layout() -> Element {
-    let subs = use_context::<Signal<Vec<CustomSub>>>();
+    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let mut edit = use_signal(|| false);
     let mut theme = use_context::<Signal<String>>();
     let toggle_theme = move |_| {
@@ -26,7 +28,7 @@ pub fn Layout() -> Element {
     };
     let messageContent = use_signal(||String::from(""));
     // golbal replytree manager cache
-    let replytree_manager = use_context_provider(|| Signal::new(ReplyTreeManager::new(200)));
+    use_context_provider(|| Signal::new(ReplyTreeManager::new(200)));
     let users = [UserItem{
             avatar: "https://img.alicdn.com/imgextra/i2/O1CN01fI8HqB20dQg3rqybI_!!6000000006872-2-tps-2880-120.png",
             username: "James LisaLisaLisaLisaLisaLisaLisa"
@@ -229,11 +231,19 @@ pub fn Layout() -> Element {
                     }
                     div{
                         class: "subscriptions-item",
-                        for (_i, sub) in subs.read().iter().enumerate() {
+                        // for (_i, sub) in subs.read().iter().enumerate() {
+                        //     Link {
+                        //         active_class: "active",
+                        //         class: "nav-item",
+                        //         to: Route::Subscription { name: urlencoding::encode(&sub.name.clone()).to_string() },
+                        //         "#{sub.name}"
+                        //     }
+                        // }
+                        for (name, sub) in subs_map.read().iter() {
                             Link {
                                 active_class: "active",
                                 class: "nav-item",
-                                to: Route::Subscription { name: urlencoding::encode(&sub.name.clone()).to_string() },
+                                to: Route::Subscription { name: name.clone() },
                                 "#{sub.name}"
                             }
                         }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil, Kind};
 
@@ -26,27 +28,19 @@ pub struct NoteProps {
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    // let sub_name = use_signal(|| props.sub_name.clone());
-    // let all_sub = use_context::<Signal<Vec<CustomSub>>>();
-    // let subs = all_sub.read();
-    // let current_sub = subs.iter().find(|s| s.name == sub_name()).unwrap();
+    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
 
-    let mut show_detail = use_signal(|| false);
-    let mut detail = use_signal(|| String::new());
     let mut event = use_signal(|| props.event.clone());
-    let mut notetext = use_signal(|| props.event.content.clone());
-    let mut pk = use_signal(|| props.event.author().clone());
-    let mut eid = use_signal(|| props.event.id().clone());
-    let mut e_id = use_signal(|| eid().to_hex());
-
-    use_effect(use_reactive(&props.event, move |newest_event| {
-        event.set(newest_event.clone());
-        notetext.set(newest_event.content.clone());
-        pk.set(newest_event.author().clone());
-        eid.set(newest_event.id().clone());
-        e_id.set(newest_event.id().clone().to_hex());
-    }));
-
+    // let mut notetext = use_signal(|| props.event.content.clone());
+    // let mut show_detail = use_signal(|| false);
+    // let mut detail = use_signal(|| String::new());
+    // let mut pk = use_signal(|| props.event.author().clone());
+    // let mut eid = use_signal(|| props.event.id().clone());
+    // let mut e_id = use_signal(|| eid().to_hex());
+    let mut relay_name = use_signal(|| match props.relay_name.clone() {
+        Some(s) => s,
+        None => String::from("default"),
+    });
     let mut element = use_signal(|| {
         rsx! {
             div {
@@ -55,56 +49,78 @@ pub fn Note(props: NoteProps) -> Element {
             }
         }
     });
-    let repost_text = use_signal(|| {
-        if props.event.kind() == Kind::Repost {
-            match Event::from_json(&props.event.content) {
-                Ok(event) => event.content.to_string(),
-                Err(e) => {
-                    tracing::error!("parse event error: {:?}", e);
-                    // props.data.content.clone()
-                    String::new()
-                }
-            }
-        } else {
-            String::new()
-        }
-    });
-    let reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
+    let mut render_content = use_signal(|| String::from("Loading..."));
+    let mut reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
         Ok(text_note) => (text_note.is_reply(), Some(text_note)),
         Err(e) => {
             tracing::error!("parse event error: {:?}", e);
             (false, None)
         }
     });
-
-    let optional_str_ref: String = match props.relay_name.clone() {
-        Some(s) => s,
-        None => String::from("default"),
-    };
-    let relay_name = use_signal(|| optional_str_ref.clone());
-    let is_repost = props.event.kind() == Kind::Repost;
-    let is_highlight = use_signal(|| {
-        props.is_tree
-            && props
-                .clsname
-                .clone()
-                .unwrap_or("".to_string())
-                .contains("com-post--active")
-    });
-
-    use_effect(use_reactive(&props.event, move |_| {
-        let data = if is_repost {
-            repost_text().clone()
-        } else {
-            notetext().clone()
-        };
-        element.set(format_note_content(&data, &relay_name()));
-        spawn(async move {
-            if is_highlight() {
-                note_srcoll_into_view(&e_id()).await;
-            };
-        });
-    }));
+    // update the event when the props.event changes
+    use_effect(use_reactive(
+        (
+            &props.event,
+            &props.sub_name,
+            &props.is_tree,
+            &props.clsname,
+        ),
+        move |(newest_event, subname, is_tree, clsname)| {
+            {
+                event.set(newest_event.clone());
+                let subs_map = subs_map.read();
+                if subs_map.contains_key(&subname) {
+                    let sub = subs_map.get(&subname).unwrap();
+                    relay_name.set(sub.relay_set.clone());
+                }
+            }
+            {
+                match TextNote::try_from(newest_event.clone()) {
+                    Ok(text_note) => {
+                        reply.set((text_note.is_reply(), Some(text_note)));
+                    }
+                    Err(e) => {
+                        tracing::error!("parse event error: {:?}", e);
+                        reply.set((false, None));
+                    }
+                }
+            }
+            {
+                let is_repost = newest_event.clone().kind() == Kind::Repost;
+                let data = {
+                    if is_repost {
+                        if newest_event.kind() == Kind::Repost {
+                            match Event::from_json(&newest_event.content) {
+                                Ok(event) => event.content.to_string(),
+                                Err(e) => {
+                                    tracing::error!("parse event error: {:?}", e);
+                                    String::new()
+                                }
+                            }
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        newest_event.content.to_string()
+                    }
+                };
+                let is_highlight = {
+                    is_tree
+                        && clsname
+                            .clone()
+                            .unwrap_or("".to_string())
+                            .contains("com-post--active")
+                };
+                render_content.set(data);
+                // element.set(format_note_content(&data, &relay_name()));
+                if is_highlight {
+                    spawn(async move {
+                        note_srcoll_into_view(&newest_event.id.to_hex()).await;
+                    });
+                }
+            }
+        },
+    ));
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
@@ -117,12 +133,12 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-header flex items-start justify-between",
                 Avatar {
-                    pubkey: pk.read().clone(),
-                    timestamp: props.event.created_at.as_u64(),
-                    relay_name: &relay_name(),
-                    repost_event: match props.event.kind() {
+                    pubkey: event().pubkey.clone(),
+                    timestamp: event().created_at.as_u64(),
+                    relay_name: relay_name.read().clone(),
+                    repost_event: match event().kind() {
                         Kind::Repost => {
-                            let repost_event = Event::from_json(&props.event.content).unwrap();
+                            let repost_event = Event::from_json(&event().content).unwrap();
                             Some(repost_event)
                         }
                         _=> None
@@ -130,10 +146,10 @@ pub fn Note(props: NoteProps) -> Element {
                 }
                 MoreInfo {
                     on_detail: move |_| {
-                        let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
-                        let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
-                        detail.set(formatted_json);
-                        show_detail.set(!show_detail());
+                        // let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
+                        // let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                        // detail.set(formatted_json);
+                        // show_detail.set(!show_detail());
                     },
                 }
             }
@@ -162,8 +178,9 @@ pub fn Note(props: NoteProps) -> Element {
                         sub_name: props.sub_name.clone(),
                         relay_name: props.relay_name.clone().unwrap_or("default".to_string()),
                     }
+                }{
+                    format_note_content(&render_content(), &relay_name())
                 }
-                {element}
             }
 
             div {
