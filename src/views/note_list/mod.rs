@@ -11,10 +11,7 @@ use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::{
     components::icons::LOADING,
-    nostr::{
-        fetch::EventPaginator,
-        multiclient::MultiClient,
-    },
+    nostr::{fetch::EventPaginator, multiclient::MultiClient},
     store::subscription::CustomSub,
     utils::js::{get_scroll_info, throttle},
 };
@@ -25,23 +22,25 @@ use note::Note;
 pub struct NoteListProps {
     pub name: String,
     pub reload_time: Timestamp,
-    #[props(default=true)]
+    #[props(default = true)]
     pub is_cache: bool,
 }
 
-
 #[component]
 pub fn NoteList(props: NoteListProps) -> Element {
-    let NoteListProps {name, reload_time, is_cache} = props;
+    let NoteListProps {
+        name,
+        reload_time,
+        is_cache,
+    } = props;
     let mut reload_flag = use_signal(|| reload_time.clone());
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
-    let mut sub_current = use_signal(|| CustomSub::empty());
+    let mut sub_current = use_signal(CustomSub::empty);
     // let mut sub_index = use_signal(|| 0);
     let mut notes: Signal<Vec<Event>> = use_signal(|| Vec::new());
     let mut paginator = use_signal(|| None);
     let multiclient = use_context::<Signal<MultiClient>>();
     let mut is_loading = use_signal(|| false);
-
 
     let handle_fetch = move || {
         spawn(async move {
@@ -68,53 +67,58 @@ pub fn NoteList(props: NoteListProps) -> Element {
         });
     };
 
-    use_effect(use_reactive((&name, &reload_time, &is_cache), move |(s, time, iscache)| {
-        let subs_map_lock = subs_map();
-        if subs_map_lock.contains_key(&s) {
-            let current = subs_map_lock.get(&s).unwrap();
-            sub_current.set(current.clone());
-        }
+    use_effect(use_reactive(
+        (&name, &reload_time, &is_cache),
+        move |(s, time, iscache)| {
+            let subs_map_lock = subs_map();
+            if subs_map_lock.contains_key(&s) {
+                let current = subs_map_lock.get(&s).unwrap();
+                sub_current.set(current.clone());
+            }
 
-        spawn(async move {
-            let sub_current = sub_current.read().clone();
-            let filters = sub_current.get_filters();
-            let mut clients = multiclient();
-            let client_result = clients.get_or_create(&sub_current.relay_set).await;
-            match client_result {
-                Ok(hc) => {
-                    let client = hc.client();
-                    {
-                        let paginator_result = EventPaginator::new(client.clone(), filters.clone(), None, 40);
-                        paginator.set(Some(paginator_result));
-                        // notes.clear();
-                        reload_flag.set(time.clone());
-                    }
-                    {
-                        tracing::info!("is_cache: {:?}", iscache);
-                        if !iscache {
-                            notes.set(vec![]);
-                            handle_fetch();
-                            return;
+            spawn(async move {
+                let sub_current = sub_current.read().clone();
+                let filters = sub_current.get_filters();
+                let mut clients = multiclient();
+                let client_result = clients.get_or_create(&sub_current.relay_set).await;
+                match client_result {
+                    Ok(hc) => {
+                        let client = hc.client();
+                        {
+                            let paginator_result =
+                                EventPaginator::new(client.clone(), filters.clone(), None, 40);
+                            paginator.set(Some(paginator_result));
+                            // notes.clear();
+                            reload_flag.set(time.clone());
                         }
-                        let stored_events = client.database().query(filters.clone(), Order::Desc).await;
-                        match stored_events {
-                            Ok(events) => {
-                                notes.set(events);
-                            }
-                            Err(e) => { // Rename the binding from Err to e
+                        {
+                            tracing::info!("is_cache: {:?}", iscache);
+                            if !iscache {
                                 notes.set(vec![]);
-                                
+                                handle_fetch();
+                                return;
                             }
+                            let stored_events =
+                                client.database().query(filters.clone(), Order::Desc).await;
+                            match stored_events {
+                                Ok(events) => {
+                                    notes.set(events);
+                                }
+                                Err(e) => {
+                                    // Rename the binding from Err to e
+                                    notes.set(vec![]);
+                                }
+                            }
+                            handle_fetch();
                         }
-                        handle_fetch();
                     }
-                }
-                Err(e) => {
-                    tracing::error!("Error: {:?}", e);
-                }
-            };
-        });
-    }));
+                    Err(e) => {
+                        tracing::error!("Error: {:?}", e);
+                    }
+                };
+            });
+        },
+    ));
     let on_mounted = move |_| {
         if name.is_empty() {
             return;
