@@ -14,6 +14,14 @@ pub enum Error {
     Signer(#[from] nostr_sdk::signer::Error),
 }
 
+macro_rules! sign_and_send_event {
+    ($client:expr, $signer:expr, $builder:expr) => {{
+        let event = $signer.sign_event_builder($builder).await?;
+        let eid = $client.send_event(event).await?;
+        Ok(eid)
+    }};
+}
+
 pub async fn publish_text_note(
     client: &Client,
     signer: &NostrSigner,
@@ -21,9 +29,7 @@ pub async fn publish_text_note(
     tags: Vec<Tag>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::text_note(content, tags).custom_created_at(Timestamp::now());
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn repost(
@@ -33,9 +39,7 @@ pub async fn repost(
     url: Option<UncheckedUrl>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::repost(event, url);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn reaction(
@@ -45,9 +49,7 @@ pub async fn reaction(
     reaction: &str,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::reaction(event, reaction);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn new_channel(
@@ -56,9 +58,7 @@ pub async fn new_channel(
     metadata: &Metadata,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::channel(metadata);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn set_channel_metadata(
@@ -69,9 +69,7 @@ pub async fn set_channel_metadata(
     url: Option<Url>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::channel_metadata(channel_id, url, metadata);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn send_channel_msg(
@@ -82,9 +80,7 @@ pub async fn send_channel_msg(
     relay_url: Url,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::channel_msg(channel_id, relay_url, msg);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn file_metadata(
@@ -94,9 +90,7 @@ pub async fn file_metadata(
     description: &str,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::file_metadata(description, metadata);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn send_private_msg(
@@ -107,9 +101,7 @@ pub async fn send_private_msg(
     reply_to: Option<EventId>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::private_msg_rumor(receiver, message, reply_to);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn delete_event(
@@ -118,9 +110,7 @@ pub async fn delete_event(
     event_ids: Vec<EventId>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::delete(event_ids);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn set_relay_list(
@@ -129,9 +119,7 @@ pub async fn set_relay_list(
     relays: Vec<(Url, Option<RelayMetadata>)>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::relay_list(relays);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 pub async fn set_contact_list(
@@ -140,9 +128,7 @@ pub async fn set_contact_list(
     contacts: Vec<Contact>,
 ) -> Result<EventId, Error> {
     let builder = EventBuilder::contact_list(contacts);
-    let event = signer.sign_event_builder(builder).await?;
-    let eid = client.send_event(event).await?;
-    Ok(eid)
+    sign_and_send_event!(client, signer, builder)
 }
 
 #[cfg(test)]
@@ -165,7 +151,6 @@ mod tests {
         let signer = &key.into();
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
-        client.add_relay("wss://nostr.oxtr.dev").await.unwrap();
         client.connect().await;
         let result = publish_text_note(&client, signer, "Hello, world!", vec![]).await;
         assert!(result.is_ok());
