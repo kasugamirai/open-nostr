@@ -119,7 +119,7 @@ pub fn Note(props: NoteProps) -> Element {
                 Avatar {
                     pubkey: pk.read().clone(),
                     timestamp: props.event.created_at.as_u64(),
-                    relay_name: "default".to_string(),
+                    relay_name: &relay_name(),
                     repost_event: match props.event.kind() {
                         Kind::Repost => {
                             let repost_event = Event::from_json(&props.event.content).unwrap();
@@ -226,6 +226,10 @@ pub fn Note(props: NoteProps) -> Element {
                             dangerous_inner_html: "{DOWN}",
                         }
                     }
+                }
+                div{
+                    style: "display: none",
+                    {event().clone().as_json()}
                 }
 
             }

@@ -2,10 +2,9 @@ pub(crate) mod custom_sub;
 pub mod note;
 pub mod reply;
 
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use dioxus_elements::p;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Event, Timestamp};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
@@ -13,7 +12,7 @@ use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 use crate::{
     components::icons::LOADING,
     nostr::{
-        fetch::{self, EventPaginator},
+        fetch::EventPaginator,
         multiclient::MultiClient,
     },
     store::subscription::CustomSub,
@@ -52,6 +51,7 @@ pub fn NoteList(name: String, reload_time: Timestamp) -> Element {
                         }
                         Err(e) => {
                             tracing::error!("Error: {:?}", e);
+                            is_loading.set(false);
                         }
                     }
                 }
