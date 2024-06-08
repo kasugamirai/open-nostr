@@ -8,7 +8,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nostr-sdk = { version = "0.31", default-features = false, features = [
+nostr-sdk = { version = "0.32", default-features = false, features = [
     "indexeddb",
     "webln",
     "nip04",
@@ -23,7 +23,7 @@ nostr-sdk = { version = "0.31", default-features = false, features = [
     "nip59",
 ] }
 dashmap = "5.5.3"
-nostr-indexeddb = "0.31"
+nostr-indexeddb = "0.32"
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"
