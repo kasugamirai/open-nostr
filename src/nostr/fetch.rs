@@ -2,7 +2,7 @@ use super::utils::get_newest_event;
 use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
-use gloo_timers::future::sleep;
+use gloo_timers::future::TimeoutFuture;
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag, TagStandard};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -383,7 +383,7 @@ pub async fn get_followers(
                 }
             }
 
-            sleep(Duration::from_secs(1)).await;
+            TimeoutFuture::new(1_00).await;
             exit_cond.store(true, Ordering::SeqCst);
         }
     });
