@@ -7,6 +7,7 @@ use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag,
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
 use nostr_sdk::{NostrSigner, PublicKey};
+use nostr_indexeddb::database::Order;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -292,22 +293,45 @@ pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
+    is_fetch: bool,
 ) -> Result<HashMap<String, i32>, Error> {
-    let reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
+    let mut reaction_map = HashMap::new();
+    let mut events: Vec<Event>= Vec::new();
+    let mut reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
     );
 
-    let events = client.get_events_of(vec![reaction_filter], timeout).await?;
-    let mut reaction_counts = HashMap::new();
+    //Get reactions from db
+    let db_filter = reaction_filter.clone();
+    events = client
+        .database()
+        .query(vec![db_filter], Order::Desc)
+        .await
+        .unwrap();
 
-    for event in events.iter() {
-        let content = event.content().to_string();
-        *reaction_counts.entry(content).or_insert(0) += 1;
+    let mut since =None;
+    if events.len() > 0 {
+        since=Some(events[0].created_at + 1);
     }
 
-    Ok(reaction_counts)
+    //Get reactions from relay
+    if is_fetch {
+        if let Some(since) = since {
+            reaction_filter = reaction_filter.since(since);
+        }
+        let relay_events = client.get_events_of(vec![reaction_filter], timeout).await?;
+        events.extend(relay_events)
+    }
+
+    //Assembly data
+    for event in events.iter() {
+        let content = event.content().to_string();
+        *reaction_map.entry(content).or_insert(0) += 1;
+    }
+    Ok(reaction_map)
 }
+
 
 pub async fn get_replies(
     client: &Client,

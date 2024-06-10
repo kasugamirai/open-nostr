@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Event, JsonUtil, Kind};
+use nostr_sdk::{Alphabet,Event,EventId, JsonUtil, Kind,Filter};
+use std::rc::Rc;
 
 use crate::{
     components::{icons::*, Avatar, ModalManager},
@@ -139,40 +140,43 @@ pub fn Note(props: NoteProps) -> Element {
         }
     });
 
-    //click loading reactions
+    //loading reactions
     let mut reactions_maps: Signal<HashMap<String, i32>> = use_signal(|| HashMap::new());
-    let sub_name_clone = props.sub_name.clone();
-    let eid_clone = props.event.id().clone();
-    let loading_reactions = move || {
-        spawn(async move {
-            let clients = multiclient();
-            let _subs_map = subs_map();
-            if !_subs_map.contains_key(&sub_name_clone) {
-                return;
-            }
-            let sub = _subs_map.get(&sub_name_clone).unwrap();
-            tracing::info!("get_reactions result: {:?}", &sub.relay_set);
-            let client_result = clients.get_or_create(&sub.relay_set).await;
-            match client_result {
-                Ok(hc) => {
-                    tracing::info!("get_reactions result: {:?}", "client");
-                    let client = hc.client();
-                    match get_reactions(&client, &eid_clone, None).await{
-                        Ok(reactions) => {
-                            tracing::info!("get_reactions result: {:?}", reactions);
-                            reactions_maps.set(reactions);
-                        }
-                        Err(e) => {
-                            tracing::error!("reactions client error: {:?}", e);
+    use_effect(use_reactive(
+        (&props.is_tree,&props.sub_name,&props.event.id),
+        move |(is_tree,sub_name,eid)| {
+            spawn(async move {
+                let _subs_map = subs_map();
+                if !_subs_map.contains_key(&sub_name) {
+                    return;
+                }
+                let sub = _subs_map.get(&sub_name).unwrap();
+                let clients = multiclient();
+                let client_result = clients.get_or_create(&sub.relay_set).await;
+                match client_result {
+                    Ok(hc) => {
+                        let client = hc.client();
+                        match get_reactions(&client, &eid, None, is_tree).await {
+                            Ok(reactions) => {
+                                tracing::info!("get_reactions result: {:?}", reactions);
+                                if reactions.len() > 0 {
+                                    reactions_maps.set(reactions);
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!("get reactions error: {:?}", e);
+                            }
                         }
                     }
+                    Err(e) => {
+                        tracing::error!("reactions client Error: {:?}", e);
+                    }
                 }
-                Err(e) => {
-                    tracing::error!("reactions Error: {:?}", e);
-                }
-            }
-        });
-    };
+            });
+        },
+    ));
+
+
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
@@ -291,17 +295,6 @@ pub fn Note(props: NoteProps) -> Element {
                     }
 
                     //reactions div
-                    div {
-                        class: "note-action-item cursor-pointer flex items-center",
-                        span {
-                            class: "note-action-icon",
-                            onclick: move |_| {
-                                let loading_reactions_copy = loading_reactions.clone();
-                                loading_reactions_copy();
-                            },
-                            dangerous_inner_html: "{ACTIONS_MORE}"
-                        }
-                    }
                     for (reaction, count) in reactions_maps.read().iter() {
                         div {
                             class: "note-action-item cursor-pointer flex items-center",
