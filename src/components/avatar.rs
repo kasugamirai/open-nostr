@@ -35,7 +35,6 @@ pub fn Avatar(props: AvatarProps) -> Element {
     use_effect(use_reactive(
         (&props.pubkey, &props.relay_name),
         move |(pubkey, relay_name)| {
-            tracing::info!("relay_name: {:?}", relay_name);
             spawn({
                 let multiclient = multiclient.clone();
                 let event_cache = event_cache.clone();
