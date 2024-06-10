@@ -133,7 +133,7 @@ pub fn Note(props: NoteProps) -> Element {
             div {
                 class: "note-header flex items-start justify-between",
                 Avatar {
-                    pubkey: event().pubkey.clone(),
+                    pubkey: event().pubkey,
                     timestamp: event().created_at.as_u64(),
                     relay_name: relay_name.read().clone(),
                     repost_event: match event().kind() {

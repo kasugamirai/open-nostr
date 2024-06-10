@@ -37,8 +37,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
         move |(pubkey, relay_name)| {
             tracing::info!("relay_name: {:?}", relay_name);
             spawn({
-                let multiclient = multiclient.clone();
-                let event_cache = event_cache.clone();
+                let multiclient = multiclient;
+                let event_cache = event_cache;
                 async move {
                     let hc_client = {
                         let multiclient = multiclient.read();
@@ -87,8 +87,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
         (&props.repost_event, &props.relay_name),
         move |(repost_event, relay_name)| {
             spawn({
-                let multiclient = multiclient.clone();
-                let event_cache = event_cache.clone();
+                let multiclient = multiclient;
+                let event_cache = event_cache;
                 async move {
                     if let Some(event) = repost_event {
                         let hc_client = {
@@ -115,7 +115,8 @@ pub fn Avatar(props: AvatarProps) -> Element {
                                         "https://avatars.githubusercontent.com/u/1024025?v=4"
                                             .to_string()
                                     }));
-                                    root_nickname.set(metadata.display_name.or(metadata.name).unwrap());
+                                    root_nickname
+                                        .set(metadata.display_name.or(metadata.name).unwrap());
                                 }
                             }
                             Err(e) => {

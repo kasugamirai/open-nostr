@@ -10,7 +10,7 @@ pub struct SwitchProps {
 
 #[component]
 pub fn Switch(props: SwitchProps) -> Element {
-    let mut value = use_signal(|| props.value.clone());
+    let mut value = use_signal(|| props.value);
 
     // update value when parent data has changed
     use_effect(use_reactive((&props.value,), move |(v,)| {

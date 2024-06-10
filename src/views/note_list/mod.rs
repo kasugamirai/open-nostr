@@ -89,7 +89,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                 EventPaginator::new(client.clone(), filters.clone(), None, 40);
                             paginator.set(Some(paginator_result));
                             // notes.clear();
-                            reload_flag.set(time.clone());
+                            reload_flag.set(time);
                         }
                         {
                             tracing::info!("is_cache: {:?}", iscache);
@@ -121,7 +121,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
     ));
     let on_mounted = move |_| {
         if name.is_empty() {
-            return;
         } else {
             let subs_map_lock = subs_map();
             if !subs_map_lock.contains_key(&name) {

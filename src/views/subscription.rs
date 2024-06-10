@@ -6,11 +6,11 @@ use crate::views::{note_list::custom_sub::CustomSubscription, NoteList};
 
 #[component]
 pub fn Subscription(name: String) -> Element {
-    // let 
-    let mut relaod_flag = use_signal(|| Timestamp::now());
+    // let
+    let mut relaod_flag = use_signal(Timestamp::now);
     let mut sub_name = use_signal(|| name.clone());
     let mut is_cache = use_signal(|| true);
-    
+
     let handle_save = move |_| {
         sub_name.set(name.clone());
         //todo
@@ -31,7 +31,7 @@ pub fn Subscription(name: String) -> Element {
             CustomSubscription {
                 on_save: handle_save,
                 on_reload: handle_reload,
-                sub_name: sub_name.clone(),
+                sub_name: sub_name,
             }
         }
     }
