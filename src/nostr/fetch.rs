@@ -306,7 +306,7 @@ pub async fn get_repost(
 pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
-    timeout: Option<std::time::Duration>,
+    timeout: Option<Duration>,
 ) -> Result<HashMap<String, i32>, Error> {
     let reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
@@ -314,12 +314,12 @@ pub async fn get_reactions(
     );
 
     let events = client.get_events_of(vec![reaction_filter], timeout).await?;
-    let mut reaction_counts = HashMap::new();
 
-    for event in events.iter() {
+    let reaction_counts = events.iter().fold(HashMap::new(), |mut acc, event| {
         let content = event.content().to_string();
-        *reaction_counts.entry(content).or_insert(0) += 1;
-    }
+        *acc.entry(content).or_insert(0) += 1;
+        acc
+    });
 
     Ok(reaction_counts)
 }
