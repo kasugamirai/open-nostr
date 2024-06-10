@@ -286,6 +286,23 @@ pub async fn get_metadata(
     }
 }
 
+pub async fn get_zap() {
+    todo!()
+}
+
+pub async fn get_repost(
+    client: &Client,
+    event_id: &EventId,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<Event>, Error> {
+    let filter = Filter::new().kind(Kind::Repost).custom_tag(
+        SingleLetterTag::lowercase(Alphabet::E),
+        vec![event_id.to_hex()],
+    );
+    let events = client.get_events_of(vec![filter], timeout).await?;
+    Ok(events)
+}
+
 pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
@@ -736,5 +753,19 @@ mod tests {
             }
         }
         assert!(count > 0);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_repost() {
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        let event_id =
+            EventId::from_bech32("note186yr06e9qgd285f9lsj3t56g2nvmqj0ddudgx57sn8k5lqcp5c4q53edv9")
+                .unwrap();
+        let repost = get_repost(&client, &event_id, None).await.unwrap();
+        console_log!("repost: {:?}", repost);
+        assert!(!repost.is_empty());
     }
 }
