@@ -1,16 +1,9 @@
-use crate::router::Route;
 use dioxus::prelude::*;
-use dioxus_elements::tr;
 use js_sys::*;
-use nostr_sdk::event::id;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-use tracing_subscriber::field::debug;
+use std::collections::HashMap;
 use uuid::Uuid;
 use wasm_bindgen::{closure::Closure, JsCast};
-use web_sys::{
-    window, IntersectionObserver, MutationObserver, MutationObserverInit, ResizeObserver,
-    ResizeObserverEntry,
-};
+use web_sys::window;
 
 // extern "C" {
 //     pub type ResizeObserver;
@@ -31,7 +24,7 @@ pub struct Modal {
     content: Element,
     is_open: bool,
     level: u8,
-    position: Option<(f64, f64)>, // 仅Popover需要
+    position: Option<(f64, f64)>
 }
 
 impl Modal {
@@ -48,9 +41,7 @@ impl Modal {
 #[derive(Clone, Debug)]
 pub struct ModalManager {
     modals: HashMap<String, Modal>,
-    levels: HashMap<u8, Vec<String>>, // 层级管理
-    mutation_observers: Vec<ResizeObserver>,
-    intersection_observers: Vec<ResizeObserver>,
+    levels: HashMap<u8, Vec<String>>,
 }
 
 impl ModalManager {
@@ -58,10 +49,7 @@ impl ModalManager {
     pub fn new() -> Self {
         Self {
             modals: HashMap::new(),
-            levels: HashMap::new(),
-            mutation_observers: Vec::new(),
-            intersection_observers: Vec::new(),
-            // intersection_closures: Vec::new(),
+            levels: HashMap::new()
         }
     }
 
@@ -261,7 +249,6 @@ pub fn ModalManagerProvider() -> Element {
     use_effect(use_reactive(&root_click_pos(), move |_| {
         modal_manager.write().destory_all_modals_by_level(4);
     }));
-
 
     // 渲染所有打开的弹窗
     let modals = modal_manager.read().modals.clone();
