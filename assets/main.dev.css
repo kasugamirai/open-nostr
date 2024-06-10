@@ -15382,4 +15382,11 @@ svg path {
   background: var(--bgc-6) !important;
 }
 
+.split-bar {
+  width: 2px;
+  height: 24px;
+  background-color: #e8e8e8;
+  border-radius: 4px;
+}
+
 /*# sourceMappingURL=main.dev.css.map */

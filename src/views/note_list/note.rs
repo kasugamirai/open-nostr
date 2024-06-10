@@ -5,7 +5,11 @@ use nostr_sdk::{Event, JsonUtil, Kind};
 
 use crate::{
     components::{icons::*, Avatar, ModalManager},
-    nostr::note::TextNote,
+    nostr::{
+        fetch::{ get_reactions},
+        multiclient::MultiClient,
+        note::{TextNote,ReplyTreeManager}
+    },
     utils::{format::format_note_content, js::note_srcoll_into_view},
     views::note_list::reply::Reply,
     CustomSub, Route,
@@ -29,6 +33,8 @@ pub struct NoteProps {
 #[component]
 pub fn Note(props: NoteProps) -> Element {
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
+    let multiclient = use_context::<Signal<MultiClient>>();
+    let reply_tree_manager = use_context::<Signal<ReplyTreeManager>>();
 
     let mut event = use_signal(|| props.event.clone());
     // let mut notetext = use_signal(|| props.event.content.clone());
@@ -122,6 +128,52 @@ pub fn Note(props: NoteProps) -> Element {
         },
     ));
 
+    //loading replay count
+    let mut replay_count = use_signal(|| 0usize);
+    use_effect(move || {
+        let _root_id = event.read().id();
+        let manager_lock = reply_tree_manager.read();
+        let replies = manager_lock.get_replies(&_root_id);
+        if replies.len()>0{
+            replay_count.set(replies.len());
+        }
+    });
+
+    //click loading reactions
+    let mut reactions_maps: Signal<HashMap<String, i32>> = use_signal(|| HashMap::new());
+    let sub_name_clone = props.sub_name.clone();
+    let eid_clone = props.event.id().clone();
+    let loading_reactions = move || {
+        spawn(async move {
+            let clients = multiclient();
+            let _subs_map = subs_map();
+            if !_subs_map.contains_key(&sub_name_clone) {
+                return;
+            }
+            let sub = _subs_map.get(&sub_name_clone).unwrap();
+            tracing::info!("get_reactions result: {:?}", &sub.relay_set);
+            let client_result = clients.get_or_create(&sub.relay_set).await;
+            match client_result {
+                Ok(hc) => {
+                    tracing::info!("get_reactions result: {:?}", "client");
+                    let client = hc.client();
+                    match get_reactions(&client, &eid_clone, None).await{
+                        Ok(reactions) => {
+                            tracing::info!("get_reactions result: {:?}", reactions);
+                            reactions_maps.set(reactions);
+                        }
+                        Err(e) => {
+                            tracing::error!("reactions client error: {:?}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("reactions Error: {:?}", e);
+                }
+            }
+        });
+    };
+
     let nav = navigator();
     let handle_nav = move |route: Route| {
         nav.push(route);
@@ -193,6 +245,12 @@ pub fn Note(props: NoteProps) -> Element {
                             class: "note-action-icon",
                             dangerous_inner_html: "{TURN_LEFT}"
                         }
+                        if *replay_count.read()>0 {
+                           span {
+                                class: "note-action-count",
+                                {replay_count.to_string()}
+                            }
+                        }
                     }
                     div {
                         class: "note-action-item cursor-pointer flex items-center",
@@ -227,6 +285,36 @@ pub fn Note(props: NoteProps) -> Element {
                         }
                     }
 
+                    //split div
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center split-bar"
+                    }
+
+                    //reactions div
+                    div {
+                        class: "note-action-item cursor-pointer flex items-center",
+                        span {
+                            class: "note-action-icon",
+                            onclick: move |_| {
+                                let loading_reactions_copy = loading_reactions.clone();
+                                loading_reactions_copy();
+                            },
+                            dangerous_inner_html: "{ACTIONS_MORE}"
+                        }
+                    }
+                    for (reaction, count) in reactions_maps.read().iter() {
+                        div {
+                            class: "note-action-item cursor-pointer flex items-center",
+                            span {
+                                class: "note-action-icon",
+                                dangerous_inner_html: "{reaction}"
+                            }
+                            span {
+                                class: "note-action-icon",
+                                dangerous_inner_html: "{count}"
+                            }
+                        }
+                    }
                     // span{
                     //     class: "note-action-wrapper-span ml-10",
                     // }
