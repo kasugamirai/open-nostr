@@ -1,9 +1,7 @@
 use dioxus::prelude::*;
-use nostr_indexeddb::database::Order;
 use nostr_sdk::{Filter, JsonUtil, Kind, Metadata, PublicKey};
 
 use crate::nostr::{
-    fetch::get_metadata,
     multiclient::{EventCache, MultiClient},
     utils::get_newest_event,
 };

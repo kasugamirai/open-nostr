@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil, Kind};
+use wasm_bindgen_test::console_log;
 
 use crate::{
     components::{icons::*, Avatar, ModalManager},
@@ -11,7 +12,7 @@ use crate::{
         note::{TextNote,ReplyTreeManager}
     },
     utils::{format::format_note_content, js::note_srcoll_into_view},
-    views::note_list::reply::Reply,
+    views::note_list::{detail_modal::DetailModal, reply::Reply},
     CustomSub, Route,
 };
 
@@ -36,6 +37,7 @@ pub fn Note(props: NoteProps) -> Element {
     let multiclient = use_context::<Signal<MultiClient>>();
     let reply_tree_manager = use_context::<Signal<ReplyTreeManager>>();
 
+    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let mut event = use_signal(|| props.event.clone());
     // let mut notetext = use_signal(|| props.event.content.clone());
     // let mut show_detail = use_signal(|| false);
@@ -197,11 +199,17 @@ pub fn Note(props: NoteProps) -> Element {
                     },
                 }
                 MoreInfo {
-                    on_detail: move |_| {
-                        // let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
-                        // let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
-                        // detail.set(formatted_json);
-                        // show_detail.set(!show_detail());
+                    on_detail: move |e| {
+                        let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
+                        let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
+                        let _id = event().id().to_hex();
+                            let modal_id = modal_manager.write().add_modal(rsx! {
+                                DetailModal {
+                                    detail: formatted_json,
+                                    id: _id.clone(),
+                                }
+                            }, _id.clone());
+                            modal_manager.write().open_modal(&modal_id);
                     },
                 }
             }
@@ -343,24 +351,10 @@ pub fn Note(props: NoteProps) -> Element {
 }
 
 #[component]
-pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
+pub fn MoreInfo(on_detail: EventHandler<dioxus::prelude::Event<MouseData>>) -> Element {
     let mut edit = use_signal(|| false);
     let mut modal_manager = use_context::<Signal<ModalManager>>();
     // close when click outside
-    let root_click_pos = use_context::<Signal<(f64, f64)>>();
-    let mut pos: Signal<(f64, f64)> = use_signal(|| root_click_pos());
-    use_effect(use_reactive((&pos,), move |(pos,)| {
-        // The coordinates of root element
-        let root_pos = root_click_pos();
-
-        // The coordinates of current element
-        let current_pos = pos();
-
-        // Determine if two coordinates are the same
-        if current_pos.0 != root_pos.0 || current_pos.1 != root_pos.1 {
-            edit.set(false);
-        }
-    }));
     let popover = {
         rsx! {
             div {
@@ -399,9 +393,8 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
                     }
                     div {
                         class: "note-more-button",
-                        onclick: move |_| {
-                            on_detail.call(());
-                            edit.set(false);
+                        onclick: move |e| {
+                            on_detail.call(e);
                         },
                         div {
                             dangerous_inner_html: "{INFO}"
@@ -412,26 +405,31 @@ pub fn MoreInfo(on_detail: EventHandler<()>) -> Element {
             }
         }
     };
+    let mut popover_id = use_signal(|| String::new());
     rsx! {
         div {
-            onclick: move |event| {
-                // Save the coordinates of the event relative to the screen
-                pos.set(event.screen_coordinates().to_tuple());
-            },
-            class: "relative",
+            class: "more-trigger note-more cusror-pointer",
             div {
-                class: "more-trigger",
-                div {
-                    onclick: move |e| {
-                        let (x, y) = e.page_coordinates().to_tuple();
-                        edit.set(!edit());
+                "data-popover-id": popover_id(),
+                onpointerenter: move |e| {
+                    if !popover_id().is_empty() {
+                        modal_manager.write()
+                            .update_popover_position(&popover_id(), e.page_coordinates().to_tuple())
+                    }
+                },
+                onclick: move |e| {
+                    e.stop_propagation();
+                    let (x, y) = e.page_coordinates().to_tuple();
+                    if modal_manager.read().has_popover(&popover_id()) {
+                        modal_manager.write().open_modal(&popover_id());
+                    } else {
                         let popover_modal_id = modal_manager.write().add_popover(popover.clone(), (x, y));
                         modal_manager.write().open_modal(&popover_modal_id);
-                    },
-                    dangerous_inner_html: "{MORE}"
-                }
+                        popover_id.set(popover_modal_id);
+                    }
+                },
+                dangerous_inner_html: "{MORE}"
             }
-
         }
     }
 }

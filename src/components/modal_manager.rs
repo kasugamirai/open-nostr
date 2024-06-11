@@ -1,9 +1,13 @@
 use dioxus::prelude::*;
+use js_sys::*;
+use std::collections::HashMap;
+use uuid::Uuid;
 use wasm_bindgen::{closure::Closure, JsCast};
 use web_sys::window;
-use std::collections::HashMap;
-use tracing_subscriber::field::debug;
-use uuid::Uuid;
+
+// extern "C" {
+//     pub type ResizeObserver;
+// }
 
 // 定义弹窗类型和级别
 #[derive(Clone, PartialEq, Debug)]
@@ -20,12 +24,24 @@ pub struct Modal {
     content: Element,
     is_open: bool,
     level: u8,
-    position: Option<(f64, f64)>, // 仅Popover需要
+    position: Option<(f64, f64)>
 }
 
+impl Modal {
+    pub fn change_visible(&mut self) {
+        self.is_open = !self.is_open;
+    }
+    pub fn open(&mut self) {
+        self.is_open = true;
+    }
+    pub fn close(&mut self) {
+        self.is_open = false;
+    }
+}
+#[derive(Clone, Debug)]
 pub struct ModalManager {
     modals: HashMap<String, Modal>,
-    levels: HashMap<u8, Vec<String>>, // 层级管理
+    levels: HashMap<u8, Vec<String>>,
 }
 
 impl ModalManager {
@@ -33,13 +49,13 @@ impl ModalManager {
     pub fn new() -> Self {
         Self {
             modals: HashMap::new(),
-            levels: HashMap::new(),
+            levels: HashMap::new()
         }
     }
 
     // 添加Modal
-    pub fn add_modal(&mut self, content: Element) -> String {
-        self.add_generic_modal(ModalType::Modal, content, 1, None)
+    pub fn add_modal(&mut self, content: Element, id: String) -> String {
+        self.add_custom_id_modal(ModalType::Modal, content, 1, id)
     }
 
     // 添加Dialog
@@ -49,15 +65,42 @@ impl ModalManager {
 
     // 添加Message
     pub fn add_message(&mut self, content: Element) -> String {
-        self.add_generic_modal(ModalType::Message, content, 3, None)
+        let id = self.add_generic_modal(ModalType::Message, content, 3, None);
+        id
     }
 
     // 添加Popover
     pub fn add_popover(&mut self, content: Element, position: (f64, f64)) -> String {
-        self.add_generic_modal(ModalType::Popover, content, 4, Some(position))
+        let id = self.add_generic_modal(ModalType::Popover, content, 4, Some(position));
+
+        id
+    }
+    pub fn update_popover_position(&mut self, id: &str, position: (f64, f64)) {
+        if let Some(modal) = self.modals.get_mut(id) {
+            modal.position = Some(position);
+            let ele = window().unwrap().document().unwrap().get_element_by_id(id);
+            if let Some(ele) = ele {
+                ele.set_attribute(
+                    "style",
+                    &format!(
+                        "position:absolute; left: {}px; top: {}px;",
+                        position.0, position.1
+                    ),
+                )
+                .unwrap();
+            }
+        }
+    }
+    pub fn has_popover(&self, id: &str) -> bool {
+        self.modals.contains_key(id)
+    }
+    pub fn change_visible(&mut self, id: &str) {
+        if let Some(modal) = self.modals.get_mut(id) {
+            modal.change_visible();
+        }
     }
     // 通用的添加弹窗方法
-    pub fn add_generic_modal(
+    fn add_generic_modal(
         &mut self,
         modal_type: ModalType,
         content: Element,
@@ -74,7 +117,7 @@ impl ModalManager {
         };
         self.modals.insert(id.clone(), modal);
 
-        // 管理层级
+        // manager levels
         self.levels
             .entry(level)
             .or_insert(Vec::new())
@@ -83,29 +126,56 @@ impl ModalManager {
         id
     }
 
-    // 打开弹窗
-    pub fn open_modal(&mut self, id: &str) {
-        if let Some(modal) = self.modals.get_mut(id) {
-            modal.is_open = true;
+    // 通用的添加弹窗方法
+    fn add_custom_id_modal(
+        &mut self,
+        modal_type: ModalType,
+        content: Element,
+        level: u8,
+        id: String,
+    ) -> String {
+        let modal = Modal {
+            modal_type,
+            content,
+            is_open: false,
+            level,
+            position: None,
+        };
+        self.modals.insert(id.clone(), modal);
+
+        // manager levels
+        self.levels
+            .entry(level)
+            .or_insert(Vec::new())
+            .push(id.clone());
+
+        id
+    }
+
+    // open modal
+    pub fn open_modal(&mut self, current_id: &str) {
+        for (id, modal) in self.modals.iter_mut() {
+            if id != current_id {
+                modal.close();
+            } else {
+                modal.open();
+            }
         }
     }
 
-    // 关闭弹窗
+    // close modal
     pub fn close_modal(&mut self, id: &str) {
         if let Some(modal) = self.modals.get_mut(id) {
-            modal.is_open = false;
+            modal.close();
         }
     }
 
-    // 销毁弹窗
+    // destroy modal
     pub fn destroy_modal(&mut self, id: &str) {
         if let Some(modal) = self.modals.remove(id) {
             if let Some(level_modals) = self.levels.get_mut(&modal.level) {
                 level_modals.retain(|modal_id| modal_id != id);
             }
-            // 更新DOM树中的位置
-            println!("Destroying modal with id: {}", id);
-            // ...
         }
     }
 
@@ -129,7 +199,7 @@ impl ModalManager {
 }
 
 #[component]
-fn ModalComponent(modal: Modal) -> Element {
+fn ModalComponent(modal: Modal, id: String) -> Element {
     let style = match modal.modal_type {
         ModalType::Popover => {
             if let Some((x, y)) = modal.position {
@@ -147,6 +217,7 @@ fn ModalComponent(modal: Modal) -> Element {
     };
     rsx! {
         div {
+            id: id,
             style: "{style}",
             div { class: "modal-content", {modal.content.clone()} }
         }
@@ -155,8 +226,9 @@ fn ModalComponent(modal: Modal) -> Element {
 
 #[component]
 pub fn ModalManagerProvider() -> Element {
-    let modal_manager = use_context::<Signal<ModalManager>>();
-    // let mut modal_manager = modal_manager.clone();
+    let mut modal_manager = use_context::<Signal<ModalManager>>();
+
+    let root_click_pos = use_context::<Signal<(f64, f64)>>();
 
     use_effect({
         move || {
@@ -167,10 +239,16 @@ pub fn ModalManagerProvider() -> Element {
                     modal_manager_write.write().destory_all_modals_by_level(4);
                 }
             }) as Box<dyn FnMut()>);
-            window.add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref()).unwrap();
+            window
+                .add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref())
+                .unwrap();
             closure.forget();
         }
     });
+
+    use_effect(use_reactive(&root_click_pos(), move |_| {
+        modal_manager.write().destory_all_modals_by_level(4);
+    }));
 
     // 渲染所有打开的弹窗
     let modals = modal_manager.read().modals.clone();
@@ -181,6 +259,7 @@ pub fn ModalManagerProvider() -> Element {
                 if modal.is_open {
                     ModalComponent {
                         modal: modal.clone(),
+                        id: id.clone(),
                     }
                 }
             }
