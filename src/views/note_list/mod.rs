@@ -1,7 +1,7 @@
 pub(crate) mod custom_sub;
+pub mod detail_modal;
 pub mod note;
 pub mod reply;
-pub mod detail_modal;
 
 use std::collections::HashMap;
 
@@ -12,11 +12,10 @@ use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::{
     components::{icons::LOADING, ModalManager},
-    nostr::{fetch::EventPaginator, multiclient::MultiClient},
+    nostr::{multiclient::MultiClient, EventPaginator},
     store::subscription::CustomSub,
     utils::js::{get_scroll_info, throttle},
 };
-
 
 use note::Note;
 

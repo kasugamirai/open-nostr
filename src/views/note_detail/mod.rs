@@ -6,9 +6,9 @@ use nostr_sdk::{Event, EventId, Timestamp};
 
 use crate::{
     nostr::{
-        fetch::{get_event_by_id, get_replies},
         multiclient::MultiClient,
         note::{self, ReplyTreeManager, ReplyTrees, TextNote},
+        {get_event_by_id, get_replies},
     },
     views::note_list::note::Note,
     CustomSub,

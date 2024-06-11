@@ -1,7 +1,7 @@
 use crate::nostr::multiclient::MultiClient;
 use crate::{
     components::Avatar,
-    nostr::{fetch::get_event_by_id, note::TextNote},
+    nostr::{get_event_by_id, note::TextNote},
 };
 use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil};

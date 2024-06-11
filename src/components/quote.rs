@@ -2,7 +2,7 @@ use dioxus::prelude::*;
 use nostr_sdk::*;
 
 use crate::components::Avatar;
-use crate::nostr::fetch::get_event_by_id;
+use crate::nostr::get_event_by_id;
 use crate::nostr::multiclient::MultiClient;
 
 #[derive(PartialEq, Clone, Props)]
@@ -45,35 +45,35 @@ pub fn Quote(props: QouteProps) -> Element {
                         let content = event.content.to_string();
                         let timestamp = event.created_at.as_u64();
                         ele.set(rsx! {
-                        div {
-                            class: "quote flex items-center display-flex-box items-center",
-                            style: "margin-left: -52px;",
                             div {
-                                class: "font-weight-bold quote-box-style",
-                                "Qt:"
-                            }
-                            div {
-                                class: "qt-text",
-                                Avatar {
-                                    pubkey: pk,
-                                    timestamp: timestamp,
-                                    relay_name: relay_name.clone(),
-                                    is_text_ellipsis: true,
+                                class: "quote flex items-center display-flex-box items-center",
+                                style: "margin-left: -52px;",
+                                div {
+                                    class: "font-weight-bold quote-box-style",
+                                    "Qt:"
                                 }
                                 div {
-                                    class: "relative qt-text-content",
-                                    span {
-                                        class:"re-text two-line-truncate relative",
-                                        dangerous_inner_html: "{content}"
+                                    class: "qt-text",
+                                    Avatar {
+                                        pubkey: pk,
+                                        timestamp: timestamp,
+                                        relay_name: relay_name.clone(),
+                                        is_text_ellipsis: true,
                                     }
-                                    span {
-                                        class: "more-show-style pl-4",
-                                        "show more"
+                                    div {
+                                        class: "relative qt-text-content",
+                                        span {
+                                            class:"re-text two-line-truncate relative",
+                                            dangerous_inner_html: "{content}"
+                                        }
+                                        span {
+                                            class: "more-show-style pl-4",
+                                            "show more"
+                                        }
                                     }
                                 }
                             }
-                        }
-                    });
+                        });
                     }
                     Ok(None) => {
                         tracing::info!("event not found");

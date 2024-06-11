@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Alphabet,Event,EventId, JsonUtil, Kind,Filter};
+use nostr_sdk::{Alphabet, Event, EventId, Filter, JsonUtil, Kind};
 use std::rc::Rc;
 use wasm_bindgen_test::console_log;
 
 use crate::{
     components::{icons::*, Avatar, ModalManager},
     nostr::{
-        fetch::{ get_reactions},
+        get_reactions,
         multiclient::MultiClient,
-        note::{TextNote,ReplyTreeManager}
+        note::{ReplyTreeManager, TextNote},
     },
     utils::{format::format_note_content, js::note_srcoll_into_view},
     views::note_list::{detail_modal::DetailModal, reply::Reply},
@@ -137,7 +137,7 @@ pub fn Note(props: NoteProps) -> Element {
         let _root_id = event.read().id();
         let manager_lock = reply_tree_manager.read();
         let replies = manager_lock.get_replies(&_root_id);
-        if replies.len()>0{
+        if replies.len() > 0 {
             replay_count.set(replies.len());
         }
     });
@@ -145,8 +145,8 @@ pub fn Note(props: NoteProps) -> Element {
     //loading reactions
     let mut reactions_maps: Signal<HashMap<String, i32>> = use_signal(|| HashMap::new());
     use_effect(use_reactive(
-        (&props.is_tree,&props.sub_name,&props.event.id),
-        move |(is_tree,sub_name,eid)| {
+        (&props.is_tree, &props.sub_name, &props.event.id),
+        move |(is_tree, sub_name, eid)| {
             spawn(async move {
                 let _subs_map = subs_map();
                 if !_subs_map.contains_key(&sub_name) {
@@ -177,8 +177,6 @@ pub fn Note(props: NoteProps) -> Element {
             });
         },
     ));
-
-
 
     let nav = navigator();
     let handle_nav = move |route: Route| {
