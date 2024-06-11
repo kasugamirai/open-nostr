@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use dioxus::prelude::*;
 use nostr_indexeddb::database::Order;
-use nostr_sdk::{Event, SubscriptionId, Timestamp, RelayPoolNotification, RelayMessage};
+use nostr_sdk::{Event, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
 use note::Note;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
@@ -48,7 +48,10 @@ pub fn handle_sub_list() -> NotificationHandler {
 
                     Ok(false) // Return true to stop the handling process
                 }
-                _ => Ok(false),
+                _ => {
+                    tracing::info!("notification: {:?}", notification);
+                    Ok(false)
+                }
             }
         })
     })
@@ -72,6 +75,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let multiclient = use_context::<Signal<MultiClient>>();
 
     let handle_fetch = move || {
+        tracing::info!("handle_fetch");
         spawn(async move {
             if !is_loading() {
                 is_loading.set(true);
@@ -81,8 +85,10 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 let result = paginator_write.as_mut();
                 if let Some(paginator) = result {
                     let events = paginator.next_page().await;
+                    tracing::info!("handle_fetch 111");
                     match events {
                         Ok(events) => {
+                            tracing::info!("handle_fetch 2222");
                             notes.extend(events.iter().cloned());
                             is_loading.set(false);
                         }
@@ -91,13 +97,42 @@ pub fn NoteList(props: NoteListProps) -> Element {
                             is_loading.set(false);
                         }
                     }
+                } else {
+                    is_loading.set(false);
                 }
             }
         });
     };
+    let handle_sub_list = move || -> NotificationHandler {
+        Arc::new(|notification| {
+            Box::pin(async move {
+                match notification {
+                    RelayPoolNotification::Message {
+                        message: RelayMessage::Event { event, .. },
+                        ..
+                    } => {
+                        tracing::info!(
+                            "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
+                            event.id.to_string(),
+                            event.author().to_string(),
+                            event.kind,
+                            event.content
+                        );
+                        // reload_flag.set(Timestamp::now());
+                        Ok(false) // Return true to stop the handling process
+                    }
+                    _ => {
+                        tracing::info!("notification: {:?}", notification);
+                        Ok(false)
+                    }
+                }
+            })
+        })
+    };
     use_effect(use_reactive(
         (&name, &reload_time, &is_cache),
         move |(s, time, iscache)| {
+            tracing::info!("name: {:?}, time: {:?}, iscache: {:?}", s, time, iscache);
             let subs_map_lock = subs_map();
             if subs_map_lock.contains_key(&s) {
                 let current = subs_map_lock.get(&s).unwrap();
@@ -114,18 +149,28 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     Ok(hc) => {
                         let client = hc.client();
                         {
+                            let sub_id =
+                                SubscriptionId::new(format!("note-list-{}", sub_current.name));
                             // let handle_sub_list: NotificationHandler = handle_sub_list.clone();
                             sub_register
                                 .write()
                                 .add_subscription(
                                     &client,
-                                    SubscriptionId::new(format!("note-list-{}", sub_current.name)),
+                                    sub_id.clone(),
                                     filters.clone(),
                                     handle_sub_list(),
                                     None,
                                 )
                                 .await
                                 .unwrap();
+                            if sub_current.live {
+                                sub_register().handle_notifications(&client).await.unwrap();
+
+                                //     sub_register().set_stop_flag(&sub_id, false).await;
+                            }
+                            //     sub_register().set_stop_flag(&sub_id, true).await;
+                            // }
+                            tracing::info!("sub_id: {:?}", sub_id);
                         }
                         {
                             let paginator_result = EventPaginator::new(
@@ -137,7 +182,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                             );
                             paginator.set(Some(paginator_result));
                             // notes.clear();
-                            reload_flag.set(time);
+                            // reload_flag.set(time);
                         }
                         {
                             tracing::info!("is_cache: {:?}", iscache);
@@ -167,10 +212,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
             });
         },
     ));
-    use_effect(use_reactive(&sub_current(), move |sub| {
-        // sub_current
-
-    }));
     let on_mounted = move |_| {
         if name.is_empty() {
         } else {
@@ -182,9 +223,10 @@ pub fn NoteList(props: NoteListProps) -> Element {
         // handle_fetch();
     };
 
-    use_effect(use_reactive(&reload_flag(), move |next_reload_flag| {
-        handle_fetch();
-    }));
+    // use_effect(use_reactive(&reload_flag(), move |next_reload_flag| {
+    //     tracing::info!("reload_flag: {:?}", next_reload_flag);
+    //     handle_fetch();
+    // }));
     let mut modal_manager = use_context::<Signal<ModalManager>>();
     rsx! {
             div {
