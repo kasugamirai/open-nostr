@@ -342,14 +342,12 @@ pub async fn get_reactions(
     let db_filter = reaction_filter.clone();
     match client.database().query(vec![db_filter], Order::Desc).await {
         Ok(db_events) => {
-            if db_events.is_empty() {
-                is_fetch = true;
-            } else {
+            if !db_events.is_empty() {
                 events.extend(db_events);
             }
         }
         Err(_) => {
-            is_fetch = true;
+            // is_fetch = true;
         }
     }
 
