@@ -119,7 +119,7 @@ impl NostrQuery {
 
 #[derive(Debug, Clone)]
 pub struct MultiClient {
-    clients: Arc<DashMap<String, HashedClient>>,
+    clients: DashMap<String, HashedClient>,
 }
 
 impl Default for MultiClient {
@@ -131,7 +131,7 @@ impl Default for MultiClient {
 impl MultiClient {
     pub fn new() -> Self {
         Self {
-            clients: Arc::new(DashMap::new()),
+            clients: DashMap::new(),
         }
     }
 

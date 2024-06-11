@@ -37,8 +37,8 @@ pub enum Error {
     Database(#[from] nostr_indexeddb::database::DatabaseError),
     #[error(transparent)]
     ChannelSend(#[from] tokio::sync::mpsc::error::TrySendError<String>),
-    #[error("error: {0}")]
-    Other(String),
+    #[error("Event not found")]
+    EventNotFound,
 }
 
 macro_rules! create_encrypted_filters {
@@ -220,19 +220,18 @@ impl<'a> DecryptedMsgPaginator<'a> {
     }
 
     async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
-        let futures = events.into_iter().map(|event| {
-            let self_ref = self;
-            async move {
-                match self_ref.decrypt_dm_event(&event).await {
-                    Ok(msg) => {
-                        let mut decrypted_msg: DecryptedMsg = event.into();
-                        decrypted_msg.content = Some(msg);
-                        Ok(decrypted_msg)
-                    }
-                    Err(err) => Err(err),
+        let futures: Vec<_> = events
+            .into_iter()
+            .map(|event| {
+                let self_ref = self;
+                async move {
+                    let msg = self_ref.decrypt_dm_event(&event).await?;
+                    let mut decrypted_msg: DecryptedMsg = event.into();
+                    decrypted_msg.content = Some(msg);
+                    Ok(decrypted_msg)
                 }
-            }
-        });
+            })
+            .collect();
 
         futures::future::try_join_all(futures).await
     }
@@ -274,23 +273,41 @@ pub async fn get_events_by_ids(
 pub async fn get_metadata(
     client: &Client,
     public_key: &PublicKey,
-    timeout: Option<std::time::Duration>,
+    timeout: Option<Duration>,
 ) -> Result<Metadata, Error> {
     let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
     let events = client.get_events_of(vec![filter], timeout).await?;
+
     if let Some(event) = get_newest_event(&events) {
         let metadata = Metadata::from_json(&event.content)?;
         client.database().save_event(event).await?;
         Ok(metadata)
     } else {
-        Err(Error::Other("No metadata found".to_string()))
+        Err(Error::EventNotFound)
     }
+}
+
+pub async fn get_zap() {
+    todo!()
+}
+
+pub async fn get_repost(
+    client: &Client,
+    event_id: &EventId,
+    timeout: Option<std::time::Duration>,
+) -> Result<Vec<Event>, Error> {
+    let filter = Filter::new().kind(Kind::Repost).custom_tag(
+        SingleLetterTag::lowercase(Alphabet::E),
+        vec![event_id.to_hex()],
+    );
+    let events = client.get_events_of(vec![filter], timeout).await?;
+    Ok(events)
 }
 
 pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
-    timeout: Option<std::time::Duration>,
+    timeout: Option<Duration>,
     mut is_fetch: bool,
 ) -> Result<HashMap<String, i32>, Error> {
     let mut reaction_map = HashMap::new();
@@ -771,5 +788,19 @@ mod tests {
             }
         }
         assert!(count > 0);
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_get_repost() {
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        let event_id =
+            EventId::from_bech32("note186yr06e9qgd285f9lsj3t56g2nvmqj0ddudgx57sn8k5lqcp5c4q53edv9")
+                .unwrap();
+        let repost = get_repost(&client, &event_id, None).await.unwrap();
+        console_log!("repost: {:?}", repost);
+        assert!(!repost.is_empty());
     }
 }
