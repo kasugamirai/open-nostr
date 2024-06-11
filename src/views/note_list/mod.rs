@@ -4,10 +4,12 @@ pub mod note;
 pub mod reply;
 
 use std::collections::HashMap;
+use std::fmt::format;
+use std::sync::Arc;
 
 use dioxus::prelude::*;
 use nostr_indexeddb::database::Order;
-use nostr_sdk::{Event, Timestamp};
+use nostr_sdk::{Event, SubscriptionId, Timestamp, RelayPoolNotification, RelayMessage};
 use note::Note;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
@@ -15,6 +17,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use crate::components::icons::LOADING;
 use crate::components::ModalManager;
 use crate::nostr::multiclient::MultiClient;
+use crate::nostr::register::{NotificationHandler, Register};
 use crate::nostr::EventPaginator;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
@@ -27,6 +30,30 @@ pub struct NoteListProps {
     pub is_cache: bool,
 }
 
+pub fn handle_sub_list() -> NotificationHandler {
+    Arc::new(|notification| {
+        Box::pin(async move {
+            match notification {
+                RelayPoolNotification::Message {
+                    message: RelayMessage::Event { event, .. },
+                    ..
+                } => {
+                    tracing::info!(
+                        "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
+                        event.id.to_string(),
+                        event.author().to_string(),
+                        event.kind,
+                        event.content
+                    );
+
+                    Ok(false) // Return true to stop the handling process
+                }
+                _ => Ok(false),
+            }
+        })
+    })
+}
+
 #[component]
 pub fn NoteList(props: NoteListProps) -> Element {
     let NoteListProps {
@@ -35,13 +62,14 @@ pub fn NoteList(props: NoteListProps) -> Element {
         is_cache,
     } = props;
     let mut reload_flag = use_signal(|| reload_time.clone());
-    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let mut sub_current = use_signal(CustomSub::empty);
     // let mut sub_index = use_signal(|| 0);
     let mut notes: Signal<Vec<Event>> = use_signal(|| Vec::new());
     let mut paginator = use_signal(|| None);
-    let multiclient = use_context::<Signal<MultiClient>>();
     let mut is_loading = use_signal(|| false);
+    let mut sub_register = use_context::<Signal<Register>>();
+    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
+    let multiclient = use_context::<Signal<MultiClient>>();
 
     let handle_fetch = move || {
         spawn(async move {
@@ -67,7 +95,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
             }
         });
     };
-
     use_effect(use_reactive(
         (&name, &reload_time, &is_cache),
         move |(s, time, iscache)| {
@@ -82,16 +109,31 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 let filters = sub_current.get_filters();
                 let mut clients = multiclient();
                 let client_result = clients.get_or_create(&sub_current.relay_set).await;
+
                 match client_result {
                     Ok(hc) => {
                         let client = hc.client();
+                        {
+                            // let handle_sub_list: NotificationHandler = handle_sub_list.clone();
+                            sub_register
+                                .write()
+                                .add_subscription(
+                                    &client,
+                                    SubscriptionId::new(format!("note-list-{}", sub_current.name)),
+                                    filters.clone(),
+                                    handle_sub_list(),
+                                    None,
+                                )
+                                .await
+                                .unwrap();
+                        }
                         {
                             let paginator_result = EventPaginator::new(
                                 client.clone(),
                                 filters.clone(),
                                 None,
                                 40,
-                                false,
+                                sub_current.live,
                             );
                             paginator.set(Some(paginator_result));
                             // notes.clear();
@@ -125,6 +167,10 @@ pub fn NoteList(props: NoteListProps) -> Element {
             });
         },
     ));
+    use_effect(use_reactive(&sub_current(), move |sub| {
+        // sub_current
+
+    }));
     let on_mounted = move |_| {
         if name.is_empty() {
         } else {

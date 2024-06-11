@@ -23,7 +23,6 @@ pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
-    let _register = use_context_provider(|| Signal::new(Register::new()));
     let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
@@ -38,6 +37,8 @@ pub fn App() -> Element {
 
     use_context_provider(|| Signal::new(ModalManager::new()));
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
+
+    use_context_provider(|| Signal::new(Register::new()));
     // hook: on mounted
     let on_mounted = move |_| {
         // init treading
@@ -161,6 +162,7 @@ pub fn App() -> Element {
             id: "app",
             class: "{theme}",
             {router}
+            
             ModalManagerProvider {}
         }
     }
