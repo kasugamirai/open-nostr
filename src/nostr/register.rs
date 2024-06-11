@@ -240,6 +240,9 @@ mod tests {
 
     #[wasm_bindgen_test(async)]
     async fn test_update_subscription() {
+        let brian_search = Filter::new().author(
+            PublicKey::from_bech32("npub1tmnfxwvvyx56kt8m904r78umhehwhpgpcpfakelh505r5ve2d2cqa0jccl").unwrap(),
+        );
         let filter1 = Filter::new()
             .author(
                 PublicKey::from_bech32(
@@ -263,8 +266,8 @@ mod tests {
         register
             .add_subscription(
                 &client.clone(),
-                SubscriptionId::new("sub1"),
-                vec![filter1],
+                SubscriptionId::generate(),
+                vec![brian_search],
                 console_log_handler.clone(),
                 None,
             )
@@ -274,7 +277,7 @@ mod tests {
         register
             .add_subscription(
                 &client.clone(),
-                SubscriptionId::new("sub1"),
+                SubscriptionId::generate(),
                 vec![filter2],
                 console_log_handler.clone(),
                 None,
