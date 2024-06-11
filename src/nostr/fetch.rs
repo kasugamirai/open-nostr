@@ -565,7 +565,7 @@ mod tests {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let reactions = get_reactions(&client, &event_id, timeout).await.unwrap();
+        let reactions = get_reactions(&client, &event_id, timeout, true).await.unwrap();
         let length = reactions.len();
         console_log!("Reactions: {:?}", reactions);
         assert_eq!(reactions.len(), length);
