@@ -1,15 +1,14 @@
+use std::collections::{HashMap, HashSet};
+use std::usize;
+
 use dioxus::prelude::*;
 use regex::Regex;
-use std::{
-    collections::{HashMap, HashSet},
-    usize,
-};
 
-use crate::{
-    components::icons::{ADD, BOTTOMRIGHT, FALSE, TRUE, UPPERRIGHT},
-    store::{subscription::RelaySet, CBWebDatabase, DEFAULT_RELAY_SET_KEY},
-    utils::{contants::WSS_REG, js::alert},
-};
+use crate::components::icons::{ADD, BOTTOMRIGHT, FALSE, TRUE, UPPERRIGHT};
+use crate::store::subscription::RelaySet;
+use crate::store::{CBWebDatabase, DEFAULT_RELAY_SET_KEY};
+use crate::utils::contants::WSS_REG;
+use crate::utils::js::alert;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct RelaysInputProps {

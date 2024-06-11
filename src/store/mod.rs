@@ -2,14 +2,15 @@ pub mod error;
 pub mod subscription;
 pub mod user;
 
+use std::future::IntoFuture;
+use std::rc::Rc;
+
 pub use error::CBwebDatabaseError;
 use indexed_db_futures::idb_object_store::IdbObjectStoreParameters;
 use indexed_db_futures::request::{IdbOpenDbRequestLike, OpenDbRequest};
 use indexed_db_futures::web_sys::IdbTransactionMode;
 use indexed_db_futures::{IdbDatabase, IdbKeyPath, IdbQuerySource, IdbVersionChangeEvent};
 use serde_wasm_bindgen::{from_value, to_value};
-use std::future::IntoFuture;
-use std::rc::Rc;
 use subscription::{CustomSub, RelaySet};
 pub use user::{AccountType, User};
 use wasm_bindgen::JsValue;

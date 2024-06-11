@@ -1,18 +1,17 @@
+use std::hash::{DefaultHasher, Hash, Hasher};
+use std::sync::Arc;
+use std::time::Duration;
+
 use cached::{Cached, TimedCache};
 use dashmap::DashMap;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Client, ClientBuilder, Event, Filter};
-use std::hash::{DefaultHasher, Hash, Hasher};
-use std::sync::Arc;
-use std::time::Duration;
+use thiserror::Error;
 use tokio::sync::{Mutex, Notify};
 
+use super::utils::hash_filter;
 use crate::init::NOSTR_DB_NAME;
 use crate::store::{self, CBWebDatabase, CAPYBASTR_DBNAME};
-
-use super::utils::hash_filter;
-
-use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -250,14 +249,13 @@ impl EventCache {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::nostr::fetch::EventPaginator;
-    use nostr_sdk::FromBech32;
-    use nostr_sdk::Kind;
-    use nostr_sdk::PublicKey;
+    use nostr_sdk::{FromBech32, Kind, PublicKey};
     //use tokio::sync::oneshot;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
+
+    use super::*;
+    use crate::nostr::fetch::EventPaginator;
     wasm_bindgen_test_configure!(run_in_browser);
     use wasm_bindgen_test::console_log;
 
@@ -396,7 +394,7 @@ mod tests {
 
         // Create a oneshot channel.
         let (tx, rx) = tokio::sync::oneshot::channel();
-        let mut paginator = EventPaginator::new(c, vec![filter], None, 10);
+        let mut paginator = EventPaginator::new(c, vec![filter], None, 10, false);
 
         spawn_local(async move {
             let e = paginator.next_page().await.unwrap();

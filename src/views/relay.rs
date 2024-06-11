@@ -1,21 +1,13 @@
 use dioxus::prelude::*;
 
+use crate::store::subscription::{CustomSub, RelaySet};
 use crate::views::note_list::custom_sub::relays::RelaysInput;
-
-use crate::store::subscription::{CustomSub,RelaySet};
-
-
 
 #[component]
 pub fn Relay() -> Element {
-   
-
     let subs = use_context::<Signal<Vec<CustomSub>>>();
 
-    let current_name: Vec<_> = subs
-    .iter()
-    .map(|relay| relay.relay_set.clone())
-    .collect();
+    let current_name: Vec<_> = subs.iter().map(|relay| relay.relay_set.clone()).collect();
     tracing::info!("subssubssubssubs: {:?}", current_name);
 
     rsx! {
@@ -70,4 +62,3 @@ pub fn Relay() -> Element {
        }
     }
 }
-

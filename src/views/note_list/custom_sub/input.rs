@@ -1,13 +1,10 @@
 use dioxus::prelude::*;
 use regex::Regex;
 
-use crate::{
-    components::{
-        icons::{FALSE, TRUE},
-        ClickOutside,
-    },
-    utils::{contants::NUM_AND_LETTER_REG, js::alert},
-};
+use crate::components::icons::{FALSE, TRUE};
+use crate::components::ClickOutside;
+use crate::utils::contants::NUM_AND_LETTER_REG;
+use crate::utils::js::alert;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct InputProps {

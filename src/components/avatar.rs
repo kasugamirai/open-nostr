@@ -1,13 +1,9 @@
 use dioxus::prelude::*;
 use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
 
-use crate::{
-    nostr::{
-        multiclient::{EventCache, MultiClient},
-        utils::get_newest_event,
-    },
-    utils::format::format_create_at,
-};
+use crate::nostr::multiclient::{EventCache, MultiClient};
+use crate::nostr::utils::get_newest_event;
+use crate::utils::format::format_create_at;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct AvatarProps {

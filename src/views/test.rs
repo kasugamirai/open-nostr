@@ -1,7 +1,7 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
+use std::time::Duration;
 
 use dioxus::prelude::*;
-
 use nostr_sdk::prelude::*;
 
 #[derive(Debug, Clone)]

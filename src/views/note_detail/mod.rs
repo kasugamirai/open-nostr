@@ -4,15 +4,11 @@ use std::hash::Hash;
 use dioxus::prelude::*;
 use nostr_sdk::{Event, EventId, Timestamp};
 
-use crate::{
-    nostr::{
-        multiclient::MultiClient,
-        note::{self, ReplyTreeManager, ReplyTrees, TextNote},
-        {get_event_by_id, get_replies},
-    },
-    views::note_list::note::Note,
-    CustomSub,
-};
+use crate::nostr::multiclient::MultiClient;
+use crate::nostr::note::{self, ReplyTreeManager, ReplyTrees, TextNote};
+use crate::nostr::{get_event_by_id, get_replies};
+use crate::views::note_list::note::Note;
+use crate::CustomSub;
 #[component]
 pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let sub_name = use_signal(|| sub.clone());

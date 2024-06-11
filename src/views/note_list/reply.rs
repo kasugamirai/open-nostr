@@ -1,10 +1,10 @@
-use crate::nostr::multiclient::MultiClient;
-use crate::{
-    components::Avatar,
-    nostr::{get_event_by_id, note::TextNote},
-};
 use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil};
+
+use crate::components::Avatar;
+use crate::nostr::get_event_by_id;
+use crate::nostr::multiclient::MultiClient;
+use crate::nostr::note::TextNote;
 /// This is the reply view for the note component
 /// /
 ///

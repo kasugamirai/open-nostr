@@ -1,21 +1,18 @@
 use std::collections::HashMap;
 
-use crate::components::{ModalManager, ModalManagerProvider};
-use crate::nostr::multiclient::{EventCache, HashedClient};
-use crate::store::subscription::{CustomHashTag, FilterTemp};
-use crate::store::user::NoLogin;
-use crate::store::{
-    subscription::CustomSub, subscription::RelaySet, AccountType, CBWebDatabase, User,
-    CAPYBASTR_DBNAME,
-};
-use crate::store::{CBwebDatabaseError, DEFAULT_RELAY_SET_KEY};
-use crate::{
-    nostr::{multiclient::MultiClient, register::*},
-    Route,
-};
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::ClientBuilder;
+
+use crate::components::{ModalManager, ModalManagerProvider};
+use crate::nostr::multiclient::{EventCache, HashedClient, MultiClient};
+use crate::nostr::register::*;
+use crate::store::subscription::{CustomHashTag, CustomSub, FilterTemp, RelaySet};
+use crate::store::user::NoLogin;
+use crate::store::{
+    AccountType, CBWebDatabase, CBwebDatabaseError, User, CAPYBASTR_DBNAME, DEFAULT_RELAY_SET_KEY,
+};
+use crate::Route;
 
 pub const EXAMPLE_SUB_KEY: &str = "nostr";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";
@@ -100,7 +97,9 @@ pub fn App() -> Element {
                             keep_alive: true,
                         };
                         db.save_custom_sub(custom_sub.clone()).await.unwrap();
-                        subs_map.write().insert(EXAMPLE_SUB_KEY.to_string(), custom_sub.clone());
+                        subs_map
+                            .write()
+                            .insert(EXAMPLE_SUB_KEY.to_string(), custom_sub.clone());
                         // TODO remove this line
                         all_sub.push(custom_sub);
                     } else {

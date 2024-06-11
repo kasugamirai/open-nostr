@@ -1,10 +1,8 @@
 use dioxus::prelude::*;
 
-use crate::{
-    components::icons::{FALSE, TRUE},
-    store::subscription::Event,
-    utils::format::format_public_key,
-};
+use crate::components::icons::{FALSE, TRUE};
+use crate::store::subscription::Event;
+use crate::utils::format::format_public_key;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct EventInputProps {

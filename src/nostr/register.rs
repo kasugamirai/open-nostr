@@ -1,9 +1,10 @@
+use std::sync::Arc;
+
 use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
 use nostr_sdk::{
     Client, Filter, RelayMessage, RelayPoolNotification, SubscribeAutoCloseOptions, SubscriptionId,
 };
-use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
 
@@ -115,13 +116,15 @@ impl Register {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::testhelper::{sleep, test_hander::create_console_log_handler};
-    use nostr_sdk::FromBech32;
-    use nostr_sdk::{EventId, Filter, PublicKey, SubscriptionId};
     use std::rc::Rc;
+
+    use nostr_sdk::{EventId, Filter, FromBech32, PublicKey, SubscriptionId};
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
+
+    use super::*;
+    use crate::testhelper::sleep;
+    use crate::testhelper::test_hander::create_console_log_handler;
 
     wasm_bindgen_test_configure!(run_in_browser);
 
@@ -241,7 +244,10 @@ mod tests {
     #[wasm_bindgen_test(async)]
     async fn test_update_subscription() {
         let brian_search = Filter::new().author(
-            PublicKey::from_bech32("npub1tmnfxwvvyx56kt8m904r78umhehwhpgpcpfakelh505r5ve2d2cqa0jccl").unwrap(),
+            PublicKey::from_bech32(
+                "npub1tmnfxwvvyx56kt8m904r78umhehwhpgpcpfakelh505r5ve2d2cqa0jccl",
+            )
+            .unwrap(),
         );
         let filter1 = Filter::new()
             .author(

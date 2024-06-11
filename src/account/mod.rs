@@ -1,9 +1,9 @@
+use aes_gcm::aead::Aead;
+use aes_gcm::{Aes256Gcm, KeyInit, Nonce}; // Or another encryption library
 use nostr_sdk::bitcoin::hashes::sha256::Hash as Sha256Hash;
 use nostr_sdk::hashes::Hash;
 use nostr_sdk::key::SecretKey;
-use serde::{Serialize, Deserialize};
-use aes_gcm::{Aes256Gcm, KeyInit, Nonce}; // Or another encryption library
-use aes_gcm::aead::Aead;
+use serde::{Deserialize, Serialize};
 
 // Define a struct to hold the encrypted secret key and the hash of the pin
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -19,7 +19,9 @@ impl EncryptedSK {
         let key = Sha256Hash::hash(&pin);
         let cipher = Aes256Gcm::new_from_slice(key.as_byte_array());
         let nonce = Nonce::from_slice(b"unique nonce"); // This should be unique per encryption
-        let encrypted_sk = cipher.unwrap().encrypt(nonce, sk.to_string().as_bytes())
+        let encrypted_sk = cipher
+            .unwrap()
+            .encrypt(nonce, sk.to_string().as_bytes())
             .expect("encryption failure!");
 
         Self {
@@ -33,12 +35,13 @@ impl EncryptedSK {
         // Verify the pin
         let key = Sha256Hash::hash(&pin);
         let cipher = Aes256Gcm::new_from_slice(key.as_byte_array());
-        match cipher.unwrap().decrypt(Nonce::from_slice(&self.nonce), &*self.encrypted_sk) {
-            Ok(decrypted) => {
-                match SecretKey::from_slice(&decrypted) {
-                    Ok(sk) => Some(sk),
-                    Err(_) => None,
-                }
+        match cipher
+            .unwrap()
+            .decrypt(Nonce::from_slice(&self.nonce), &*self.encrypted_sk)
+        {
+            Ok(decrypted) => match SecretKey::from_slice(&decrypted) {
+                Ok(sk) => Some(sk),
+                Err(_) => None,
             },
             Err(_) => None,
         }
