@@ -1,5 +1,8 @@
+use dashmap::mapref::entry::Entry;
 use dashmap::DashMap;
-use nostr_sdk::prelude::*;
+use nostr_sdk::{
+    Client, Filter, RelayMessage, RelayPoolNotification, SubscribeAutoCloseOptions, SubscriptionId,
+};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::RwLock;
@@ -45,8 +48,9 @@ impl Register {
     }
 
     pub async fn set_stop_flag(&self, sub_id: &SubscriptionId, value: bool) {
-        if let Some(entry) = self.handlers.get_mut(sub_id) {
-            let mut stop_flag = entry.value().1.write().await;
+        if let Entry::Occupied(mut entry) = self.handlers.entry(sub_id.clone()) {
+            let (_, stop_flag) = entry.get_mut();
+            let mut stop_flag = stop_flag.write().await;
             *stop_flag = value;
         }
     }
@@ -113,6 +117,8 @@ impl Register {
 mod tests {
     use super::*;
     use crate::testhelper::{sleep, test_hander::create_console_log_handler};
+    use nostr_sdk::FromBech32;
+    use nostr_sdk::{EventId, Filter, PublicKey, SubscriptionId};
     use std::rc::Rc;
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
@@ -195,6 +201,8 @@ mod tests {
                 .unwrap();
         let client = Rc::new(Client::default());
         client.add_relay("wss://nos.lol").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nostr.oxtr.dev").await.unwrap();
         client.connect().await;
         let register = Register::default();
         let filter = Filter::new().id(event_id).limit(1);

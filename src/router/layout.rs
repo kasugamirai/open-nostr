@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::components::ModalManager;
 use crate::{nostr::note::ReplyTreeManager, store::subscription::CustomSub};
 use dioxus::prelude::*;
 struct UserItem {
@@ -42,11 +43,15 @@ pub fn Layout() -> Element {
             username: "Lisa"
         },
     ];
-
+    let path: Route = use_route();
+    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let mut contentText = use_signal(|| String::from(""));
 
     let mut show = use_signal(|| false);
 
+    use_effect(use_reactive(&path, move |_| {
+        modal_manager.write().destory_all_modals();
+    }));
     rsx! {
         aside {
             class: "menu-bar",

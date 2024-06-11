@@ -2,7 +2,7 @@ use super::utils::get_newest_event;
 use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
-use gloo_timers::future::sleep;
+use gloo_timers::future::TimeoutFuture;
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag, TagStandard};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -15,8 +15,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::sync::mpsc;
-//use tokio::sync::mpsc::unbounded_channel;
-//use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
@@ -37,7 +35,7 @@ pub enum Error {
     Signer(#[from] nostr_sdk::signer::Error),
     #[error(transparent)]
     Database(#[from] nostr_indexeddb::database::DatabaseError),
-    #[error("Channel send error: {0}")]
+    #[error(transparent)]
     ChannelSend(#[from] tokio::sync::mpsc::error::TrySendError<String>),
     #[error("error: {0}")]
     Other(String),
@@ -282,7 +280,7 @@ pub async fn get_metadata(
     let events = client.get_events_of(vec![filter], timeout).await?;
     if let Some(event) = get_newest_event(&events) {
         let metadata = Metadata::from_json(&event.content)?;
-        client.database().save_event(event).await.unwrap();
+        client.database().save_event(event).await?;
         Ok(metadata)
     } else {
         Err(Error::Other("No metadata found".to_string()))
@@ -397,7 +395,7 @@ pub async fn get_followers(
                     events.iter().for_each(|event| {
                         let author = event.author().to_hex();
                         if let Err(e) = tx.send(author) {
-                            eprintln!("Failed to send follower: {:?}", e);
+                            tracing::error!("Failed to send follower: {:?}", e);
                         }
                     });
 
@@ -409,7 +407,7 @@ pub async fn get_followers(
                 }
             }
 
-            sleep(Duration::from_secs(1)).await;
+            TimeoutFuture::new(1_00).await;
             exit_cond.store(true, Ordering::SeqCst);
         }
     });

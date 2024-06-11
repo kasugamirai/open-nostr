@@ -346,7 +346,6 @@ pub fn RelaysInput(props: RelaysInputProps) -> Element {
                                     class: "btn-icon add relay-url-add flex-right",
                                     onclick: move |_| {
                                         if new_relay().is_empty() {
-                                            return;
                                         } else if !wss_regx.is_match(&new_relay()) {
                                             spawn(async move {
                                                 alert("Invalid URL".to_string()).await;

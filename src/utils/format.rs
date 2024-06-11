@@ -63,7 +63,7 @@ pub fn format_note_content(data: &str, relay_name: &str) -> Option<VNode> {
             let _el = if is_note == AddressType::Note {
                 rsx! {
                     Quote {
-                        event_id: EventId::from_bech32(id).unwrap().clone(),
+                        event_id: EventId::from_bech32(id).unwrap(),
                         relay_name: relay_name,
                         quote_nostr: i.to_string(),
                     }

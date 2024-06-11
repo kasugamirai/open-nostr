@@ -19,7 +19,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let mut rootid = use_signal(|| root_id.clone());
     let mut highlight_note_id = use_signal(|| note_id.clone());
     let multiclient = use_context::<Signal<MultiClient>>();
-    let subs_map = use_context::<Signal<HashMap<String,CustomSub>>>();
+    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let mut replytree_manager = use_context::<Signal<ReplyTreeManager>>();
 
     use_effect(use_reactive((&root_id, &note_id), move |(root, note)| {
@@ -67,7 +67,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                             Ok(replies) => {
                                 replytree_manager
                                     .write()
-                                    .accept_event(root_event_id.clone(), replies.clone());
+                                    .accept_event(root_event_id, replies.clone());
                                 // refresh.set(!refresh());
                             }
                             Err(e) => {
@@ -83,15 +83,15 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     ));
 
     let tree = use_memo({
-        let replytree_manager = replytree_manager.clone();
+        let replytree_manager = replytree_manager;
         let _rootid = EventId::from_hex(rootid()).unwrap().clone();
         move || {
             let manager = replytree_manager.read();
             manager.get_tree(&_rootid).cloned()
         }
     });
-    let mut render_notes = use_signal(|| ReplyTrees::default());
-    let mut refresh = use_signal(|| Timestamp::now());
+    let mut render_notes = use_signal(ReplyTrees::default);
+    let mut refresh = use_signal(Timestamp::now);
     use_effect(use_reactive(
         (&tree(), &highlight_note_id()),
         move |(newest_tree, newest_highlight_event_id)| {
@@ -99,7 +99,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
             if let Some(newest_tree) = newest_tree {
                 let highlight_event_id =
                     &EventId::from_hex(newest_highlight_event_id.clone()).unwrap();
-                let highlight_note = newest_tree.get_note_by_id(&highlight_event_id);
+                let highlight_note = newest_tree.get_note_by_id(highlight_event_id);
 
                 if let Some(highlight_note) = highlight_note {
                     // group by highlight_note and find the longest chain
@@ -109,13 +109,12 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                         chain.into_iter().map(|note| note.clone().inner).collect();
                     let other_replies = replies
                         .into_iter()
-                        .map(|note| {
+                        .flat_map(|note| {
                             let res = find_longest_chain(&newest_tree, note);
                             res.into_iter()
                                 .map(|note| note.clone().inner)
                                 .collect::<Vec<Event>>()
                         })
-                        .flat_map(|x| x)
                         .collect::<Vec<Event>>();
                     let ancestors = newest_tree.get_ancestors(&highlight_note.inner.id);
                     let mut all_replies = Vec::<Event>::new();
@@ -125,7 +124,7 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
                     // tracing::info!("other_replies: ---------------------- {:?}", other_replies);
                     all_replies.extend(other_replies);
                     // all_replies.de
-                    all_replies = vec_unique(all_replies, |e| e.id.clone());
+                    all_replies = vec_unique(all_replies, |e| e.id);
 
                     render_notes.write().accept(all_replies);
                     refresh.set(Timestamp::now());
@@ -184,7 +183,7 @@ fn render_note_tree(
     highlight_note_id: String,
     sub_name: String,
 ) -> Element {
-    let root_node = tree.get_note_by_id(&EventId::from_hex(&root_id).unwrap());
+    let root_node = tree.get_note_by_id(&EventId::from_hex(root_id).unwrap());
     if let Some(root_note) = root_node {
         let root_id = root_note.get_root().unwrap_or(root_note.inner.id);
         let root_node = tree.get_note_by_id(&root_id).unwrap();
@@ -221,7 +220,7 @@ fn render_note_node(
                 },
                 sub_name: sub_name.clone(),
                 event: note.inner.clone(),
-                is_expand: children.len() > 0,
+                is_expand: !children.is_empty(),
                 is_tree: true,
                 clsname: format!("relative {} z-{} {} mb-12", if is_highlight {
                     "com-post--active"
