@@ -1,5 +1,6 @@
+use nostr_sdk::nips::nip65::RelayMetadata;
+use nostr_sdk::nips::nip94::FileMetadata;
 use nostr_sdk::{
-    nips::{nip65::RelayMetadata, nip94::FileMetadata},
     Client, Contact, Event, EventBuilder, EventId, Metadata, NostrSigner, PublicKey, Tag,
     Timestamp, UncheckedUrl, Url,
 };
@@ -132,12 +133,13 @@ pub async fn set_contact_list(
 
 #[cfg(test)]
 mod tests {
-    use nostr_sdk::bitcoin::hashes::sha256::Hash as Sha256Hash;
     use std::str::FromStr;
 
-    use super::*;
+    use nostr_sdk::bitcoin::hashes::sha256::Hash as Sha256Hash;
     use nostr_sdk::{EventId, Filter, FromBech32, Keys, SecretKey, ToBech32};
     use wasm_bindgen_test::*;
+
+    use super::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test]

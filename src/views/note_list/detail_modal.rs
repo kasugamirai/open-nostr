@@ -19,8 +19,10 @@
 //         }
 //     }
 // }
-use crate::components::{icons::FALSE, ModalManager};
 use dioxus::prelude::*;
+
+use crate::components::icons::FALSE;
+use crate::components::ModalManager;
 #[component]
 pub fn DetailModal(detail: String, id: String) -> Element {
     let mut modal_manager = use_context::<Signal<ModalManager>>();

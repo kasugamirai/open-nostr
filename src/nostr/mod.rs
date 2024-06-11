@@ -4,28 +4,12 @@ pub mod note;
 mod publish;
 pub mod register;
 pub mod utils;
-pub use fetch::create_notification_filters;
-pub use fetch::get_event_by_id;
-pub use fetch::get_events_by_ids;
-pub use fetch::get_followers;
-pub use fetch::get_following;
-pub use fetch::get_metadata;
-pub use fetch::get_reactions;
-pub use fetch::get_replies;
-pub use fetch::process_notification_events;
-pub use fetch::DecryptedMsg;
-pub use fetch::DecryptedMsgPaginator;
-pub use fetch::EventPaginator;
-pub use fetch::NotificationMsg;
-pub use fetch::NotificationPaginator;
-pub use publish::delete_event;
-pub use publish::file_metadata;
-pub use publish::new_channel;
-pub use publish::publish_text_note;
-pub use publish::reaction;
-pub use publish::repost;
-pub use publish::send_channel_msg;
-pub use publish::send_private_msg;
-pub use publish::set_channel_metadata;
-pub use publish::set_contact_list;
-pub use publish::set_relay_list;
+pub use fetch::{
+    create_notification_filters, get_event_by_id, get_events_by_ids, get_followers, get_following,
+    get_metadata, get_reactions, get_replies, process_notification_events, DecryptedMsg,
+    DecryptedMsgPaginator, EventPaginator, NotificationMsg, NotificationPaginator,
+};
+pub use publish::{
+    delete_event, file_metadata, new_channel, publish_text_note, reaction, repost,
+    send_channel_msg, send_private_msg, set_channel_metadata, set_contact_list, set_relay_list,
+};

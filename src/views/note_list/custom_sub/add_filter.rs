@@ -1,9 +1,9 @@
 use dioxus::prelude::*;
 use serde_json::Value;
 
-use crate::{
-    components::icons::{ADD,ACCOUNTSICON,NOTEICON,TAGSICON},
-    store::subscription::{CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, FilterTemp},
+use crate::components::icons::{ACCOUNTSICON, ADD, NOTEICON, TAGSICON};
+use crate::store::subscription::{
+    CustomAccounts, CustomEvents, CustomFilter, CustomHashTag, FilterTemp,
 };
 
 #[derive(PartialEq, Clone, Props)]

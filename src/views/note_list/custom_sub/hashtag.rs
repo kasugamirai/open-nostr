@@ -1,9 +1,7 @@
 use dioxus::prelude::*;
 
-use crate::components::{
-    icons::{ADD, FALSE, TRUE},
-    ClickOutside,
-};
+use crate::components::icons::{ADD, FALSE, TRUE};
+use crate::components::ClickOutside;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct HashTagInputProps {

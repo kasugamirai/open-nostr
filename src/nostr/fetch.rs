@@ -1,25 +1,22 @@
-use super::utils::get_newest_event;
-use super::utils::get_oldest_event;
-use futures::Future;
-use futures::StreamExt;
-use gloo_timers::future::TimeoutFuture;
-use nostr_indexeddb::database::Order;
-use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag, TagStandard};
-use nostr_sdk::{JsonUtil, Timestamp};
-use nostr_sdk::{Metadata, Tag};
-use nostr_sdk::{NostrSigner, PublicKey};
-use std::collections::HashMap;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
+
+use futures::{Future, StreamExt};
+use gloo_timers::future::TimeoutFuture;
+use nostr_indexeddb::database::Order;
+use nostr_sdk::{
+    Alphabet, Client, Event, EventId, Filter, JsonUtil, Kind, Metadata, NostrSigner, PublicKey,
+    SingleLetterTag, Tag, TagStandard, Timestamp,
+};
 use thiserror::Error;
-use tokio::sync::mpsc;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_stream::Stream;
-
 use wasm_bindgen_futures::spawn_local;
+
+use super::utils::{get_newest_event, get_oldest_event};
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -96,6 +93,7 @@ pub struct EventPaginator {
     timeout: Option<Duration>,
     page_size: usize,
     last_event_ids: HashSet<EventId>,
+    from_db: bool,
 }
 
 unsafe impl Send for EventPaginator {}
@@ -107,6 +105,7 @@ impl EventPaginator {
         filters: Vec<Filter>,
         timeout: Option<Duration>,
         page_size: usize,
+        from_db: bool,
     ) -> Self {
         Self {
             client,
@@ -116,6 +115,7 @@ impl EventPaginator {
             timeout,
             page_size,
             last_event_ids: HashSet::new(),
+            from_db,
         }
     }
 
@@ -145,10 +145,29 @@ impl EventPaginator {
             .collect::<Vec<_>>();
 
         tracing::info!("updated_filters: {:#?}", self.oldest_timestamp);
-        let events = self
-            .client
-            .get_events_of(updated_filters.clone(), self.timeout)
-            .await?;
+
+        let events = if self.from_db {
+            // Attempt to fetch from the database first
+            match self
+                .client
+                .database()
+                .query(updated_filters.clone(), Order::Desc)
+                .await
+            {
+                Ok(events) => events,
+                // If database query fails, fall back to fetching from the relay
+                Err(_) => {
+                    self.client
+                        .get_events_of(updated_filters.clone(), self.timeout)
+                        .await?
+                }
+            }
+        } else {
+            // Directly fetch from the relay
+            self.client
+                .get_events_of(updated_filters.clone(), self.timeout)
+                .await?
+        };
 
         if events.is_empty() || self.are_all_event_ids_present(&events) {
             self.done = true;
@@ -196,6 +215,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         target_pub_key: PublicKey,
         timeout: Option<Duration>,
         page_size: usize,
+        from_db: bool,
     ) -> Result<DecryptedMsgPaginator<'a>, Error> {
         let public_key = signer.public_key().await?;
 
@@ -203,7 +223,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
             create_encrypted_filters!(Kind::EncryptedDirectMessage, target_pub_key, public_key);
         let filters = vec![me, target];
 
-        let paginator = EventPaginator::new(client, filters, timeout, page_size);
+        let paginator = EventPaginator::new(client, filters, timeout, page_size, from_db);
         Ok(DecryptedMsgPaginator {
             signer,
             target_pub_key,
@@ -398,6 +418,7 @@ pub async fn get_followers(
     client: Arc<Client>,
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
+    from_db: bool,
 ) -> impl Stream<Item = String> {
     let filter = Filter::new().kind(Kind::ContactList).custom_tag(
         SingleLetterTag::lowercase(Alphabet::P),
@@ -412,6 +433,7 @@ pub async fn get_followers(
             vec![filter],
             timeout,
             500,
+            from_db,
         )));
         let exit_cond = Arc::new(AtomicBool::new(false));
         async move {
@@ -460,11 +482,12 @@ impl NotificationPaginator {
         public_key: PublicKey,
         timeout: Option<std::time::Duration>,
         page_size: usize,
+        from_db: bool,
     ) -> Self {
         let filters = create_notification_filters(&public_key);
 
         Self {
-            paginator: EventPaginator::new(client, filters, timeout, page_size),
+            paginator: EventPaginator::new(client, filters, timeout, page_size, from_db),
         }
     }
 
@@ -511,24 +534,23 @@ pub fn process_notification_events(events: Vec<Event>) -> Vec<NotificationMsg> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::testhelper::test_data::*;
-    use crate::{
-        init::NOSTR_DB_NAME,
-        nostr::note::{DisplayOrder, ReplyTrees},
-        testhelper::event_from,
-    };
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+    use std::time::Duration;
+
     use gloo_timers::future::sleep;
     use nostr_indexeddb::database::Order;
     use nostr_indexeddb::WebDatabase;
     use nostr_sdk::key::SecretKey;
-    use nostr_sdk::Client;
-    use nostr_sdk::{ClientBuilder, EventBuilder, FromBech32, Keys};
-    use std::sync::atomic::{AtomicBool, Ordering};
-    use std::sync::Arc;
-    use std::time::Duration;
+    use nostr_sdk::{Client, ClientBuilder, EventBuilder, FromBech32, Keys};
     use wasm_bindgen_futures::spawn_local;
     use wasm_bindgen_test::*;
+
+    use super::*;
+    use crate::init::NOSTR_DB_NAME;
+    use crate::nostr::note::{DisplayOrder, ReplyTrees};
+    use crate::testhelper::event_from;
+    use crate::testhelper::test_data::*;
 
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
@@ -637,7 +659,8 @@ mod tests {
 
         let page_size = 100;
         let timeout = Some(std::time::Duration::from_secs(5));
-        let mut paginator = EventPaginator::new(Arc::new(client), vec![filter], timeout, page_size);
+        let mut paginator =
+            EventPaginator::new(Arc::new(client), vec![filter], timeout, page_size, false);
 
         let mut count = 0;
         loop {
@@ -682,6 +705,7 @@ mod tests {
             target_pub_key,
             timeout,
             page_size,
+            false,
         )
         .await
         .unwrap();
@@ -712,7 +736,7 @@ mod tests {
         let timeout = Some(std::time::Duration::from_secs(5));
         let exit_cond = Arc::new(AtomicBool::new(false));
 
-        let stream = get_followers(arc_client, &public_key, timeout).await;
+        let stream = get_followers(arc_client, &public_key, timeout, false).await;
 
         spawn_local({
             let exit_cond_clone = Arc::clone(&exit_cond);
@@ -769,7 +793,8 @@ mod tests {
         .unwrap();
 
         let timeout = Some(std::time::Duration::from_secs(5));
-        let mut paginator = NotificationPaginator::new(Arc::new(client), public_key, timeout, 100);
+        let mut paginator =
+            NotificationPaginator::new(Arc::new(client), public_key, timeout, 100, false);
         let mut count = 0;
         loop {
             let result = paginator.next_page().await;

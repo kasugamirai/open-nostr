@@ -1,11 +1,11 @@
-use std::{str::FromStr, time::Duration, vec};
+use std::str::FromStr;
+use std::time::Duration;
+use std::vec;
 
 use dioxus::prelude::*;
 use nostr_sdk::prelude::*;
 
-use crate::{
-    utils::format::{format_create_at, format_public_key, splite_by_replys},
-};
+use crate::utils::format::{format_create_at, format_public_key, splite_by_replys};
 // {
 //     "id": "eb8142a456387a0f593273b808290b29765a1958700f94bcc6c1ff0cef7fa4b0",
 //     "pubkey": "fcab5a7bee61b9d16f36ef9c5801227cdc500c746b9ab501e808685e0eddb9f7",

@@ -46,10 +46,10 @@ pub fn Author() -> Element {
                   class:"code-position",
                   dangerous_inner_html: "{QRCODE}",
                 }
-                
+
               }
             }
-            
+
         }
         div {
           class: "relays-wrapper author-not-style display-flex-box relative flex-col mb-15",

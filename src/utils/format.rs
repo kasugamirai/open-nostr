@@ -1,9 +1,9 @@
-use crate::components::Mention;
-use crate::components::Quote;
-use crate::nostr::utils::{is_note_address, AddressType};
 use dioxus::prelude::*;
 use nostr_sdk::{EventId, FromBech32, PublicKey};
 use regex::Regex;
+
+use crate::components::{Mention, Quote};
+use crate::nostr::utils::{is_note_address, AddressType};
 /// format public key
 ///
 /// # Parameters

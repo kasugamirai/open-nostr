@@ -1,9 +1,9 @@
+pub mod account;
 mod components;
 mod init;
 pub mod nostr;
 mod router;
 pub mod store;
-pub mod account;
 mod testhelper;
 mod utils;
 mod views;
@@ -11,4 +11,5 @@ mod views;
 //pub use nostr::get_metadata;
 pub use init::App;
 pub use router::Route;
-pub use store::{subscription::CustomSub, User};
+pub use store::subscription::CustomSub;
+pub use store::User;

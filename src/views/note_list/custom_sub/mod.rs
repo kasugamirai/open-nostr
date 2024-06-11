@@ -10,26 +10,29 @@ mod tag;
 
 use std::collections::HashMap;
 
+use account::AccountInput;
+use add_filter::AddFilter;
 use chrono::format;
 use dioxus::prelude::*;
 use dioxus_elements::tr;
-use regex::Regex;
-
-use crate::{
-    components::{icons::*, DateTimePicker, Dropdown, Switch},
-    store::{subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag}, CBWebDatabase},
-    utils::{contants::NUM_AND_LETTER_REG, js::alert},
-    Route, // utils::js::{export_to_clipboard, import_from_clipboard},
-};
-use account::AccountInput;
-use add_filter::AddFilter;
 use event::EventInput;
 use hashtag::{HashTagAdd, HashTagInput};
 use input::Input;
 use kind::KindInput;
 use limit::LimitInput;
+use regex::Regex;
 use relays::RelaysInput;
 use tag::TagInput;
+
+use crate::{
+    components::{icons::*, DateTimePicker, Dropdown, Switch},
+    store::{
+        subscription::{Account, CustomSub, Event, FilterTemp, RelaySet, Tag},
+        CBWebDatabase,
+    },
+    utils::{contants::NUM_AND_LETTER_REG, js::alert},
+    Route, // utils::js::{export_to_clipboard, import_from_clipboard},
+};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct CustomSubscriptionProps {
@@ -65,7 +68,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_save = move || {
-        // TODO: save sub 
+        // TODO: save sub
         spawn(async move {
             let old_name = sub_name();
             let edit_value = sub_current();
@@ -81,8 +84,9 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     // {
                     //     sub_current.set(value.clone());
                     // }
-                    {   
-                        let mut subs_map: Write<HashMap<String, CustomSub>, UnsyncStorage> = subs_map.write();
+                    {
+                        let mut subs_map: Write<HashMap<String, CustomSub>, UnsyncStorage> =
+                            subs_map.write();
                         tracing::info!("Update success: update subs_map {:?}", edit_value);
                         subs_map.insert(edit_name.clone(), edit_value.clone());
                         if old_name != edit_name {

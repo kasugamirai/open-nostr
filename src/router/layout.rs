@@ -1,19 +1,19 @@
 use std::collections::HashMap;
 
-use crate::components::ModalManager;
-use crate::{nostr::note::ReplyTreeManager, store::subscription::CustomSub};
 use dioxus::prelude::*;
+
+use crate::components::ModalManager;
+use crate::nostr::note::ReplyTreeManager;
+use crate::store::subscription::CustomSub;
 struct UserItem {
     avatar: &'static str,
     username: &'static str,
 }
-use crate::utils::format::splite_by_replys;
 // use crate::views::
-
 use crate::components::icons::*;
-use crate::components::Button;
-use crate::components::Message;
+use crate::components::{Button, Message};
 use crate::router::*;
+use crate::utils::format::splite_by_replys;
 
 #[component]
 pub fn Layout() -> Element {
@@ -27,7 +27,7 @@ pub fn Layout() -> Element {
             theme.set("light".to_string());
         }
     };
-    let messageContent = use_signal(||String::from(""));
+    let messageContent = use_signal(|| String::from(""));
     // golbal replytree manager cache
     use_context_provider(|| Signal::new(ReplyTreeManager::new(200)));
     let users = [UserItem{
@@ -172,7 +172,7 @@ pub fn Layout() -> Element {
                           onchange: move |event| {
                             contentText.set(event.value());
                           }
-  
+
                         }
                         span{
                           class:"img-svg-style",
@@ -225,7 +225,7 @@ pub fn Layout() -> Element {
                           "Cancel"
                         }
                       }
-                  
+
                     }
                 }
                 div {

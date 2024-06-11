@@ -1,9 +1,7 @@
 use dioxus::prelude::*;
 
-use crate::{
-    components::icons::{FALSE, TRUE},
-    store::subscription::Tag,
-};
+use crate::components::icons::{FALSE, TRUE};
+use crate::store::subscription::Tag;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct TagInputProps {

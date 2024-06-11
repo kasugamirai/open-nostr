@@ -8,16 +8,16 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Event, Timestamp};
-use wasm_bindgen::{closure::Closure, JsCast, JsValue};
-
-use crate::{
-    components::{icons::LOADING, ModalManager},
-    nostr::{multiclient::MultiClient, EventPaginator},
-    store::subscription::CustomSub,
-    utils::js::{get_scroll_info, throttle},
-};
-
 use note::Note;
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::{JsCast, JsValue};
+
+use crate::components::icons::LOADING;
+use crate::components::ModalManager;
+use crate::nostr::multiclient::MultiClient;
+use crate::nostr::EventPaginator;
+use crate::store::subscription::CustomSub;
+use crate::utils::js::{get_scroll_info, throttle};
 
 #[derive(Debug, Clone, Props, PartialEq)]
 pub struct NoteListProps {
@@ -86,8 +86,13 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     Ok(hc) => {
                         let client = hc.client();
                         {
-                            let paginator_result =
-                                EventPaginator::new(client.clone(), filters.clone(), None, 40);
+                            let paginator_result = EventPaginator::new(
+                                client.clone(),
+                                filters.clone(),
+                                None,
+                                40,
+                                false,
+                            );
                             paginator.set(Some(paginator_result));
                             // notes.clear();
                             reload_flag.set(time);

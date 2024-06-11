@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use dioxus::prelude::*;
 use js_sys::*;
-use std::collections::HashMap;
 use uuid::Uuid;
-use wasm_bindgen::{closure::Closure, JsCast};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 use web_sys::window;
 
 // extern "C" {
@@ -24,7 +26,7 @@ pub struct Modal {
     content: Element,
     is_open: bool,
     level: u8,
-    position: Option<(f64, f64)>
+    position: Option<(f64, f64)>,
 }
 
 impl Modal {
@@ -49,7 +51,7 @@ impl ModalManager {
     pub fn new() -> Self {
         Self {
             modals: HashMap::new(),
-            levels: HashMap::new()
+            levels: HashMap::new(),
         }
     }
 

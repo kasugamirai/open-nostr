@@ -3,12 +3,10 @@ use std::collections::{HashMap, VecDeque};
 
 use indextree::{Arena, NodeId};
 use nostr_sdk::nips::nip10::Marker;
-use nostr_sdk::{Alphabet, Event, EventId, Kind, Tag, TagKind};
-use nostr_sdk::{SingleLetterTag, TagStandard};
+use nostr_sdk::{Alphabet, Event, EventId, Kind, SingleLetterTag, Tag, TagKind, TagStandard};
+use thiserror::Error;
 
 use super::utils::{self, get_children};
-
-use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
@@ -274,20 +272,22 @@ impl ReplyTreeManager {
         modify(tree, event);
     }
 
-    pub fn get_replies(&self, root_id: &EventId) -> Vec<&TextNote>{
+    pub fn get_replies(&self, root_id: &EventId) -> Vec<&TextNote> {
         let tree = self.get_tree(&root_id);
         match tree {
             Some(tree) => tree.get_replies(&root_id, None),
-            None => vec![]
+            None => vec![],
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::testhelper::{event_from, test_data::*};
     use wasm_bindgen_test::*;
+
+    use super::*;
+    use crate::testhelper::event_from;
+    use crate::testhelper::test_data::*;
     wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
 
     #[wasm_bindgen_test]

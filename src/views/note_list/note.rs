@@ -1,21 +1,20 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use dioxus::prelude::*;
 use nostr_sdk::{Alphabet, Event, EventId, Filter, JsonUtil, Kind};
-use std::rc::Rc;
 use wasm_bindgen_test::console_log;
 
-use crate::{
-    components::{icons::*, Avatar, ModalManager},
-    nostr::{
-        get_reactions,
-        multiclient::MultiClient,
-        note::{ReplyTreeManager, TextNote},
-    },
-    utils::{format::format_note_content, js::note_srcoll_into_view},
-    views::note_list::{detail_modal::DetailModal, reply::Reply},
-    CustomSub, Route,
-};
+use crate::components::icons::*;
+use crate::components::{Avatar, ModalManager};
+use crate::nostr::get_reactions;
+use crate::nostr::multiclient::MultiClient;
+use crate::nostr::note::{ReplyTreeManager, TextNote};
+use crate::utils::format::format_note_content;
+use crate::utils::js::note_srcoll_into_view;
+use crate::views::note_list::detail_modal::DetailModal;
+use crate::views::note_list::reply::Reply;
+use crate::{CustomSub, Route};
 
 #[derive(PartialEq, Clone, Props)]
 pub struct NoteProps {

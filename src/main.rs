@@ -1,9 +1,8 @@
 #![allow(non_snake_case)]
 
+use capybastr::App;
 use dioxus::prelude::*;
 use tracing::Level;
-
-use capybastr::App;
 
 fn main() {
     // Init debug

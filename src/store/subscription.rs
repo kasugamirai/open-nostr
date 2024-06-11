@@ -1,7 +1,8 @@
-use crate::store::DEFAULT_RELAY_SET_KEY;
 use nostr_sdk::{EventId, Filter, Kind, PublicKey, SingleLetterTag, Timestamp};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
+
+use crate::store::DEFAULT_RELAY_SET_KEY;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct CustomSub {
@@ -86,7 +87,6 @@ impl RelaySet {
             relays: vec![],
         }
     }
-    
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -100,7 +100,7 @@ pub enum FilterTemp {
 impl FilterTemp {
     pub fn to_filter(&self, since: u64, until: u64) -> Filter {
         let mut filter = Filter::new();
-        
+
         match self {
             FilterTemp::HashTag(hashtag) => {
                 filter = filter
@@ -145,7 +145,11 @@ impl FilterTemp {
                 }
                 if !customize.accounts.is_empty() {
                     filter = filter.authors(
-                        customize.accounts.iter().map(|x| PublicKey::parse(&x.npub).unwrap()).collect::<Vec<PublicKey>>(),
+                        customize
+                            .accounts
+                            .iter()
+                            .map(|x| PublicKey::parse(&x.npub).unwrap())
+                            .collect::<Vec<PublicKey>>(),
                     );
                 }
                 if customize.since > 0 {
@@ -167,23 +171,22 @@ impl FilterTemp {
                 }
             }
         }
-        
+
         filter = if since == 0 {
             filter.remove_since()
         } else {
             filter.since(Timestamp::from(since))
         };
-        
+
         filter = if until == 0 {
             filter.remove_until()
         } else {
             filter.until(Timestamp::from(until))
         };
-        
+
         filter
     }
 }
-
 
 impl Serialize for FilterTemp {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

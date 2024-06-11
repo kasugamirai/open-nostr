@@ -1,6 +1,5 @@
 use js_sys::Promise;
-use nostr_sdk::Event;
-use nostr_sdk::JsonUtil;
+use nostr_sdk::{Event, JsonUtil};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::JsFuture;
 use wasm_bindgen_test::*;
@@ -28,8 +27,9 @@ pub mod test_data {
 }
 #[cfg(test)]
 pub mod test_hander {
-    use nostr_sdk::prelude::*;
     use std::sync::Arc;
+
+    use nostr_sdk::prelude::*;
     use wasm_bindgen_test::*;
 
     use crate::nostr::register::NotificationHandler;

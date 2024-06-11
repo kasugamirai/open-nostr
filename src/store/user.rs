@@ -1,6 +1,7 @@
 use nostr_sdk::key::PublicKey;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
 use crate::account::EncryptedSK;
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]

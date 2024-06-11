@@ -1,10 +1,8 @@
 use dioxus::prelude::*;
 use nostr_sdk::{Filter, JsonUtil, Kind, Metadata, PublicKey};
 
-use crate::nostr::{
-    multiclient::{EventCache, MultiClient},
-    utils::get_newest_event,
-};
+use crate::nostr::multiclient::{EventCache, MultiClient};
+use crate::nostr::utils::get_newest_event;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct MentionProps {
