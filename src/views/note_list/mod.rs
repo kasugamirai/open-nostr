@@ -1,6 +1,7 @@
 pub(crate) mod custom_sub;
 pub mod note;
 pub mod reply;
+pub mod detail_modal;
 
 use std::collections::HashMap;
 
@@ -10,11 +11,12 @@ use nostr_sdk::{Event, Timestamp};
 use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 
 use crate::{
-    components::icons::LOADING,
+    components::{icons::LOADING, ModalManager},
     nostr::{fetch::EventPaginator, multiclient::MultiClient},
     store::subscription::CustomSub,
     utils::js::{get_scroll_info, throttle},
 };
+
 
 use note::Note;
 
@@ -133,7 +135,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     use_effect(use_reactive(&reload_flag(), move |next_reload_flag| {
         handle_fetch();
     }));
-
+    let mut modal_manager = use_context::<Signal<ModalManager>>();
     rsx! {
             div {
                 onmounted: on_mounted,
@@ -161,6 +163,8 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     let throttled_callback = throttle(callback_js, 1000); // 300ms throttling delay
                     let func: &js_sys::Function = throttled_callback.as_ref().unchecked_ref();
                     func.call0(&JsValue::NULL).unwrap();
+
+                    modal_manager.write().destory_all_modals_by_level(4);
                 },
                 div {
                     class: "note-more-mod-box",

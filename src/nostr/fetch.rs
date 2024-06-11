@@ -3,6 +3,7 @@ use super::utils::get_oldest_event;
 use futures::Future;
 use futures::StreamExt;
 use gloo_timers::future::TimeoutFuture;
+use nostr_indexeddb::database::Order;
 use nostr_sdk::{Alphabet, Client, Event, EventId, Filter, Kind, SingleLetterTag, TagStandard};
 use nostr_sdk::{JsonUtil, Timestamp};
 use nostr_sdk::{Metadata, Tag};
@@ -307,21 +308,53 @@ pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
     timeout: Option<Duration>,
+    mut is_fetch: bool,
 ) -> Result<HashMap<String, i32>, Error> {
-    let reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
+    let mut reaction_map = HashMap::new();
+    let mut events: Vec<Event> = Vec::new();
+
+    let mut reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
     );
 
-    let events = client.get_events_of(vec![reaction_filter], timeout).await?;
+    // Get reactions from db
+    let db_filter = reaction_filter.clone();
+    match client.database().query(vec![db_filter], Order::Desc).await {
+        Ok(db_events) => {
+            if db_events.is_empty() {
+                is_fetch = true;
+            } else {
+                events.extend(db_events);
+            }
+        }
+        Err(_) => {
+            is_fetch = true;
+        }
+    }
 
-    let reaction_counts = events.iter().fold(HashMap::new(), |mut acc, event| {
+    let mut since = None;
+    if !events.is_empty() {
+        since = Some(events[0].created_at + 1);
+    }
+
+    // Get reactions from relay if needed
+    if is_fetch {
+        if let Some(since) = since {
+            reaction_filter = reaction_filter.since(since);
+        }
+
+        let relay_events = client.get_events_of(vec![reaction_filter], timeout).await?;
+        events.extend(relay_events);
+    }
+
+    // Assemble data
+    for event in events.iter() {
         let content = event.content().to_string();
-        *acc.entry(content).or_insert(0) += 1;
-        acc
-    });
+        *reaction_map.entry(content).or_insert(0) += 1;
+    }
 
-    Ok(reaction_counts)
+    Ok(reaction_map)
 }
 
 pub async fn get_replies(
@@ -558,7 +591,9 @@ mod tests {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
         client.connect().await;
-        let reactions = get_reactions(&client, &event_id, timeout).await.unwrap();
+        let reactions = get_reactions(&client, &event_id, timeout, true)
+            .await
+            .unwrap();
         let length = reactions.len();
         console_log!("Reactions: {:?}", reactions);
         assert_eq!(reactions.len(), length);
