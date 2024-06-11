@@ -67,15 +67,12 @@ impl ModalManager {
 
     // 添加Message
     pub fn add_message(&mut self, content: Element) -> String {
-        let id = self.add_generic_modal(ModalType::Message, content, 3, None);
-        id
+        self.add_generic_modal(ModalType::Message, content, 3, None)
     }
 
     // 添加Popover
     pub fn add_popover(&mut self, content: Element, position: (f64, f64)) -> String {
-        let id = self.add_generic_modal(ModalType::Popover, content, 4, Some(position));
-
-        id
+        self.add_generic_modal(ModalType::Popover, content, 4, Some(position))
     }
     pub fn update_popover_position(&mut self, id: &str, position: (f64, f64)) {
         if let Some(modal) = self.modals.get_mut(id) {
@@ -120,10 +117,7 @@ impl ModalManager {
         self.modals.insert(id.clone(), modal);
 
         // manager levels
-        self.levels
-            .entry(level)
-            .or_insert(Vec::new())
-            .push(id.clone());
+        self.levels.entry(level).or_default().push(id.clone());
 
         id
     }
@@ -146,10 +140,7 @@ impl ModalManager {
         self.modals.insert(id.clone(), modal);
 
         // manager levels
-        self.levels
-            .entry(level)
-            .or_insert(Vec::new())
-            .push(id.clone());
+        self.levels.entry(level).or_default().push(id.clone());
 
         id
     }
@@ -237,7 +228,7 @@ pub fn ModalManagerProvider() -> Element {
             let window = window().expect("no global `window` exists");
             let closure = Closure::wrap(Box::new({
                 move || {
-                    let mut modal_manager_write = modal_manager.clone();
+                    let mut modal_manager_write = modal_manager;
                     modal_manager_write.write().destory_all_modals_by_level(4);
                 }
             }) as Box<dyn FnMut()>);
