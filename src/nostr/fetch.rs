@@ -96,7 +96,6 @@ pub struct EventPaginator {
 
 unsafe impl Send for EventPaginator {}
 unsafe impl Sync for EventPaginator {}
-
 impl EventPaginator {
     pub fn new(
         client: Arc<Client>,
@@ -123,13 +122,13 @@ impl EventPaginator {
             .all(|event| self.last_event_ids.contains(&event.id))
     }
 
-    pub async fn next_page(&mut self) -> Result<Vec<Event>, Error> {
+    pub async fn next_page(&mut self) -> Option<Vec<Event>> {
         if self.done {
-            return Ok(vec![]);
+            return None;
         }
 
         // Update filters with the oldest timestamp and limit
-        let updated_filters = self
+        let updated_filters: Vec<Filter> = self
             .filters
             .iter()
             .map(|f| {
@@ -140,9 +139,9 @@ impl EventPaginator {
                 f = f.limit(self.page_size);
                 f
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        tracing::info!("updated_filters: {:#?}", self.oldest_timestamp);
+        tracing::info!("updated_filters: {:#?}", updated_filters);
 
         let events = if self.from_db {
             // Attempt to fetch from the database first
@@ -154,38 +153,60 @@ impl EventPaginator {
             {
                 Ok(events) => events,
                 // If database query fails, fall back to fetching from the relay
-                Err(_) => {
-                    self.client
+                Err(err) => {
+                    tracing::error!("Database query failed: {:?}", err);
+                    match self
+                        .client
                         .get_events_of(updated_filters.clone(), self.timeout)
-                        .await?
+                        .await
+                    {
+                        Ok(events) => events,
+                        Err(err) => {
+                            tracing::error!("Relay fetch failed: {:?}", err);
+                            self.done = true;
+                            return None;
+                        }
+                    }
                 }
             }
         } else {
             // Directly fetch from the relay
-            self.client
+            match self
+                .client
                 .get_events_of(updated_filters.clone(), self.timeout)
-                .await?
+                .await
+            {
+                Ok(events) => events,
+                Err(err) => {
+                    tracing::error!("Relay fetch failed: {:?}", err);
+                    self.done = true;
+                    return None;
+                }
+            }
         };
 
         if events.is_empty() || self.are_all_event_ids_present(&events) {
             self.done = true;
-            return Ok(vec![]);
+            return None;
         }
 
         // Update the oldest timestamp
         if let Some(oldest_event) = get_oldest_event(&events) {
             self.oldest_timestamp = Some(oldest_event.created_at());
+        } else {
+            self.done = true;
+            return None; // No valid oldest event available
         }
 
         // Update the filters
         self.filters = updated_filters;
         self.last_event_ids = events.iter().map(|event| event.id).collect();
-        Ok(events)
+        Some(events)
     }
 }
 
 impl Stream for EventPaginator {
-    type Item = Result<Vec<Event>, Error>;
+    type Item = Option<Vec<Event>>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -259,7 +280,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
             return None;
         }
 
-        if let Ok(events) = self.paginator.next_page().await {
+        if let Some(events) = self.paginator.next_page().await {
             let decrypt_results = self.convert_events(events).await;
             return decrypt_results.ok();
         }
@@ -437,7 +458,7 @@ pub async fn get_followers(
         async move {
             while !exit_cond.load(Ordering::SeqCst) {
                 let mut paginator = paginator.lock().await;
-                if let Ok(events) = paginator.next_page().await {
+                if let Some(events) = paginator.next_page().await {
                     events.iter().for_each(|event| {
                         let author = event.author().to_hex();
                         if let Err(e) = tx.send(author) {
@@ -490,8 +511,10 @@ impl NotificationPaginator {
     }
 
     pub async fn next_page(&mut self) -> Option<Vec<NotificationMsg>> {
-        let events = self.paginator.next_page().await.ok()?;
-        Some(process_notification_events(events))
+        self.paginator
+            .next_page()
+            .await
+            .map(process_notification_events)
     }
 }
 
@@ -655,27 +678,18 @@ mod tests {
             .kind(Kind::EncryptedDirectMessage)
             .author(public_key);
 
-        let page_size = 100;
+        let page_size = 10;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
             EventPaginator::new(Arc::new(client), vec![filter], timeout, page_size, false);
 
         let mut count = 0;
-        loop {
-            let result = paginator.next_page().await;
-            match result {
-                Ok(events) => {
-                    if paginator.done {
-                        break;
-                    }
-                    console_log!("events are: {:?}", events);
-                    count += events.len();
-                }
-                Err(e) => {
-                    console_log!("Error fetching events: {:?}", e);
-                    break;
-                }
+        while let Some(result) = paginator.next_page().await {
+            if paginator.done {
+                break;
             }
+            console_log!("events are: {:?}", result);
+            count += result.len();
         }
         assert!(count > 100);
     }
@@ -723,6 +737,7 @@ mod tests {
         let client = &Client::default();
         let arc_client = Arc::new(client.clone());
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
 
         client.connect().await;
 
@@ -739,7 +754,7 @@ mod tests {
         spawn_local({
             let exit_cond_clone = Arc::clone(&exit_cond);
             async move {
-                sleep(Duration::from_secs(15)).await;
+                sleep(Duration::from_secs(1)).await;
                 console_log!("Setting exit condition");
                 exit_cond_clone.store(true, Ordering::SeqCst);
             }
@@ -783,6 +798,7 @@ mod tests {
     async fn test_get_notification_paginator() {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
 
         let public_key = PublicKey::from_bech32(

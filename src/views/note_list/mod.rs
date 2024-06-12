@@ -52,17 +52,10 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     paginator.write();
                 let result = paginator_write.as_mut();
                 if let Some(paginator) = result {
-                    let events = paginator.next_page().await;
-                    match events {
-                        Ok(events) => {
-                            notes.extend(events.iter().cloned());
-                            is_loading.set(false);
-                        }
-                        Err(e) => {
-                            tracing::error!("Error: {:?}", e);
-                            is_loading.set(false);
-                        }
+                    if let Some(events) = paginator.next_page().await {
+                        notes.extend(events.iter().cloned());
                     }
+                    is_loading.set(false);
                 }
             }
         });
@@ -80,7 +73,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
             spawn(async move {
                 let sub_current = sub_current.read().clone();
                 let filters = sub_current.get_filters();
-                let mut clients = multiclient();
+                let clients = multiclient();
                 let client_result = clients.get_or_create(&sub_current.relay_set).await;
                 match client_result {
                     Ok(hc) => {
