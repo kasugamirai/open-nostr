@@ -312,9 +312,6 @@ pub fn Note(props: NoteProps) -> Element {
                             }
                         }
                     }
-                    // span{
-                    //     class: "note-action-wrapper-span ml-10",
-                    // }
                 }
 
                 if props.is_expand {

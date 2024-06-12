@@ -13822,6 +13822,17 @@ svg path {
   height: 24px;
 }
 
+.note-action-wrapper{
+  flex-wrap: wrap;
+}
+
+.note-action-wrapper .note-action{
+  flex-wrap: wrap;
+}
+.note-action-wrapper .note-action-expand{
+  margin-left: auto;
+} 
+
 .com-post .com-post-info-item:not(:first-child) {
   margin-left: 10px;
 }
@@ -14886,7 +14897,6 @@ svg path {
   display: flex;
   gap: 5px;
   font-size: var(--textSize-14);
-  /* 隐藏所有<input>元素的向下箭头 */
 }
 .com-dtpicker input {
   padding: 0;

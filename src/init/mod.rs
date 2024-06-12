@@ -119,7 +119,7 @@ pub fn App() -> Element {
             match db.get_all_users().await {
                 Ok(users) => {
                     if users.is_empty() {
-                        let user = User {
+                        let user: User = User {
                             name: NOT_LOGGED_IN_USER_NAME.to_string(),
                             inner: AccountType::NotLoggedIn(NoLogin::empty()),
                         };
