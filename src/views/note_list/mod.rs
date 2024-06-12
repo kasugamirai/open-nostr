@@ -3,24 +3,30 @@ pub mod detail_modal;
 pub mod note;
 pub mod reply;
 
+use std::borrow::{Borrow, BorrowMut};
+use std::cell::RefCell;
+use std::sync::atomic::Ordering;
 use std::collections::HashMap;
 use std::fmt::format;
-use std::sync::Arc;
-
-use dioxus::prelude::*;
-use nostr_indexeddb::database::Order;
-use nostr_sdk::{Event, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
-use note::Note;
-use wasm_bindgen::closure::Closure;
-use wasm_bindgen::{JsCast, JsValue};
+use std::rc::Rc;
+use std::sync::atomic::AtomicUsize;
 
 use crate::components::icons::LOADING;
 use crate::components::ModalManager;
 use crate::nostr::multiclient::MultiClient;
-use crate::nostr::register::{NotificationHandler, Register};
+use crate::nostr::register::{NotificationHandler, Register, RegisterError};
 use crate::nostr::EventPaginator;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
+use dioxus::prelude::*;
+use dioxus_elements::sub;
+use futures::future::BoxFuture;
+use nostr_indexeddb::database::Order;
+use nostr_sdk::{Event, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
+use note::Note;
+use std::sync::{mpsc, Arc, Mutex, RwLock};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::{JsCast, JsValue};
 
 #[derive(Debug, Clone, Props, PartialEq)]
 pub struct NoteListProps {
@@ -29,34 +35,6 @@ pub struct NoteListProps {
     #[props(default = true)]
     pub is_cache: bool,
 }
-
-pub fn handle_sub_list() -> NotificationHandler {
-    Arc::new(|notification| {
-        Box::pin(async move {
-            match notification {
-                RelayPoolNotification::Message {
-                    message: RelayMessage::Event { event, .. },
-                    ..
-                } => {
-                    tracing::info!(
-                        "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
-                        event.id.to_string(),
-                        event.author().to_string(),
-                        event.kind,
-                        event.content
-                    );
-
-                    Ok(false) // Return true to stop the handling process
-                }
-                _ => {
-                    tracing::info!("notification: {:?}", notification);
-                    Ok(false)
-                }
-            }
-        })
-    })
-}
-
 #[component]
 pub fn NoteList(props: NoteListProps) -> Element {
     let NoteListProps {
@@ -71,9 +49,43 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let mut paginator = use_signal(|| None);
     let mut is_loading = use_signal(|| false);
     let mut sub_register = use_context::<Signal<Register>>();
+    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
+    let new_event_counts = use_signal(|| 0);
 
+    let handle_sub_list = move || -> NotificationHandler {
+        Arc::new(move |notification| {
+        // let new_event_counts = new_event_counts.clone();
+            Box::pin(async move {
+                match notification {
+                    RelayPoolNotification::Message {
+                        message: RelayMessage::Event { event, .. },
+                        ..
+                    } => {
+                        tracing::info!(
+                            "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
+                            event.id.to_string(),
+                            event.author().to_string(),
+                            event.kind,
+                            event.content
+                        );
+                        Ok(false) 
+                    }
+                    _ => {
+                        tracing::info!("notification: {:?}", notification);
+                        Ok(false)
+                    }
+                }
+            })
+        })
+    };
+
+
+    use_effect(use_reactive((&new_event_counts,), move |(val,)| {
+        tracing::info!("new_event_counts: {:?}", val);
+        // 可以在这里添加其他逻辑，比如重新渲染或其他操作
+    }));
     let handle_fetch = move || {
         tracing::info!("handle_fetch");
         spawn(async move {
@@ -103,32 +115,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
             }
         });
     };
-    let handle_sub_list = move || -> NotificationHandler {
-        Arc::new(|notification| {
-            Box::pin(async move {
-                match notification {
-                    RelayPoolNotification::Message {
-                        message: RelayMessage::Event { event, .. },
-                        ..
-                    } => {
-                        tracing::info!(
-                            "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
-                            event.id.to_string(),
-                            event.author().to_string(),
-                            event.kind,
-                            event.content
-                        );
-                        // reload_flag.set(Timestamp::now());
-                        Ok(false) // Return true to stop the handling process
-                    }
-                    _ => {
-                        tracing::info!("notification: {:?}", notification);
-                        Ok(false)
-                    }
-                }
-            })
-        })
-    };
     use_effect(use_reactive(
         (&name, &reload_time, &is_cache),
         move |(s, time, iscache)| {
@@ -139,10 +125,14 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 sub_current.set(current.clone());
             }
 
+            let handler = handle_sub_list.clone();
+            tracing::info!("sub_current: {:?}", 1111);
             spawn(async move {
+                tracing::info!("sub_current: {:?}", 2222);
                 let sub_current = sub_current.read().clone();
                 let filters = sub_current.get_filters();
                 let mut clients = multiclient();
+                tracing::info!("sub_current: {:?}", sub_current);
                 let client_result = clients.get_or_create(&sub_current.relay_set).await;
 
                 match client_result {
@@ -158,15 +148,18 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                     &client,
                                     sub_id.clone(),
                                     filters.clone(),
-                                    handle_sub_list(),
+                                    handler(),
                                     None,
                                 )
                                 .await
                                 .unwrap();
                             if sub_current.live {
-                                sub_register().handle_notifications(&client).await.unwrap();
-
-                                //     sub_register().set_stop_flag(&sub_id, false).await;
+                                spawn({
+                                    let client = client.clone();
+                                    async move {
+                                        sub_register().handle_notifications(&client).await.unwrap();
+                                    }
+                                });
                             }
                             //     sub_register().set_stop_flag(&sub_id, true).await;
                             // }
@@ -186,7 +179,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                         }
                         {
                             tracing::info!("is_cache: {:?}", iscache);
-                            if !iscache {
+                            if !iscache && !sub_current.live {
                                 notes.set(vec![]);
                                 handle_fetch();
                                 return;
@@ -212,22 +205,44 @@ pub fn NoteList(props: NoteListProps) -> Element {
             });
         },
     ));
+
     let on_mounted = move |_| {
-        if name.is_empty() {
-        } else {
-            let subs_map_lock = subs_map();
-            if !subs_map_lock.contains_key(&name) {
-                navigator().replace("/404");
-            }
+        if name.clone().is_empty() {
+            navigator().replace("/404");
         }
         // handle_fetch();
     };
+    // spawn(async move {
+    //     let subs_map_lock = subs_map();
+    //     if subs_map_lock.contains_key(&name.clone()) {
+    //         let sub_current = subs_map_lock.get(&namne.clone()).unwrap();
+    //         let clients = multiclient();
+    //         let hc = clients.get_or_create(&sub_current.relay_set).await;
+    //         if sub_current.live {
+    //             match hc {
+    //                 Ok(client)=>{
+    //                     let client = client.client();
+    //                     sub_register.write().add_subscription(
+    //                         &client,
+    //                         SubscriptionId::new(format!("note-list-{}", sub_current.name)),
+    //                         sub_current.get_filters(),
+    //                         handle_sub_list(),
+    //                         None,
+    //                     ).await.unwrap();
+    //                     sub_register().handle_notifications(&client).await.unwrap();
+    //                 },
+    //                 Err(e)=>{
+    //                     tracing::error!("Error: {:?}", e);
+    //                 }
+    //             }
 
+    //         }
+    //     }
+    // });
     // use_effect(use_reactive(&reload_flag(), move |next_reload_flag| {
     //     tracing::info!("reload_flag: {:?}", next_reload_flag);
     //     handle_fetch();
     // }));
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
     rsx! {
             div {
                 onmounted: on_mounted,
