@@ -53,8 +53,6 @@ macro_rules! create_encrypted_filters {
     }};
 }
 
-/// Error enum to represent possible errors in the application.
-
 #[derive(Debug)]
 pub struct DecryptedMsg {
     /// Id
