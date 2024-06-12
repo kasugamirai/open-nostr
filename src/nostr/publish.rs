@@ -14,6 +14,8 @@ pub enum Error {
     Signer(#[from] nostr_sdk::signer::Error),
 }
 
+type Result<T> = std::result::Result<T, Error>;
+
 macro_rules! sign_and_send_event {
     ($client:expr, $signer:expr, $builder:expr) => {{
         let event = $signer.sign_event_builder($builder).await?;
@@ -27,7 +29,7 @@ pub async fn publish_text_note(
     signer: &NostrSigner,
     content: &str,
     tags: Vec<Tag>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::text_note(content, tags).custom_created_at(Timestamp::now());
     sign_and_send_event!(client, signer, builder)
 }
@@ -37,7 +39,7 @@ pub async fn repost(
     signer: &NostrSigner,
     event: &Event,
     url: Option<UncheckedUrl>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::repost(event, url);
     sign_and_send_event!(client, signer, builder)
 }
@@ -47,7 +49,7 @@ pub async fn reaction(
     signer: &NostrSigner,
     event: &Event,
     reaction: &str,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::reaction(event, reaction);
     sign_and_send_event!(client, signer, builder)
 }
@@ -56,7 +58,7 @@ pub async fn new_channel(
     client: &Client,
     signer: &NostrSigner,
     metadata: &Metadata,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::channel(metadata);
     sign_and_send_event!(client, signer, builder)
 }
@@ -67,7 +69,7 @@ pub async fn set_channel_metadata(
     channel_id: EventId,
     metadata: &Metadata,
     url: Option<Url>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::channel_metadata(channel_id, url, metadata);
     sign_and_send_event!(client, signer, builder)
 }
@@ -78,7 +80,7 @@ pub async fn send_channel_msg(
     channel_id: EventId,
     msg: &str,
     relay_url: Url,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::channel_msg(channel_id, relay_url, msg);
     sign_and_send_event!(client, signer, builder)
 }
@@ -88,7 +90,7 @@ pub async fn file_metadata(
     signer: &NostrSigner,
     metadata: FileMetadata,
     description: &str,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::file_metadata(description, metadata);
     sign_and_send_event!(client, signer, builder)
 }
@@ -99,7 +101,7 @@ pub async fn send_private_msg(
     receiver: PublicKey,
     message: &str,
     reply_to: Option<EventId>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::private_msg_rumor(receiver, message, reply_to);
     sign_and_send_event!(client, signer, builder)
 }
@@ -108,7 +110,7 @@ pub async fn delete_event(
     client: &Client,
     signer: &NostrSigner,
     event_ids: Vec<EventId>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::delete(event_ids);
     sign_and_send_event!(client, signer, builder)
 }
@@ -117,7 +119,7 @@ pub async fn set_relay_list(
     client: &Client,
     signer: &NostrSigner,
     relays: Vec<(Url, Option<RelayMetadata>)>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::relay_list(relays);
     sign_and_send_event!(client, signer, builder)
 }
@@ -126,7 +128,7 @@ pub async fn set_contact_list(
     client: &Client,
     signer: &NostrSigner,
     contacts: Vec<Contact>,
-) -> Result<EventId, Error> {
+) -> Result<EventId> {
     let builder = EventBuilder::contact_list(contacts);
     sign_and_send_event!(client, signer, builder)
 }

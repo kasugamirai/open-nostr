@@ -20,6 +20,8 @@ pub enum Error {
     NodeIdNotFound,
 }
 
+type Result<T> = std::result::Result<T, Error>;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TextNote {
     pub inner: Event,
@@ -50,7 +52,7 @@ impl TextNote {
         self.reply_to
     }
 
-    fn process_tags(event: &Event, text_note: &mut TextNote) -> Result<(), Error> {
+    fn process_tags(event: &Event, text_note: &mut TextNote) -> Result<()> {
         let mut no_marker_array: Vec<EventId> = vec![];
 
         event
@@ -100,7 +102,7 @@ impl TextNote {
     }
 }
 
-fn normalize_e_tag(t: &Tag) -> Result<Option<TagStandard>, Error> {
+fn normalize_e_tag(t: &Tag) -> Result<Option<TagStandard>> {
     match t.kind() {
         TagKind::SingleLetter(SingleLetterTag {
             character: Alphabet::E,
@@ -121,7 +123,7 @@ fn normalize_e_tag(t: &Tag) -> Result<Option<TagStandard>, Error> {
 impl TryFrom<Event> for TextNote {
     type Error = Error;
 
-    fn try_from(event: Event) -> Result<Self, Self::Error> {
+    fn try_from(event: Event) -> Result<Self> {
         if event.kind == Kind::TextNote {
             let mut text_note = TextNote::new(event.clone());
             let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly

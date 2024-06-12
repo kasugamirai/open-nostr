@@ -14,16 +14,15 @@ pub enum RegisterError {
     SubscriptionNotFound,
     #[error(transparent)]
     Client(#[from] nostr_sdk::client::Error),
-    #[error("Other error: {0}")]
-    Other(String),
 }
+
+type Result<T> = std::result::Result<T, RegisterError>;
 
 pub type NotificationHandler = Arc<
     dyn Fn(
             RelayPoolNotification,
-        ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = Result<bool, RegisterError>> + Send>,
-        > + Send
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool>> + Send>>
+        + Send
         + Sync,
 >;
 
@@ -63,7 +62,7 @@ impl Register {
         filters: Vec<Filter>,
         handler: NotificationHandler,
         opts: Option<SubscribeAutoCloseOptions>,
-    ) -> Result<(), RegisterError> {
+    ) -> Result<()> {
         client
             .subscribe_with_id(sub_id.clone(), filters, opts)
             .await;
@@ -76,10 +75,7 @@ impl Register {
         self.handlers.remove(sub_id);
     }
 
-    async fn handle_notification(
-        &self,
-        notification: RelayPoolNotification,
-    ) -> Result<bool, RegisterError> {
+    async fn handle_notification(&self, notification: RelayPoolNotification) -> Result<bool> {
         if let RelayPoolNotification::Message {
             message: RelayMessage::Event {
                 subscription_id, ..
@@ -97,7 +93,7 @@ impl Register {
         Ok(false)
     }
 
-    pub async fn handle_notifications(&self, client: &Client) -> Result<(), RegisterError> {
+    pub async fn handle_notifications(&self, client: &Client) -> Result<()> {
         tracing::info!("Register::handle_notifications");
         client
             .handle_notifications(|notification| {
