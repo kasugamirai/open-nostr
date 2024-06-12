@@ -37,6 +37,7 @@ pub enum Error {
     #[error("Event not found")]
     EventNotFound,
 }
+type Result<T> = std::result::Result<T, Error>;
 
 macro_rules! create_encrypted_filters {
     ($kind:expr, $author:expr, $public_key:expr) => {{
@@ -235,7 +236,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         timeout: Option<Duration>,
         page_size: usize,
         from_db: bool,
-    ) -> Result<DecryptedMsgPaginator<'a>, Error> {
+    ) -> Result<DecryptedMsgPaginator<'a>> {
         let public_key = signer.public_key().await?;
 
         let (me, target) =
@@ -250,7 +251,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         })
     }
 
-    async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
+    async fn decrypt_dm_event(&self, event: &Event) -> Result<String> {
         let msg = self
             .signer
             .nip04_decrypt(self.target_pub_key, &event.content)
@@ -258,7 +259,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         Ok(msg)
     }
 
-    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>> {
         let futures: Vec<_> = events
             .into_iter()
             .map(|event| {
@@ -293,7 +294,7 @@ pub async fn get_event_by_id(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Option<Event>, Error> {
+) -> Result<Option<Event>> {
     let filter = Filter::new().id(*event_id).limit(1);
     let events = client.get_events_of(vec![filter], timeout).await?;
     Ok(events.into_iter().next())
@@ -303,7 +304,7 @@ pub async fn get_events_by_ids(
     client: &Client,
     event_ids: &[EventId],
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>, Error> {
+) -> Result<Vec<Event>> {
     let filters: Vec<Filter> = event_ids.iter().map(|id| Filter::new().id(*id)).collect();
     let events = client.get_events_of(filters, timeout).await?;
     Ok(events)
@@ -313,7 +314,7 @@ pub async fn get_metadata(
     client: &Client,
     public_key: &PublicKey,
     timeout: Option<Duration>,
-) -> Result<Metadata, Error> {
+) -> Result<Metadata> {
     let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
     let events = client.get_events_of(vec![filter], timeout).await?;
 
@@ -334,7 +335,7 @@ pub async fn get_repost(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>, Error> {
+) -> Result<Vec<Event>> {
     let filter = Filter::new().kind(Kind::Repost).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
@@ -348,7 +349,7 @@ pub async fn get_reactions(
     event_id: &EventId,
     timeout: Option<Duration>,
     mut is_fetch: bool,
-) -> Result<HashMap<String, i32>, Error> {
+) -> Result<HashMap<String, i32>> {
     let mut reaction_map = HashMap::new();
     let mut events: Vec<Event> = Vec::new();
 
@@ -400,7 +401,7 @@ pub async fn get_replies(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>, Error> {
+) -> Result<Vec<Event>> {
     let filter = Filter::new().kind(Kind::TextNote).custom_tag(
         SingleLetterTag::lowercase(Alphabet::E),
         vec![event_id.to_hex()],
@@ -414,7 +415,7 @@ pub async fn get_following(
     client: &Client,
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<String>, Error> {
+) -> Result<Vec<String>> {
     let filter = Filter::new().kind(Kind::ContactList).author(*public_key);
     let events = client.get_events_of(vec![filter], timeout).await?;
     let mut ret: Vec<String> = vec![];
