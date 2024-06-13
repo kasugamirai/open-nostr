@@ -326,10 +326,7 @@ pub async fn get_repost(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>> {
-    let filter = Filter::new().kind(Kind::Repost).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+    let filter = Filter::new().kind(Kind::Repost).event(*event_id);
     let events = client.get_events_of(vec![filter], timeout).await?;
     Ok(events)
 }
@@ -343,10 +340,7 @@ pub async fn get_reactions(
     let mut reaction_map = HashMap::new();
     let mut events: Vec<Event> = Vec::new();
 
-    let mut reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+    let mut reaction_filter = Filter::new().kind(Kind::Reaction).event(*event_id);
 
     // Get reactions from db
     let db_filter = reaction_filter.clone();
@@ -392,10 +386,7 @@ pub async fn get_replies(
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
 ) -> Result<Vec<Event>> {
-    let filter = Filter::new().kind(Kind::TextNote).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+    let filter = Filter::new().kind(Kind::TextNote).event(*event_id);
     let events = client.get_events_of(vec![filter], timeout).await?;
     // TODO: filter out the mentions if necessary
     Ok(events)
@@ -430,10 +421,7 @@ pub async fn get_followers(
     timeout: Option<std::time::Duration>,
     from_db: bool,
 ) -> impl Stream<Item = String> {
-    let filter = Filter::new().kind(Kind::ContactList).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::P),
-        vec![public_key.to_hex()],
-    );
+    let filter = Filter::new().kind(Kind::ContactList).pubkey(*public_key);
 
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -510,12 +498,7 @@ impl NotificationPaginator {
 }
 
 pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
-    let create_filter = |kind| {
-        Filter::new().kind(kind).custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![public_key.to_hex()],
-        )
-    };
+    let create_filter = |kind| Filter::new().kind(kind).pubkey(*public_key);
 
     vec![
         create_filter(Kind::Reaction),
