@@ -5,7 +5,7 @@ use nostr_indexeddb::WebDatabase;
 use nostr_sdk::ClientBuilder;
 
 use crate::components::{ModalManager, ModalManagerProvider};
-use crate::nostr::register::*;
+use crate::nostr::Register;
 use crate::nostr::{EventCache, HashedClient, MultiClient};
 use crate::store::subscription::{CustomHashTag, CustomSub, FilterTemp, RelaySet};
 use crate::store::user::NoLogin;

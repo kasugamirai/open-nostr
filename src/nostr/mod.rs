@@ -2,7 +2,7 @@ mod fetch;
 mod multiclient;
 mod note;
 mod publish;
-pub mod register;
+mod register;
 pub mod utils;
 pub use fetch::{
     create_notification_filters, get_event_by_id, get_events_by_ids, get_followers, get_following,
@@ -22,3 +22,5 @@ pub use note::DisplayOrder;
 pub use note::ReplyTreeManager;
 pub use note::ReplyTrees;
 pub use note::TextNote;
+pub use register::NotificationHandler;
+pub use register::Register;
