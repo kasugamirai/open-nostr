@@ -5,9 +5,7 @@ use crate::components::Notification;
 use nostr_sdk::{Timestamp,PublicKey};
 use crate::nostr::multiclient::MultiClient;
 use crate::store::subscription::{CustomAccounts, CustomSub, FilterTemp,Account};
-use crate::store::{
-  CBWebDatabase, CAPYBASTR_DBNAME,DEFAULT_RELAY_SET_KEY,
-};
+use crate::store::DEFAULT_RELAY_SET_KEY;
 use crate::init::FOLLOWING_SUB_KEY;
 use crate::nostr::get_following;
 #[component]
@@ -95,11 +93,11 @@ pub fn Home() -> Element {
         if *is_loaded.read() {
           div{
             class:"flex-box-left",
-              // NoteList {
-              //     name: sub_name.clone(),
-              //     reload_time: relaod_flag().clone(),
-              //     is_cache: is_cache().clone(),
-              // }
+              NoteList {
+                  name: sub_name.clone(),
+                  reload_time: relaod_flag().clone(),
+                  is_cache: is_cache().clone(),
+              }
           }
           div{
             Notification{
