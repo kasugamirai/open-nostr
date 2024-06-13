@@ -156,18 +156,8 @@ impl EventPaginator {
                 // If database query fails, fall back to fetching from the relay
                 Err(err) => {
                     tracing::error!("Database query failed: {:?}", err);
-                    match self
-                        .client
-                        .get_events_of(updated_filters.clone(), self.timeout)
-                        .await
-                    {
-                        Ok(events) => events,
-                        Err(err) => {
-                            tracing::error!("Relay fetch failed: {:?}", err);
-                            self.done = true;
-                            return None;
-                        }
-                    }
+                    self.done = true;
+                    return None;
                 }
             }
         } else {
