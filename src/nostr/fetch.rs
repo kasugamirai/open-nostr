@@ -7,8 +7,8 @@ use futures::{Future, StreamExt};
 use gloo_timers::future::TimeoutFuture;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{
-    Alphabet, Client, Event, EventId, Filter, JsonUtil, Kind, Metadata, NostrSigner, PublicKey,
-    SingleLetterTag, Tag, TagStandard, Timestamp,
+    Client, Event, EventId, Filter, JsonUtil, Kind, Metadata, NostrSigner, PublicKey, Tag,
+    TagStandard, Timestamp,
 };
 use thiserror::Error;
 use tokio::sync::{mpsc, Mutex};
@@ -42,14 +42,14 @@ type Result<T> = std::result::Result<T, Error>;
 macro_rules! create_encrypted_filters {
     ($kind:expr, $author:expr, $public_key:expr) => {{
         (
-            Filter::new().kind($kind).author($author).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![$author.to_hex()],
-            ),
-            Filter::new().kind($kind).author($author).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![$public_key.to_hex()],
-            ),
+            Filter::new()
+                .kind($kind)
+                .author($author)
+                .pubkey($public_key),
+            Filter::new()
+                .kind($kind)
+                .author($author)
+                .pubkey($public_key),
         )
     }};
 }
