@@ -14,8 +14,8 @@ use wasm_bindgen::{JsCast, JsValue};
 
 use crate::components::icons::LOADING;
 use crate::components::ModalManager;
-use crate::nostr::multiclient::MultiClient;
 use crate::nostr::EventPaginator;
+use crate::nostr::MultiClient;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
 

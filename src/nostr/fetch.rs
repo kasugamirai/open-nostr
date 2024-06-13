@@ -82,6 +82,7 @@ impl From<Event> for DecryptedMsg {
         }
     }
 }
+
 #[derive(Debug, Clone)]
 #[allow(clippy::arc_with_non_send_sync)]
 pub struct EventPaginator {
@@ -97,6 +98,7 @@ pub struct EventPaginator {
 
 unsafe impl Send for EventPaginator {}
 unsafe impl Sync for EventPaginator {}
+
 impl EventPaginator {
     pub fn new(
         client: Arc<Client>,

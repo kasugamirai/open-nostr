@@ -4,8 +4,8 @@ use std::hash::Hash;
 use dioxus::prelude::*;
 use nostr_sdk::{Event, EventId, Timestamp};
 
-use crate::nostr::multiclient::MultiClient;
 use crate::nostr::note::{self, ReplyTreeManager, ReplyTrees, TextNote};
+use crate::nostr::MultiClient;
 use crate::nostr::{get_event_by_id, get_replies};
 use crate::views::note_list::note::Note;
 use crate::CustomSub;

@@ -3,8 +3,8 @@ use nostr_sdk::{Event, JsonUtil};
 
 use crate::components::Avatar;
 use crate::nostr::get_event_by_id;
-use crate::nostr::multiclient::MultiClient;
 use crate::nostr::note::TextNote;
+use crate::nostr::MultiClient;
 /// This is the reply view for the note component
 /// /
 ///
