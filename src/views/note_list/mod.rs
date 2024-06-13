@@ -14,6 +14,7 @@ use std::sync::atomic::AtomicUsize;
 
 use crate::components::icons::LOADING;
 use crate::components::ModalManager;
+use crate::init::Counter;
 use crate::nostr::multiclient::MultiClient;
 use crate::nostr::register::{NotificationHandler, Register, RegisterError};
 use crate::nostr::EventPaginator;
@@ -38,10 +39,12 @@ pub struct NoteListProps {
 }
 
 
-pub fn handle_sub_list() -> NotificationHandler {
-    // let counts = use_context::<Signal<Arc<RwLock<usize>>>>();
+pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandler {
+    let counts = use_context::<Signal<Counter>>();
     Arc::new(move |notification| {
-    // let new_event_counts = new_event_counts.clone();
+        let counts_clone = {}
+        let manager = sub_id.clone(); // 获取指针以传递给闭包
+
         Box::pin(async move {
             match notification {
                 RelayPoolNotification::Message {
@@ -55,10 +58,14 @@ pub fn handle_sub_list() -> NotificationHandler {
                         event.kind,
                         event.content
                     );
-                    // let mut counts = counts.write().borrow_mut();
-                    // *counts += 1;
-                    // // counts().write().borrow_mut() + 1;
-
+                    // let mut counts = use_context::<Signal<usize>>();
+                    // // counts.write().borrow_mut() + 1;
+                    // counts +=1;
+                     // Update the counts in a thread-safe way
+                    {
+                        let mut counts = counts_clone.write();
+                        // counts.inc(&sub_id);
+                    }
                     Ok(false) 
                 }
                 _ => {
@@ -68,7 +75,7 @@ pub fn handle_sub_list() -> NotificationHandler {
             }
         })
     })
-};
+}
 #[component]
 pub fn NoteList(props: NoteListProps) -> Element {
     let NoteListProps {
@@ -86,7 +93,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let mut modal_manager = use_context::<Signal<ModalManager>>();
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
-    let counts = use_context::<Signal<Arc<RwLock<usize>>>>();
 
 
 
@@ -150,13 +156,20 @@ pub fn NoteList(props: NoteListProps) -> Element {
                             let sub_id =
                                 SubscriptionId::new(format!("note-list-{}", sub_current.name));
                             // let handle_sub_list: NotificationHandler = handle_sub_list.clone();
+                            
                             sub_register
                                 .write()
                                 .add_subscription(
                                     &client,
                                     sub_id.clone(),
                                     filters.clone(),
-                                    handler(),
+                                    handler(Arc::new(
+                                        RwLock::new(
+                                            SubscriptionId::new(
+                                                format!("note-list-{}", sub_current.name.clone())
+                                            )
+                                        )
+                                    )),
                                     None,
                                 )
                                 .await

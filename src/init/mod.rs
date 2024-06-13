@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::ClientBuilder;
+use nostr_sdk::{ClientBuilder, SubscriptionId};
 
 use crate::components::{ModalManager, ModalManagerProvider};
 use crate::nostr::multiclient::{EventCache, HashedClient, MultiClient};
@@ -20,6 +20,33 @@ pub const EXAMPLE_SUB_TAG: &str = "nostr";
 pub const NOSTR_DB_NAME: &str = "nostr-db";
 pub const LAST_LOGINED_KEY: &str = "last_logined";
 pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
+
+#[derive(Debug)]
+pub struct Counter {
+    counts: RwLock<HashMap<SubscriptionId, usize>>,
+}
+impl Counter {
+    pub fn new() -> Self {
+        Self {
+            counts: RwLock::new(HashMap::new()),
+        }
+    }
+    pub fn get(&self, id: &SubscriptionId) -> usize {
+        let counts = self.counts.read().unwrap();
+        *counts.get(id).unwrap_or(&0)
+    }
+    pub fn inc(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert(0);
+        *count += 1;
+    }
+    pub fn dec(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert(0);
+        *count -= 1;
+    }
+
+}
 
 #[allow(non_snake_case)]
 pub fn App() -> Element {
@@ -39,8 +66,8 @@ pub fn App() -> Element {
     use_context_provider(|| Signal::new(ModalManager::new()));
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
 
+    use_context_provider(|| Signal::new(Counter::new()));
     use_context_provider(|| Signal::new(Register::new()));
-    use_context_provider(|| Signal::new(Arc::new(RwLock::new(0usize))));
     // hook: on mounted
     let on_mounted = move |_| {
         // init treading
