@@ -280,7 +280,7 @@ fn replace_qoutes(content: &str) -> String {
     let re = Regex::new(r"nostr:note[a-zA-Z0-9]{59}").unwrap();
     re.replace_all(content, |caps: &regex::Captures| {
         let note_id = &caps[0];
-        log::info!("note_id: {}", note_id);
+        tracing::info!("note_id: {}", note_id);
         format!(
             r#"<a class="post-link" href="javascript:void(0)">{}</a>"#,
             note_id
