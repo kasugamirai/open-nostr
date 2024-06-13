@@ -1,6 +1,6 @@
 mod fetch;
 mod multiclient;
-pub mod note;
+mod note;
 mod publish;
 pub mod register;
 pub mod utils;
@@ -17,3 +17,8 @@ pub use publish::{
 pub use multiclient::EventCache;
 pub use multiclient::HashedClient;
 pub use multiclient::MultiClient;
+
+pub use note::DisplayOrder;
+pub use note::ReplyTreeManager;
+pub use note::ReplyTrees;
+pub use note::TextNote;
