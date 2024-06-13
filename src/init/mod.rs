@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
@@ -39,6 +40,7 @@ pub fn App() -> Element {
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
 
     use_context_provider(|| Signal::new(Register::new()));
+    use_context_provider(|| Signal::new(Arc::new(RwLock::new(0usize))));
     // hook: on mounted
     let on_mounted = move |_| {
         // init treading

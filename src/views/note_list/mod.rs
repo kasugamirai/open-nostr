@@ -6,6 +6,7 @@ pub mod reply;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
 use std::sync::atomic::Ordering;
+use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
 use std::fmt::format;
 use std::rc::Rc;
@@ -18,13 +19,13 @@ use crate::nostr::register::{NotificationHandler, Register, RegisterError};
 use crate::nostr::EventPaginator;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
+use chacha20::cipher::typenum::Integer;
 use dioxus::prelude::*;
 use dioxus_elements::sub;
 use futures::future::BoxFuture;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{Event, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
 use note::Note;
-use std::sync::{mpsc, Arc, Mutex, RwLock};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
 
@@ -35,6 +36,39 @@ pub struct NoteListProps {
     #[props(default = true)]
     pub is_cache: bool,
 }
+
+
+pub fn handle_sub_list() -> NotificationHandler {
+    // let counts = use_context::<Signal<Arc<RwLock<usize>>>>();
+    Arc::new(move |notification| {
+    // let new_event_counts = new_event_counts.clone();
+        Box::pin(async move {
+            match notification {
+                RelayPoolNotification::Message {
+                    message: RelayMessage::Event { event, .. },
+                    ..
+                } => {
+                    tracing::info!(
+                        "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
+                        event.id.to_string(),
+                        event.author().to_string(),
+                        event.kind,
+                        event.content
+                    );
+                    // let mut counts = counts.write().borrow_mut();
+                    // *counts += 1;
+                    // // counts().write().borrow_mut() + 1;
+
+                    Ok(false) 
+                }
+                _ => {
+                    tracing::info!("notification: {:?}", notification);
+                    Ok(false)
+                }
+            }
+        })
+    })
+};
 #[component]
 pub fn NoteList(props: NoteListProps) -> Element {
     let NoteListProps {
@@ -52,40 +86,14 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let mut modal_manager = use_context::<Signal<ModalManager>>();
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
-    let new_event_counts = use_signal(|| 0);
-
-    let handle_sub_list = move || -> NotificationHandler {
-        Arc::new(move |notification| {
-        // let new_event_counts = new_event_counts.clone();
-            Box::pin(async move {
-                match notification {
-                    RelayPoolNotification::Message {
-                        message: RelayMessage::Event { event, .. },
-                        ..
-                    } => {
-                        tracing::info!(
-                            "eventid: {:?}, author: {:?}, eventkind: {:?}, eventcontent: {:?}",
-                            event.id.to_string(),
-                            event.author().to_string(),
-                            event.kind,
-                            event.content
-                        );
-                        Ok(false) 
-                    }
-                    _ => {
-                        tracing::info!("notification: {:?}", notification);
-                        Ok(false)
-                    }
-                }
-            })
-        })
-    };
+    let counts = use_context::<Signal<Arc<RwLock<usize>>>>();
 
 
-    use_effect(use_reactive((&new_event_counts,), move |(val,)| {
-        tracing::info!("new_event_counts: {:?}", val);
-        // 可以在这里添加其他逻辑，比如重新渲染或其他操作
-    }));
+
+    // use_effect(use_reactive((&new_event_counts,), move |(val,)| {
+    //     tracing::info!("new_event_counts: {:?}", val);
+    //     // 可以在这里添加其他逻辑，比如重新渲染或其他操作
+    // }));
     let handle_fetch = move || {
         tracing::info!("handle_fetch");
         spawn(async move {
