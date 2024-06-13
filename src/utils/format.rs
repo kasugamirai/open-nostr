@@ -3,7 +3,7 @@ use nostr_sdk::{EventId, FromBech32, PublicKey};
 use regex::Regex;
 
 use crate::components::{Mention, Quote};
-use crate::nostr::utils::{is_note_address, AddressType};
+use crate::nostr::{is_note_address, AddressType};
 /// format public key
 ///
 /// # Parameters

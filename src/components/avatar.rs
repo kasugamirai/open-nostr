@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use nostr_sdk::{Event, Filter, JsonUtil, Kind, Metadata, PublicKey};
 
-use crate::nostr::utils::get_newest_event;
+use crate::nostr::get_newest_event;
 use crate::nostr::{EventCache, MultiClient};
 use crate::utils::format::format_create_at;
 

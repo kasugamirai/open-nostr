@@ -3,7 +3,7 @@ mod multiclient;
 mod note;
 mod publish;
 mod register;
-pub mod utils;
+mod utils;
 pub use fetch::{
     create_notification_filters, get_event_by_id, get_events_by_ids, get_followers, get_following,
     get_metadata, get_reactions, get_replies, get_repost, process_notification_events,
@@ -24,3 +24,11 @@ pub use note::ReplyTrees;
 pub use note::TextNote;
 pub use register::NotificationHandler;
 pub use register::Register;
+
+pub use utils::get_ancestors;
+pub use utils::get_children;
+pub use utils::get_newest_event;
+pub use utils::get_oldest_event;
+pub use utils::hash_filter;
+pub use utils::is_note_address;
+pub use utils::AddressType;
