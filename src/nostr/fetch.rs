@@ -144,7 +144,6 @@ impl EventPaginator {
             })
             .collect::<Vec<_>>();
 
-        tracing::info!("updated_filters: {:#?}", self.oldest_timestamp);
 
         let events = if self.from_db {
             // Attempt to fetch from the database first

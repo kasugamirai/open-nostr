@@ -1,12 +1,10 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use dioxus::prelude::*;
-use nostr_sdk::{Alphabet, Event, EventId, Filter, JsonUtil, Kind};
-use wasm_bindgen_test::console_log;
+use nostr_sdk::{Event, JsonUtil, Kind};
 
-use crate::components::icons::*;
-use crate::components::{Avatar, ModalManager};
+use crate::components::{icons::*, MODAL_MANAGER};
+use crate::components::Avatar;
 use crate::nostr::get_reactions;
 use crate::nostr::multiclient::MultiClient;
 use crate::nostr::note::{ReplyTreeManager, TextNote};
@@ -37,25 +35,11 @@ pub fn Note(props: NoteProps) -> Element {
     let multiclient = use_context::<Signal<MultiClient>>();
     let reply_tree_manager = use_context::<Signal<ReplyTreeManager>>();
 
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let mut event = use_signal(|| props.event.clone());
-    // let mut notetext = use_signal(|| props.event.content.clone());
-    // let mut show_detail = use_signal(|| false);
-    // let mut detail = use_signal(|| String::new());
-    // let mut pk = use_signal(|| props.event.author().clone());
-    // let mut eid = use_signal(|| props.event.id().clone());
-    // let mut e_id = use_signal(|| eid().to_hex());
+    
     let mut relay_name = use_signal(|| match props.relay_name.clone() {
         Some(s) => s,
         None => String::from("default"),
-    });
-    let mut element = use_signal(|| {
-        rsx! {
-            div {
-                class: "pl-52",
-               "Loading..."
-            }
-        }
     });
     let mut render_content = use_signal(|| String::from("Loading..."));
     let mut reply = use_signal(|| match TextNote::try_from(props.event.clone()) {
@@ -200,17 +184,17 @@ pub fn Note(props: NoteProps) -> Element {
                     },
                 }
                 MoreInfo {
-                    on_detail: move |e| {
+                    on_detail: move |_| {
                         let json_value: serde_json::Value = serde_json::from_str(&props.event.as_json()).unwrap();
                         let formatted_json = serde_json::to_string_pretty(&json_value).unwrap();
                         let _id = event().id().to_hex();
-                            let modal_id = modal_manager.write().add_modal(rsx! {
+                            let modal_id = MODAL_MANAGER.write().add_modal(rsx! {
                                 DetailModal {
                                     detail: formatted_json,
                                     id: _id.clone(),
                                 }
                             }, _id.clone());
-                            modal_manager.write().open_modal(&modal_id);
+                            MODAL_MANAGER.write().open_modal(&modal_id);
                     },
                 }
             }
@@ -343,7 +327,6 @@ pub fn Note(props: NoteProps) -> Element {
 #[component]
 pub fn MoreInfo(on_detail: EventHandler<dioxus::prelude::Event<MouseData>>) -> Element {
     let mut edit = use_signal(|| false);
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
     // close when click outside
     let popover = {
         rsx! {
@@ -403,18 +386,18 @@ pub fn MoreInfo(on_detail: EventHandler<dioxus::prelude::Event<MouseData>>) -> E
                 "data-popover-id": popover_id(),
                 onpointerenter: move |e| {
                     if !popover_id().is_empty() {
-                        modal_manager.write()
+                        MODAL_MANAGER.write()
                             .update_popover_position(&popover_id(), e.page_coordinates().to_tuple())
                     }
                 },
                 onclick: move |e| {
                     e.stop_propagation();
                     let (x, y) = e.page_coordinates().to_tuple();
-                    if modal_manager.read().has_popover(&popover_id()) {
-                        modal_manager.write().open_modal(&popover_id());
+                    if MODAL_MANAGER.read().has_modal(&popover_id()) {
+                        MODAL_MANAGER.write().open_modal(&popover_id());
                     } else {
-                        let popover_modal_id = modal_manager.write().add_popover(popover.clone(), (x, y));
-                        modal_manager.write().open_modal(&popover_modal_id);
+                        let popover_modal_id = MODAL_MANAGER.write().add_popover(popover.clone(), (x, y));
+                        MODAL_MANAGER.write().open_modal(&popover_modal_id);
                         popover_id.set(popover_modal_id);
                     }
                 },

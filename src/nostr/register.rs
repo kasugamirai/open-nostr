@@ -54,6 +54,13 @@ impl Register {
             *stop_flag = value;
         }
     }
+    pub async fn get_sub_flag(&self, sub_id: &SubscriptionId) -> bool {
+        if let Some(entry) = self.handlers.get(sub_id) {
+            let (_, stop_flag) = entry.value();
+            return *stop_flag.read().await;
+        }
+        false
+    }
 
     pub async fn add_subscription(
         &self,

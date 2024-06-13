@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, SubscriptionId};
 
-use crate::components::{ModalManager, ModalManagerProvider};
+use crate::components::ModalManagerProvider;
 use crate::nostr::multiclient::{EventCache, HashedClient, MultiClient};
 use crate::nostr::register::*;
 use crate::store::subscription::{CustomHashTag, CustomSub, FilterTemp, RelaySet};
@@ -23,17 +23,18 @@ pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
 
 #[derive(Debug)]
 pub struct Counter {
-    counts: RwLock<HashMap<SubscriptionId, usize>>,
+    counts: Arc<RwLock<HashMap<SubscriptionId, usize>>>,
 }
+
 impl Counter {
     pub fn new() -> Self {
         Self {
-            counts: RwLock::new(HashMap::new()),
+            counts: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    pub fn get(&self, id: &SubscriptionId) -> usize {
+    pub fn get(&self, id: &SubscriptionId) -> Option<usize> {
         let counts = self.counts.read().unwrap();
-        *counts.get(id).unwrap_or(&0)
+        counts.get(id).map(|count| *count)
     }
     pub fn inc(&self, id: &SubscriptionId) {
         let mut counts = self.counts.write().unwrap();
@@ -45,9 +46,15 @@ impl Counter {
         let count = counts.entry(id.clone()).or_insert(0);
         *count -= 1;
     }
-
+    pub fn clear(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert(0);
+        *count = 0;
+    }
 }
 
+// Atoms and AtomRefs have been replaced with GlobalSignals
+pub static SUB_COUNTERS: GlobalSignal<Counter> = Signal::global(|| Counter::new());
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
@@ -63,10 +70,9 @@ pub fn App() -> Element {
 
     let mut router = use_signal(|| rsx! {div{}});
 
-    use_context_provider(|| Signal::new(ModalManager::new()));
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
 
-    use_context_provider(|| Arc::new(Mutex::new(Counter::new())));
+    // use_context_provider(|| Signal::new(Counter::new(true)));
     use_context_provider(|| Signal::new(Register::new()));
     // hook: on mounted
     let on_mounted = move |_| {
