@@ -20,6 +20,7 @@ use crate::nostr::register::{NotificationHandler, Register, RegisterError};
 use crate::nostr::EventPaginator;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
+use async_std::sync::Mutex;
 use chacha20::cipher::typenum::Integer;
 use dioxus::prelude::*;
 use dioxus_elements::sub;
@@ -40,12 +41,13 @@ pub struct NoteListProps {
 
 
 pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandler {
-    let counts = use_context::<Signal<Counter>>();
+    let counter = use_context::<Arc<Mutex<Counter>>>();
     Arc::new(move |notification| {
-        let counts_clone = {}
-        let manager = sub_id.clone(); // 获取指针以传递给闭包
-
+        let sub_id = Arc::clone(&sub_id); // 获取指针以传递给闭包
+        let counter = Arc::clone(&counter);
         Box::pin(async move {
+            let sub_id = Arc::clone(&sub_id); // 获取指针以传递给闭包
+            let counter = Arc::clone(&counter);
             match notification {
                 RelayPoolNotification::Message {
                     message: RelayMessage::Event { event, .. },
@@ -63,7 +65,8 @@ pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandl
                     // counts +=1;
                      // Update the counts in a thread-safe way
                     {
-                        let mut counts = counts_clone.write();
+                        let mut counter_lock = counter.lock();
+                        
                         // counts.inc(&sub_id);
                     }
                     Ok(false) 
@@ -93,7 +96,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let mut modal_manager = use_context::<Signal<ModalManager>>();
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
-
+    let counter = use_context::<Arc<Mutex<Counter>>>();
 
 
     // use_effect(use_reactive((&new_event_counts,), move |(val,)| {
@@ -163,13 +166,19 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                     &client,
                                     sub_id.clone(),
                                     filters.clone(),
-                                    handler(Arc::new(
-                                        RwLock::new(
-                                            SubscriptionId::new(
-                                                format!("note-list-{}", sub_current.name.clone())
-                                            )
-                                        )
-                                    )),
+                                    Arc::new({
+                                        let counter = Arc::clone(&counter);
+                                        move |notification| {
+                                            let counter = Arc::clone(&counter);
+                                            Box::pin(async move {
+                                                // console_log!("Received notification: {:?}", notification);
+                                                let mut counter_lock = counter.lock().unwrap();
+                                                *counter_lock += 1;
+                                                // console_log!("Counter: {}", *counter_lock);
+                                                Ok(false)
+                                            })
+                                        }
+                                    }),
                                     None,
                                 )
                                 .await

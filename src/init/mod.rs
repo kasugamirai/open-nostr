@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
@@ -66,7 +66,7 @@ pub fn App() -> Element {
     use_context_provider(|| Signal::new(ModalManager::new()));
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
 
-    use_context_provider(|| Signal::new(Counter::new()));
+    use_context_provider(|| Arc::new(Mutex::new(Counter::new())));
     use_context_provider(|| Signal::new(Register::new()));
     // hook: on mounted
     let on_mounted = move |_| {
