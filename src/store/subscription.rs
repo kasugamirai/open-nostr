@@ -183,7 +183,7 @@ impl FilterTemp {
         } else {
             filter.until(Timestamp::from(until))
         };
-
+        filter = filter.limit(20);
         filter
     }
 }

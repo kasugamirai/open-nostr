@@ -158,7 +158,6 @@ pub fn Note(props: NoteProps) -> Element {
                         let client: std::sync::Arc<nostr_sdk::Client> = hc.client();
                         match get_reactions(&client, &eid, None, is_tree).await {
                             Ok(reactions) => {
-                                tracing::info!("get_reactions result: {:?}", reactions);
                                 if reactions.len() > 0 {
                                     reactions_maps.set(reactions);
                                 }

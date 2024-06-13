@@ -98,7 +98,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
                             reload_flag.set(time);
                         }
                         {
-                            tracing::info!("is_cache: {:?}", iscache);
                             if !iscache {
                                 notes.set(vec![]);
                                 handle_fetch();
@@ -115,6 +114,8 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                     notes.set(vec![]);
                                 }
                             }
+                           
+                            
                             handle_fetch();
                         }
                     }

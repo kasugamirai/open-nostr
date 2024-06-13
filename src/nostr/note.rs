@@ -123,7 +123,15 @@ impl TryFrom<Event> for TextNote {
 
     fn try_from(event: Event) -> Result<Self, Self::Error> {
         if event.kind == Kind::TextNote {
-            let mut text_note = TextNote::new(event.clone());
+            let mut text_note: TextNote = TextNote::new(event.clone());
+            let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
+            Ok(text_note)
+        } else if event.kind == Kind::Reaction {
+            let mut text_note: TextNote = TextNote::new(event.clone());
+            let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
+            Ok(text_note)
+        } else if event.kind == Kind::Repost {
+            let mut text_note: TextNote = TextNote::new(event.clone());
             let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
             Ok(text_note)
         } else {

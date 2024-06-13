@@ -15,6 +15,7 @@ use crate::store::{
 use crate::Route;
 
 pub const EXAMPLE_SUB_KEY: &str = "nostr";
+pub const FOLLOWING_SUB_KEY: &str = "following";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";
 pub const NOSTR_DB_NAME: &str = "nostr-db";
 pub const LAST_LOGINED_KEY: &str = "last_logined";
@@ -119,7 +120,7 @@ pub fn App() -> Element {
             match db.get_all_users().await {
                 Ok(users) => {
                     if users.is_empty() {
-                        let user: User = User {
+                        let user = User {
                             name: NOT_LOGGED_IN_USER_NAME.to_string(),
                             inner: AccountType::NotLoggedIn(NoLogin::empty()),
                         };

@@ -13806,6 +13806,18 @@ svg path {
   word-wrap: break-word;
 }
 
+.note-action-wrapper {
+  flex-wrap: wrap;
+}
+
+.note-action-wrapper .note-action {
+  flex-wrap: wrap;
+}
+
+.note-action-wrapper .note-action-expand {
+  margin-left: auto;
+}
+
 .com-post .note-action-count {
   font-size: var(--textSize-12);
   font-family: "Source Sans Pro";
@@ -13821,17 +13833,6 @@ svg path {
   width: 24px;
   height: 24px;
 }
-
-.note-action-wrapper{
-  flex-wrap: wrap;
-}
-
-.note-action-wrapper .note-action{
-  flex-wrap: wrap;
-}
-.note-action-wrapper .note-action-expand{
-  margin-left: auto;
-} 
 
 .com-post .com-post-info-item:not(:first-child) {
   margin-left: 10px;
@@ -14223,6 +14224,13 @@ svg path {
 }
 .capy-btn:active {
   background-color: var(--primary-active);
+}
+
+.split-bar {
+  width: 2px;
+  height: 24px;
+  background-color: #e8e8e8;
+  border-radius: 4px;
 }
 
 :root {
@@ -14897,6 +14905,7 @@ svg path {
   display: flex;
   gap: 5px;
   font-size: var(--textSize-14);
+  /* 隐藏所有<input>元素的向下箭头 */
 }
 .com-dtpicker input {
   padding: 0;
@@ -15029,12 +15038,22 @@ svg path {
   background-color: var(--bgc-0);
   top: -2px;
 }
+.not-style .notificatio-contents {
+  overflow-y: scroll;
+}
 .not-style .notificatio-box {
+  position: relative;
   background-color: var(--bgc-2);
   border-radius: var(--radius-24);
   border: 1px solid var(--boc-1);
   box-sizing: border-box;
   padding: 5px 4px;
+  margin-bottom: 5px;
+}
+.not-style .notificatio-box .notificatio-rigth-icon {
+  position: absolute;
+  top: 11px;
+  right: 12px;
 }
 .not-style .header {
   justify-content: space-between;
@@ -15072,6 +15091,9 @@ svg path {
   font-family: "Source Sans Pro";
   font-weight: 400;
   line-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cont-box {
@@ -15390,13 +15412,6 @@ svg path {
 
 .new-subscription-btn:hover {
   background: var(--bgc-6) !important;
-}
-
-.split-bar {
-  width: 2px;
-  height: 24px;
-  background-color: #e8e8e8;
-  border-radius: 4px;
 }
 
 /*# sourceMappingURL=main.dev.css.map */

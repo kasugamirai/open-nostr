@@ -131,7 +131,7 @@ impl EventPaginator {
         }
 
         // Update filters with the oldest timestamp and limit
-        let updated_filters = self
+        let updated_filters: Vec<Filter> = self
             .filters
             .iter()
             .map(|f| {
@@ -145,7 +145,6 @@ impl EventPaginator {
             .collect::<Vec<_>>();
 
         tracing::info!("updated_filters: {:#?}", self.oldest_timestamp);
-
         let events = if self.from_db {
             // Attempt to fetch from the database first
             match self
@@ -169,6 +168,8 @@ impl EventPaginator {
                 .await?
         };
 
+        tracing::info!("run notif events{:?},",events);
+        tracing::info!("updated_filters-result-length: {:#?}", events.len());
         if events.is_empty() || self.are_all_event_ids_present(&events) {
             self.done = true;
             return Ok(vec![]);
@@ -496,18 +497,22 @@ impl NotificationPaginator {
 }
 
 pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
-    let create_filter = |kind| {
-        Filter::new().kind(kind).custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![public_key.to_hex()],
-        )
-    };
+    // let create_filter = || {
+    //     Filter::new().custom_tag(
+    //         SingleLetterTag::lowercase(Alphabet::P),
+    //         vec![public_key.to_hex()],
+    //     ).kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt);
+    // };
 
     vec![
-        create_filter(Kind::Reaction),
-        create_filter(Kind::TextNote),
-        create_filter(Kind::Repost),
-        create_filter(Kind::ZapReceipt),
+        Filter::new().custom_tag(
+            SingleLetterTag::lowercase(Alphabet::P),
+            vec![public_key.to_hex()],
+        ).kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt)
+        // create_filter()
+        // create_filter(Kind::TextNote),
+        // create_filter(Kind::Repost)
+        // create_filter(Kind::ZapReceipt),
     ]
 }
 
