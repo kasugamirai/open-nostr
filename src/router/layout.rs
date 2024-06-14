@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 
 use crate::components::MODAL_MANAGER;
-use crate::nostr::note::ReplyTreeManager;
+use crate::init::SUB_COUNTERS;
+use crate::nostr::ReplyTreeManager;
 use crate::store::subscription::CustomSub;
 struct UserItem {
     avatar: &'static str,
@@ -50,6 +51,7 @@ pub fn Layout() -> Element {
 
     use_effect(use_reactive(&path, move |_| {
         MODAL_MANAGER.write().destory_all_modals();
+        SUB_COUNTERS.write().clear_all();
     }));
     rsx! {
         aside {

@@ -25,7 +25,11 @@ pub enum Error {
     ClientNotFound,
     #[error("query failed or not cached")]
     QueryFailedOrNotCached,
+    #[error("Client with key {0} not found")]
+    ClientNotFoundByKey(String),
 }
+
+type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Clone)]
 pub struct HashedClient {
@@ -69,7 +73,7 @@ impl HashedClient {
     }
 
     //connect after add_relay
-    pub async fn add_relay(&mut self, url: &str) -> Result<bool, Error> {
+    pub async fn add_relay(&mut self, url: &str) -> Result<bool> {
         let result = self.client.add_relay(url).await?;
         if result {
             self.hash = Self::_hash(&self.client).await;
@@ -80,7 +84,7 @@ impl HashedClient {
     }
 
     //connect afeter add_relays
-    pub async fn add_relays(&mut self, urls: Vec<&str>) -> Result<(), Error> {
+    pub async fn add_relays(&mut self, urls: Vec<&str>) -> Result<()> {
         self.client.add_relays(urls).await?;
         self.hash = Self::_hash(&self.client).await;
         self.client.connect().await;
@@ -88,13 +92,13 @@ impl HashedClient {
         Ok(())
     }
 
-    pub async fn remove_relay(&mut self, url: &str) -> Result<(), Error> {
+    pub async fn remove_relay(&mut self, url: &str) -> Result<()> {
         self.client.remove_relay(url).await?;
         self.hash = Self::_hash(&self.client).await;
         Ok(())
     }
 
-    pub async fn remove_all_relays(&mut self) -> Result<(), Error> {
+    pub async fn remove_all_relays(&mut self) -> Result<()> {
         self.client.remove_all_relays().await?;
         Ok(())
     }
@@ -138,12 +142,12 @@ impl MultiClient {
         self.clients.insert(name, hc);
     }
 
-    pub async fn change_key(&self, old_key: &str, new_key: String) -> Result<(), String> {
+    pub async fn change_key(&self, old_key: &str, new_key: String) -> Result<()> {
         if let Some((_, client)) = self.clients.remove(old_key) {
             self.clients.insert(new_key, client);
             Ok(())
         } else {
-            Err(format!("Client with key '{}' not found", old_key))
+            Err(Error::ClientNotFoundByKey(old_key.to_string()))
         }
     }
 
@@ -151,7 +155,7 @@ impl MultiClient {
         self.clients.get(name).map(|entry| entry.clone())
     }
 
-    pub async fn get_or_create(&self, name: &str) -> Result<HashedClient, Error> {
+    pub async fn get_or_create(&self, name: &str) -> Result<HashedClient> {
         if let Some(client) = self.clients.get(name) {
             return Ok(client.clone());
         }
@@ -197,7 +201,7 @@ impl EventCache {
         client: &HashedClient,
         filters: Vec<Filter>,
         timeout: Option<Duration>,
-    ) -> Result<Vec<Event>, Error> {
+    ) -> Result<Vec<Event>> {
         let query = NostrQuery::new(client.hash(), &filters);
 
         // First, check the cache

@@ -10,9 +10,9 @@ use std::sync::{Arc, RwLock};
 use crate::components::icons::LOADING;
 use crate::components::MODAL_MANAGER;
 use crate::init::SUB_COUNTERS;
-use crate::nostr::multiclient::MultiClient;
-use crate::nostr::register::{NotificationHandler, Register};
+use crate::nostr::{NotificationHandler, Register};
 use crate::nostr::EventPaginator;
+use crate::nostr::MultiClient;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
 use dioxus::prelude::*;
@@ -99,19 +99,9 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     paginator.write();
                 let result = paginator_write.as_mut();
                 if let Some(paginator) = result {
-                    let events = paginator.next_page().await;
-                    match events {
-                        Ok(events) => {
-                            tracing::info!("handle_fetch 2222 {:?}", events.len());
-                            notes.extend(events.iter().cloned());
-                            is_loading.set(false);
-                        }
-                        Err(e) => {
-                            tracing::error!("Error: {:?}", e);
-                            is_loading.set(false);
-                        }
+                    if let Some(events) = paginator.next_page().await {
+                        notes.extend(events.iter().cloned());
                     }
-                } else {
                     is_loading.set(false);
                 }
             }
@@ -215,14 +205,17 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let counter = SUB_COUNTERS
         .read()
         .get(&SubscriptionId::new(format!("note-list-{}", &sub_name())));
+    tracing::info!("counter: {:?}", counter);
     use_effect(use_reactive(
-        (&counter, &sub_current()),
-        move |(count, sub_current)| {
+        (&counter, ),
+        move |(count, )| {
+            let sub_current = sub_current.read().clone();
             match count {
                 Some(c) => {
                     tracing::info!("count: {:?}", c);
                     let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
                     if sub_current.live && c <= 0 && modal_id {
+                        tracing::info!("count: ssssss {:?}", c);
                         spawn(async move {
                             let multiclient = multiclient.read();
                             let hc = multiclient.get_client(&sub_current.relay_set).await;
@@ -234,6 +227,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                         client.database().query(filters.clone(), Order::Desc).await;
                                     match stored_events {
                                         Ok(events) => {
+                                            tracing::info!("count: xxxxxxx {:?}", events.len());
                                             notes.set(events);
                                         }
                                         Err(_) => {

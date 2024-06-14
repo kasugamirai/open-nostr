@@ -32,7 +32,7 @@ pub mod test_hander {
     use nostr_sdk::prelude::*;
     use wasm_bindgen_test::*;
 
-    use crate::nostr::register::NotificationHandler;
+    use crate::nostr::NotificationHandler;
 
     pub fn create_console_log_handler() -> NotificationHandler {
         Arc::new(|notification| {

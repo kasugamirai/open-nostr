@@ -5,9 +5,9 @@ use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{ClientBuilder, SubscriptionId};
 
-use crate::components::ModalManagerProvider;
-use crate::nostr::multiclient::{EventCache, HashedClient, MultiClient};
-use crate::nostr::register::*;
+use crate::components::{ModalManager, ModalManagerProvider};
+use crate::nostr::Register;
+use crate::nostr::{EventCache, HashedClient, MultiClient};
 use crate::store::subscription::{CustomHashTag, CustomSub, FilterTemp, RelaySet};
 use crate::store::user::NoLogin;
 use crate::store::{
@@ -51,6 +51,10 @@ impl Counter {
         let count = counts.entry(id.clone()).or_insert(0);
         *count = 0;
     }
+    pub fn clear_all(&self) {
+        let mut counts = self.counts.write().unwrap();
+        counts.clear();
+    }
 }
 
 // Atoms and AtomRefs have been replaced with GlobalSignals
@@ -74,6 +78,9 @@ pub fn App() -> Element {
 
     // use_context_provider(|| Signal::new(Counter::new(true)));
     use_context_provider(|| Signal::new(Register::new()));
+
+
+
     // hook: on mounted
     let on_mounted = move |_| {
         // init treading
