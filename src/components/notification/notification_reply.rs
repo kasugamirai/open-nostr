@@ -2,9 +2,9 @@ use dioxus::prelude::*;
 use nostr_sdk::{Event, EventId, Kind};
 use crate::components::Avatar;
 use crate::nostr::get_event_by_id;
-use crate::nostr::multiclient::MultiClient;
+use crate::nostr::MultiClient;
 use crate::components::icons::LOADING;
-use crate::nostr::note::TextNote;
+use crate::nostr::TextNote;
 use crate::utils::format::parse_notif_content_event;
 
 #[derive(PartialEq, Clone, Props)]

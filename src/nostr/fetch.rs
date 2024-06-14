@@ -7,8 +7,8 @@ use futures::{Future, StreamExt};
 use gloo_timers::future::TimeoutFuture;
 use nostr_indexeddb::database::Order;
 use nostr_sdk::{
-    Alphabet, Client, Event, EventId, Filter, JsonUtil, Kind, Metadata, NostrSigner, PublicKey,
-    SingleLetterTag, Tag, TagStandard, Timestamp,
+    Client, Event, EventId, Filter, JsonUtil, Kind, Metadata, NostrSigner, PublicKey, Tag,
+    TagStandard, Timestamp,
 };
 use thiserror::Error;
 use tokio::sync::{mpsc, Mutex};
@@ -37,23 +37,22 @@ pub enum Error {
     #[error("Event not found")]
     EventNotFound,
 }
+type Result<T> = std::result::Result<T, Error>;
 
 macro_rules! create_encrypted_filters {
     ($kind:expr, $author:expr, $public_key:expr) => {{
         (
-            Filter::new().kind($kind).author($author).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![$author.to_hex()],
-            ),
-            Filter::new().kind($kind).author($author).custom_tag(
-                SingleLetterTag::lowercase(Alphabet::P),
-                vec![$public_key.to_hex()],
-            ),
+            Filter::new()
+                .kind($kind)
+                .author($author)
+                .pubkey($public_key),
+            Filter::new()
+                .kind($kind)
+                .author($author)
+                .pubkey($public_key),
         )
     }};
 }
-
-/// Error enum to represent possible errors in the application.
 
 #[derive(Debug)]
 pub struct DecryptedMsg {
@@ -83,6 +82,7 @@ impl From<Event> for DecryptedMsg {
         }
     }
 }
+
 #[derive(Debug, Clone)]
 #[allow(clippy::arc_with_non_send_sync)]
 pub struct EventPaginator {
@@ -125,9 +125,9 @@ impl EventPaginator {
             .all(|event| self.last_event_ids.contains(&event.id))
     }
 
-    pub async fn next_page(&mut self) -> Result<Vec<Event>, Error> {
+    pub async fn next_page(&mut self) -> Option<Vec<Event>> {
         if self.done {
-            return Ok(vec![]);
+            return None;
         }
 
         // Update filters with the oldest timestamp and limit
@@ -142,9 +142,10 @@ impl EventPaginator {
                 f = f.limit(self.page_size);
                 f
             })
-            .collect::<Vec<_>>();
+            .collect();
 
-        tracing::info!("updated_filters: {:#?}", self.oldest_timestamp);
+        tracing::info!("updated_filters: {:#?}", updated_filters);
+
         let events = if self.from_db {
             // Attempt to fetch from the database first
             match self
@@ -155,40 +156,52 @@ impl EventPaginator {
             {
                 Ok(events) => events,
                 // If database query fails, fall back to fetching from the relay
-                Err(_) => {
-                    self.client
-                        .get_events_of(updated_filters.clone(), self.timeout)
-                        .await?
+                Err(err) => {
+                    tracing::error!("Database query failed: {:?}", err);
+                    self.done = true;
+                    return None;
                 }
             }
         } else {
             // Directly fetch from the relay
-            self.client
+            match self
+                .client
                 .get_events_of(updated_filters.clone(), self.timeout)
-                .await?
+                .await
+            {
+                Ok(events) => events,
+                Err(err) => {
+                    tracing::error!("Relay fetch failed: {:?}", err);
+                    self.done = true;
+                    return None;
+                }
+            }
         };
 
         tracing::info!("run notif events{:?},",events);
         tracing::info!("updated_filters-result-length: {:#?}", events.len());
         if events.is_empty() || self.are_all_event_ids_present(&events) {
             self.done = true;
-            return Ok(vec![]);
+            return None;
         }
 
         // Update the oldest timestamp
         if let Some(oldest_event) = get_oldest_event(&events) {
             self.oldest_timestamp = Some(oldest_event.created_at());
+        } else {
+            self.done = true;
+            return None; // No valid oldest event available
         }
 
         // Update the filters
         self.filters = updated_filters;
         self.last_event_ids = events.iter().map(|event| event.id).collect();
-        Ok(events)
+        Some(events)
     }
 }
 
 impl Stream for EventPaginator {
-    type Item = Result<Vec<Event>, Error>;
+    type Item = Option<Vec<Event>>;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -217,7 +230,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         timeout: Option<Duration>,
         page_size: usize,
         from_db: bool,
-    ) -> Result<DecryptedMsgPaginator<'a>, Error> {
+    ) -> Result<DecryptedMsgPaginator<'a>> {
         let public_key = signer.public_key().await?;
 
         let (me, target) =
@@ -232,7 +245,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         })
     }
 
-    async fn decrypt_dm_event(&self, event: &Event) -> Result<String, Error> {
+    async fn decrypt_dm_event(&self, event: &Event) -> Result<String> {
         let msg = self
             .signer
             .nip04_decrypt(self.target_pub_key, &event.content)
@@ -240,7 +253,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
         Ok(msg)
     }
 
-    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>, Error> {
+    async fn convert_events(&self, events: Vec<Event>) -> Result<Vec<DecryptedMsg>> {
         let futures: Vec<_> = events
             .into_iter()
             .map(|event| {
@@ -262,7 +275,7 @@ impl<'a> DecryptedMsgPaginator<'a> {
             return None;
         }
 
-        if let Ok(events) = self.paginator.next_page().await {
+        if let Some(events) = self.paginator.next_page().await {
             let decrypt_results = self.convert_events(events).await;
             return decrypt_results.ok();
         }
@@ -275,7 +288,7 @@ pub async fn get_event_by_id(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Option<Event>, Error> {
+) -> Result<Option<Event>> {
     let filter = Filter::new().id(*event_id).limit(1);
     let events = client.get_events_of(vec![filter], timeout).await?;
     Ok(events.into_iter().next())
@@ -285,7 +298,7 @@ pub async fn get_events_by_ids(
     client: &Client,
     event_ids: &[EventId],
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>, Error> {
+) -> Result<Vec<Event>> {
     let filters: Vec<Filter> = event_ids.iter().map(|id| Filter::new().id(*id)).collect();
     let events = client.get_events_of(filters, timeout).await?;
     Ok(events)
@@ -295,7 +308,7 @@ pub async fn get_metadata(
     client: &Client,
     public_key: &PublicKey,
     timeout: Option<Duration>,
-) -> Result<Metadata, Error> {
+) -> Result<Metadata> {
     let filter = Filter::new().author(*public_key).kind(Kind::Metadata);
     let events = client.get_events_of(vec![filter], timeout).await?;
 
@@ -316,11 +329,8 @@ pub async fn get_repost(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>, Error> {
-    let filter = Filter::new().kind(Kind::Repost).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+) -> Result<Vec<Event>> {
+    let filter = Filter::new().kind(Kind::Repost).event(*event_id);
     let events = client.get_events_of(vec![filter], timeout).await?;
     Ok(events)
 }
@@ -330,14 +340,11 @@ pub async fn get_reactions(
     event_id: &EventId,
     timeout: Option<Duration>,
     mut is_fetch: bool,
-) -> Result<HashMap<String, i32>, Error> {
+) -> Result<HashMap<String, i32>> {
     let mut reaction_map = HashMap::new();
     let mut events: Vec<Event> = Vec::new();
 
-    let mut reaction_filter = Filter::new().kind(Kind::Reaction).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+    let mut reaction_filter = Filter::new().kind(Kind::Reaction).event(*event_id);
 
     // Get reactions from db
     let db_filter = reaction_filter.clone();
@@ -380,11 +387,8 @@ pub async fn get_replies(
     client: &Client,
     event_id: &EventId,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<Event>, Error> {
-    let filter = Filter::new().kind(Kind::TextNote).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::E),
-        vec![event_id.to_hex()],
-    );
+) -> Result<Vec<Event>> {
+    let filter = Filter::new().kind(Kind::TextNote).event(*event_id);
     let events = client.get_events_of(vec![filter], timeout).await?;
     // TODO: filter out the mentions if necessary
     Ok(events)
@@ -394,7 +398,7 @@ pub async fn get_following(
     client: &Client,
     public_key: &PublicKey,
     timeout: Option<std::time::Duration>,
-) -> Result<Vec<String>, Error> {
+) -> Result<Vec<String>> {
     let filter = Filter::new().kind(Kind::ContactList).author(*public_key);
     let events = client.get_events_of(vec![filter], timeout).await?;
     let mut ret: Vec<String> = vec![];
@@ -419,10 +423,7 @@ pub async fn get_followers(
     timeout: Option<std::time::Duration>,
     from_db: bool,
 ) -> impl Stream<Item = String> {
-    let filter = Filter::new().kind(Kind::ContactList).custom_tag(
-        SingleLetterTag::lowercase(Alphabet::P),
-        vec![public_key.to_hex()],
-    );
+    let filter = Filter::new().kind(Kind::ContactList).pubkey(*public_key);
 
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -438,7 +439,7 @@ pub async fn get_followers(
         async move {
             while !exit_cond.load(Ordering::SeqCst) {
                 let mut paginator = paginator.lock().await;
-                if let Ok(events) = paginator.next_page().await {
+                if let Some(events) = paginator.next_page().await {
                     events.iter().for_each(|event| {
                         let author = event.author().to_hex();
                         if let Err(e) = tx.send(author) {
@@ -491,24 +492,19 @@ impl NotificationPaginator {
     }
 
     pub async fn next_page(&mut self) -> Option<Vec<NotificationMsg>> {
-        let events = self.paginator.next_page().await.ok()?;
-        Some(process_notification_events(events))
+        self.paginator
+            .next_page()
+            .await
+            .map(process_notification_events)
     }
 }
 
 pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
-    // let create_filter = || {
-    //     Filter::new().custom_tag(
-    //         SingleLetterTag::lowercase(Alphabet::P),
-    //         vec![public_key.to_hex()],
-    //     ).kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt);
-    // };
 
+    // let create_filter = |kind| Filter::new().kind(kind).pubkey(*public_key);
     vec![
-        Filter::new().custom_tag(
-            SingleLetterTag::lowercase(Alphabet::P),
-            vec![public_key.to_hex()],
-        ).kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt)
+        Filter::new().pubkey(*public_key)
+        .kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt)
         // create_filter()
         // create_filter(Kind::TextNote),
         // create_filter(Kind::Repost)
@@ -660,27 +656,18 @@ mod tests {
             .kind(Kind::EncryptedDirectMessage)
             .author(public_key);
 
-        let page_size = 100;
+        let page_size = 10;
         let timeout = Some(std::time::Duration::from_secs(5));
         let mut paginator =
             EventPaginator::new(Arc::new(client), vec![filter], timeout, page_size, false);
 
         let mut count = 0;
-        loop {
-            let result = paginator.next_page().await;
-            match result {
-                Ok(events) => {
-                    if paginator.done {
-                        break;
-                    }
-                    console_log!("events are: {:?}", events);
-                    count += events.len();
-                }
-                Err(e) => {
-                    console_log!("Error fetching events: {:?}", e);
-                    break;
-                }
+        while let Some(result) = paginator.next_page().await {
+            if paginator.done {
+                break;
             }
+            console_log!("events are: {:?}", result);
+            count += result.len();
         }
         assert!(count > 100);
     }
@@ -728,6 +715,7 @@ mod tests {
         let client = &Client::default();
         let arc_client = Arc::new(client.clone());
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
 
         client.connect().await;
 
@@ -744,7 +732,7 @@ mod tests {
         spawn_local({
             let exit_cond_clone = Arc::clone(&exit_cond);
             async move {
-                sleep(Duration::from_secs(15)).await;
+                sleep(Duration::from_secs(1)).await;
                 console_log!("Setting exit condition");
                 exit_cond_clone.store(true, Ordering::SeqCst);
             }
@@ -788,6 +776,7 @@ mod tests {
     async fn test_get_notification_paginator() {
         let client = Client::default();
         client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol").await.unwrap();
         client.connect().await;
 
         let public_key = PublicKey::from_bech32(

@@ -3,7 +3,7 @@ use nostr_sdk::*;
 
 use crate::components::Avatar;
 use crate::nostr::get_event_by_id;
-use crate::nostr::multiclient::MultiClient;
+use crate::nostr::MultiClient;
 
 #[derive(PartialEq, Clone, Props)]
 pub struct QouteProps {

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use dioxus::prelude::*;
 
 use crate::components::ModalManager;
-use crate::nostr::note::ReplyTreeManager;
+use crate::nostr::ReplyTreeManager;
 use crate::store::subscription::CustomSub;
 struct UserItem {
     avatar: &'static str,

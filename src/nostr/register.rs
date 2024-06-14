@@ -14,16 +14,15 @@ pub enum RegisterError {
     SubscriptionNotFound,
     #[error(transparent)]
     Client(#[from] nostr_sdk::client::Error),
-    #[error("Other error: {0}")]
-    Other(String),
 }
+
+type Result<T> = std::result::Result<T, RegisterError>;
 
 pub type NotificationHandler = Arc<
     dyn Fn(
             RelayPoolNotification,
-        ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = Result<bool, RegisterError>> + Send>,
-        > + Send
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<bool>> + Send>>
+        + Send
         + Sync,
 >;
 
@@ -63,7 +62,7 @@ impl Register {
         filters: Vec<Filter>,
         handler: NotificationHandler,
         opts: Option<SubscribeAutoCloseOptions>,
-    ) -> Result<(), RegisterError> {
+    ) -> Result<()> {
         client
             .subscribe_with_id(sub_id.clone(), filters, opts)
             .await;
@@ -76,10 +75,7 @@ impl Register {
         self.handlers.remove(sub_id);
     }
 
-    async fn handle_notification(
-        &self,
-        notification: RelayPoolNotification,
-    ) -> Result<bool, RegisterError> {
+    async fn handle_notification(&self, notification: RelayPoolNotification) -> Result<bool> {
         if let RelayPoolNotification::Message {
             message: RelayMessage::Event {
                 subscription_id, ..
@@ -97,7 +93,7 @@ impl Register {
         Ok(false)
     }
 
-    pub async fn handle_notifications(&self, client: &Client) -> Result<(), RegisterError> {
+    pub async fn handle_notifications(&self, client: &Client) -> Result<()> {
         tracing::info!("Register::handle_notifications");
         client
             .handle_notifications(|notification| {
@@ -117,6 +113,7 @@ impl Register {
 #[cfg(test)]
 mod tests {
     use std::rc::Rc;
+    use std::sync::Mutex;
 
     use nostr_sdk::{EventId, Filter, FromBech32, PublicKey, SubscriptionId};
     use wasm_bindgen_futures::spawn_local;
@@ -294,4 +291,50 @@ mod tests {
         // Uncomment the following line to see the logs
         // register.handle_notifications(&client).await.unwrap();
     }
+
+    #[wasm_bindgen_test(async)]
+    async fn test_handler_as_closure() {
+        let brian_search = Filter::new().author(
+            PublicKey::from_bech32(
+                "npub1tmnfxwvvyx56kt8m904r78umhehwhpgpcpfakelh505r5ve2d2cqa0jccl",
+            )
+            .unwrap(),
+        );
+
+        let client = Client::default();
+        client.add_relay("wss://nos.lol").await.unwrap();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.connect().await;
+
+        // Add a counter with Arc<Mutex<u32>>
+        let counter = Arc::new(Mutex::new(0));
+
+        let register = Register::default();
+        register
+            .add_subscription(
+                &client.clone(),
+                SubscriptionId::generate(),
+                vec![brian_search],
+                Arc::new({
+                    let counter = Arc::clone(&counter);
+                    move |notification| {
+                        let counter = Arc::clone(&counter);
+                        Box::pin(async move {
+                            // console_log!("Received notification: {:?}", notification);
+                            let mut counter_lock = counter.lock().unwrap();
+                            *counter_lock += 1;
+                            console_log!("Counter: {}", *counter_lock);
+                            Ok(false)
+                        })
+                    }
+                }),
+                None,
+            )
+            .await
+            .unwrap();
+
+        // Uncomment the following line to see the logs
+        register.handle_notifications(&client).await.unwrap();
+    }
+
 }

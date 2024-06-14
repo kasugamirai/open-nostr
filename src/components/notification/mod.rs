@@ -7,7 +7,7 @@ use crate::components::icons::LOADING;
 use crate::components::ModalManager;
 use std::time::Duration;
 use nostr_sdk::{PublicKey,Event};
-use crate::nostr::multiclient::MultiClient;
+use crate::nostr::MultiClient;
 use crate::nostr::{NotificationPaginator,NotificationMsg};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};

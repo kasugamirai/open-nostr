@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::views::NoteList;
 use crate::components::Notification;
 use nostr_sdk::{Timestamp,PublicKey};
-use crate::nostr::multiclient::MultiClient;
+use crate::nostr::MultiClient;
 use crate::store::subscription::{CustomAccounts, CustomSub, FilterTemp,Account};
 use crate::store::DEFAULT_RELAY_SET_KEY;
 use crate::init::FOLLOWING_SUB_KEY;
@@ -29,7 +29,7 @@ pub fn Home() -> Element {
         move |(public_key,relay_name,sub_name,all_sub,subs_map)| {
             spawn(async move {
                 let clients = multiclient();
-                let client_result: Result<crate::nostr::multiclient::HashedClient, crate::nostr::multiclient::Error> = clients.get_or_create(&relay_name).await;
+                let client_result = clients.get_or_create(&relay_name).await;
                 match client_result {
                     Ok(hc) => {
                         let client = hc.client();
