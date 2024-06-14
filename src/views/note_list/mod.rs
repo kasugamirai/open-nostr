@@ -129,21 +129,22 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 Ok(hc) => {
                     let client = hc.client();
                     {
+                        tracing::info!("hello handle init");
                         let sub_id = SubscriptionId::new(format!("note-list-{}", sub_current.name));
-
-                        sub_register
-                            .write()
-                            .add_subscription(
-                                &client,
-                                sub_id.clone(),
-                                filters.clone(),
-                                handler(Arc::new(RwLock::new(sub_id.clone()))),
-                                None,
-                            )
-                            .await
-                            .unwrap();
-                        tracing::info!("sub_id: {:?}", sub_current.live );
+                        
                         if sub_current.live {
+                            tracing::info!("sub_id: {:?}", sub_id.clone());
+                            sub_register
+                                .write()
+                                .add_subscription(
+                                    &client,
+                                    sub_id.clone(),
+                                    filters.clone(),
+                                    handler(Arc::new(RwLock::new(sub_id.clone()))),
+                                    None,
+                                )
+                                .await
+                                .unwrap();
                             spawn({
                                 let client = client.clone();
                                 async move {
@@ -153,7 +154,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                 }
                             });
                         } else {
-                            sub_register().set_stop_flag(&sub_id, true).await;
+                            sub_register().remove_subscription(&sub_id).await;
                         }
                     }
                     {
@@ -251,7 +252,18 @@ pub fn NoteList(props: NoteListProps) -> Element {
             };
         },
     ));
-
+    let notes_doms = use_memo(move || {
+        rsx! {
+            for (i, note) in notes().clone().iter().enumerate() {
+                Note {
+                    sub_name: sub_current().name.clone(),
+                    event: note.clone(),
+                    relay_name: sub_current().relay_set.clone(),
+                    note_index: i,
+                }
+            }
+        }
+    });
     rsx! {
             div {
                 onmounted: on_mounted,
@@ -286,14 +298,15 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     class: "note-more-mod-box",
                     div {
                         class: "note-more-mod-box",
-                        for (i, note) in notes().clone().iter().enumerate() {
-                            Note {
-                                sub_name: sub_current().name.clone(),
-                                event: note.clone(),
-                                relay_name: sub_current().relay_set.clone(),
-                                note_index: i,
-                            }
-                        }
+                        {notes_doms()}
+                        // for (i, note) in notes().clone().iter().enumerate() {
+                        //     Note {
+                        //         sub_name: sub_current().name.clone(),
+                        //         event: note.clone(),
+                        //         relay_name: sub_current().relay_set.clone(),
+                        //         note_index: i,
+                        //     }
+                        // }
                         if is_loading() {
                             div {
                                 class: "laoding-box",
