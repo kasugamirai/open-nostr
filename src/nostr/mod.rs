@@ -10,8 +10,9 @@ pub use fetch::{
     DecryptedMsg, DecryptedMsgPaginator, EventPaginator, NotificationMsg, NotificationPaginator,
 };
 pub use publish::{
-    delete_event, file_metadata, new_channel, publish_text_note, reaction, repost,
+    delete_event, file_metadata, follow, new_channel, publish_text_note, reaction, repost,
     send_channel_msg, send_private_msg, set_channel_metadata, set_contact_list, set_relay_list,
+    unfollow,
 };
 
 pub use multiclient::EventCache;

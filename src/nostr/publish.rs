@@ -1,9 +1,10 @@
 use nostr_sdk::nips::nip65::RelayMetadata;
 use nostr_sdk::nips::nip94::FileMetadata;
 use nostr_sdk::{
-    Client, Contact, Event, EventBuilder, EventId, Metadata, NostrSigner, PublicKey, Tag,
-    Timestamp, UncheckedUrl, Url,
+    Client, Contact, Event, EventBuilder, EventId, Filter, Kind, Metadata, NostrSigner, PublicKey,
+    Tag, TagStandard, Timestamp, UncheckedUrl, Url,
 };
+use std::time::Duration;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -131,6 +132,76 @@ pub async fn set_contact_list(
 ) -> Result<EventId> {
     let builder = EventBuilder::contact_list(contacts);
     sign_and_send_event!(client, signer, builder)
+}
+
+pub async fn unfollow(
+    client: &Client,
+    signer: &NostrSigner,
+    followee: PublicKey,
+    timeout: Option<Duration>,
+) -> Result<EventId> {
+    let contacts = get_contact_list(client, signer, timeout).await?;
+    let contacts: Vec<Contact> = contacts
+        .into_iter()
+        .filter(|contact| contact.public_key != followee)
+        .collect();
+    let builder = EventBuilder::contact_list(contacts);
+    sign_and_send_event!(client, signer, builder)
+}
+
+pub async fn follow(
+    client: &Client,
+    signer: &NostrSigner,
+    followee: PublicKey,
+    timeout: Option<Duration>,
+    relay_url: Option<UncheckedUrl>,
+    alias: Option<String>,
+) -> Result<EventId> {
+    let contacts = get_contact_list(client, signer, timeout).await?;
+    let contacts: Vec<Contact> = contacts
+        .into_iter()
+        .filter(|contact| contact.public_key != followee)
+        .collect();
+    let contact = Contact::new(followee, relay_url, alias);
+    let mut contacts = contacts;
+    contacts.push(contact);
+    let builder = EventBuilder::contact_list(contacts);
+    sign_and_send_event!(client, signer, builder)
+}
+
+async fn get_contact_list_filters(signer: &NostrSigner) -> Result<Vec<Filter>> {
+    let public_key = signer.public_key().await?;
+    let filter: Filter = Filter::new()
+        .author(public_key)
+        .kind(Kind::ContactList)
+        .limit(1);
+    Ok(vec![filter])
+}
+
+async fn get_contact_list(
+    client: &Client,
+    signer: &NostrSigner,
+    timeout: Option<Duration>,
+) -> Result<Vec<Contact>> {
+    let mut contact_list: Vec<Contact> = Vec::new();
+    let filters = get_contact_list_filters(signer).await?;
+    let events: Vec<Event> = client.get_events_of(filters, timeout).await?;
+
+    for event in events.into_iter() {
+        for tag in event.into_iter_tags() {
+            if let Some(TagStandard::PublicKey {
+                public_key,
+                relay_url,
+                alias,
+                uppercase: false,
+            }) = tag.to_standardized()
+            {
+                contact_list.push(Contact::new(public_key, relay_url, alias))
+            }
+        }
+    }
+
+    Ok(contact_list)
 }
 
 #[cfg(test)]
@@ -361,6 +432,46 @@ mod tests {
         )];
         client.connect().await;
         let result = set_contact_list(&client, signer, contacts).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_follow() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qt5ptz2rx83j5d758p72tqm2kh8w0gvq4l7ca9etk8v3n5zsxw5qw8f4y4",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = &key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol/").await.unwrap();
+        let followee = PublicKey::from_bech32(
+            "npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew",
+        )
+        .unwrap();
+        client.connect().await;
+        let result = follow(&client, signer, followee, None, None, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_unfollow() {
+        let private_key = SecretKey::from_bech32(
+            "nsec1qt5ptz2rx83j5d758p72tqm2kh8w0gvq4l7ca9etk8v3n5zsxw5qw8f4y4",
+        )
+        .unwrap();
+        let key = Keys::new(private_key);
+        let signer = &key.into();
+        let client = Client::default();
+        client.add_relay("wss://relay.damus.io").await.unwrap();
+        client.add_relay("wss://nos.lol/").await.unwrap();
+        let followee = PublicKey::from_bech32(
+            "npub1awsnqr5338h497yam5m9hrgh9535yadj9zxglwk55xpsdtsn2c4syjruew",
+        )
+        .unwrap();
+        client.connect().await;
+        let result = unfollow(&client, signer, followee, None).await;
         assert!(result.is_ok());
     }
 }
