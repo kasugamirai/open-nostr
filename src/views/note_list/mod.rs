@@ -202,20 +202,15 @@ pub fn NoteList(props: NoteListProps) -> Element {
         }
         // handle_fetch();
     };
-    let counter = SUB_COUNTERS
-        .read()
-        .get(&SubscriptionId::new(format!("note-list-{}", &sub_name())));
-    tracing::info!("counter: {:?}", counter);
     use_effect(use_reactive(
-        (&counter, ),
-        move |(count, )| {
+        (&SUB_COUNTERS.signal(), ),
+        move |(counter, )| {
+            let count = counter.read().get(&SubscriptionId::new(format!("note-list-{}", &sub_name())));
             let sub_current = sub_current.read().clone();
             match count {
                 Some(c) => {
-                    tracing::info!("count: {:?}", c);
                     let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
                     if sub_current.live && c <= 0 && modal_id {
-                        tracing::info!("count: ssssss {:?}", c);
                         spawn(async move {
                             let multiclient = multiclient.read();
                             let hc = multiclient.get_client(&sub_current.relay_set).await;
@@ -227,7 +222,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                         client.database().query(filters.clone(), Order::Desc).await;
                                     match stored_events {
                                         Ok(events) => {
-                                            tracing::info!("count: xxxxxxx {:?}", events.len());
                                             notes.set(events);
                                         }
                                         Err(_) => {
