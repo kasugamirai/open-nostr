@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::ClientBuilder;
+use nostr_sdk::{ClientBuilder, SubscriptionId};
 
 use crate::components::{ModalManager, ModalManagerProvider};
 use crate::nostr::Register;
@@ -21,10 +22,47 @@ pub const NOSTR_DB_NAME: &str = "nostr-db";
 pub const LAST_LOGINED_KEY: &str = "last_logined";
 pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
 
+#[derive(Debug)]
+pub struct Counter {
+    counts: Arc<RwLock<HashMap<SubscriptionId, usize>>>,
+}
+
+impl Counter {
+    pub fn new() -> Self {
+        Self {
+            counts: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+    pub fn get(&self, id: &SubscriptionId) -> Option<usize> {
+        let counts = self.counts.read().unwrap();
+        counts.get(id).map(|count| *count)
+    }
+    pub fn inc(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert(0);
+        *count += 1;
+    }
+    pub fn dec(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert(0);
+        *count -= 1;
+    }
+    pub fn clear(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert(0);
+        *count = 0;
+    }
+    pub fn clear_all(&self) {
+        let mut counts = self.counts.write().unwrap();
+        counts.clear();
+    }
+}
+
+// Atoms and AtomRefs have been replaced with GlobalSignals
+pub static SUB_COUNTERS: GlobalSignal<Counter> = Signal::global(|| Counter::new());
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");
-    let _register = use_context_provider(|| Signal::new(Register::new()));
     let mut multiclient = use_context_provider(|| Signal::new(MultiClient::new()));
     let mut all_sub: Signal<Vec<CustomSub>> =
         use_context_provider(|| Signal::new(Vec::<CustomSub>::new()));
@@ -37,8 +75,13 @@ pub fn App() -> Element {
 
     let mut router = use_signal(|| rsx! {div{}});
 
-    use_context_provider(|| Signal::new(ModalManager::new()));
     use_context_provider(|| Signal::new(EventCache::new(300, 300)));
+
+    // use_context_provider(|| Signal::new(Counter::new(true)));
+    use_context_provider(|| Signal::new(Register::new()));
+
+
+
     // hook: on mounted
     let on_mounted = move |_| {
         // init treading
@@ -162,6 +205,7 @@ pub fn App() -> Element {
             id: "app",
             class: "{theme}",
             {router}
+            
             ModalManagerProvider {}
         }
     }

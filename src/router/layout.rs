@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 
-use crate::components::ModalManager;
+use crate::components::MODAL_MANAGER;
+use crate::init::SUB_COUNTERS;
 use crate::nostr::ReplyTreeManager;
 use crate::store::subscription::CustomSub;
 struct UserItem {
@@ -44,13 +45,13 @@ pub fn Layout() -> Element {
         },
     ];
     let path: Route = use_route();
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let mut contentText = use_signal(|| String::from(""));
 
     let mut show = use_signal(|| false);
 
     use_effect(use_reactive(&path, move |_| {
-        modal_manager.write().destory_all_modals();
+        MODAL_MANAGER.write().destory_all_modals();
+        SUB_COUNTERS.write().clear_all();
     }));
     rsx! {
         aside {

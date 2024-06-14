@@ -66,8 +66,8 @@ impl ModalManager {
     }
 
     // 添加Message
-    pub fn add_message(&mut self, content: Element) -> String {
-        self.add_generic_modal(ModalType::Message, content, 3, None)
+    pub fn add_message(&mut self, content: Element, id: String) -> String {
+        self.add_custom_id_modal(ModalType::Modal, content, 3, id)
     }
 
     // 添加Popover
@@ -90,7 +90,7 @@ impl ModalManager {
             }
         }
     }
-    pub fn has_popover(&self, id: &str) -> bool {
+    pub fn has_modal(&self, id: &str) -> bool {
         self.modals.contains_key(id)
     }
     pub fn change_visible(&mut self, id: &str) {
@@ -191,6 +191,8 @@ impl ModalManager {
     }
 }
 
+pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global( || ModalManager::new());
+
 #[component]
 fn ModalComponent(modal: Modal, id: String) -> Element {
     let style = match modal.modal_type {
@@ -219,7 +221,6 @@ fn ModalComponent(modal: Modal, id: String) -> Element {
 
 #[component]
 pub fn ModalManagerProvider() -> Element {
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
 
     let root_click_pos = use_context::<Signal<(f64, f64)>>();
 
@@ -228,8 +229,8 @@ pub fn ModalManagerProvider() -> Element {
             let window = window().expect("no global `window` exists");
             let closure = Closure::wrap(Box::new({
                 move || {
-                    let mut modal_manager_write = modal_manager;
-                    modal_manager_write.write().destory_all_modals_by_level(4);
+                    let mut modal_manager_write = MODAL_MANAGER.write();
+                    modal_manager_write.destory_all_modals_by_level(4);
                 }
             }) as Box<dyn FnMut()>);
             window
@@ -240,11 +241,11 @@ pub fn ModalManagerProvider() -> Element {
     });
 
     use_effect(use_reactive(&root_click_pos(), move |_| {
-        modal_manager.write().destory_all_modals_by_level(4);
+        MODAL_MANAGER.write().destory_all_modals_by_level(4);
     }));
 
     // 渲染所有打开的弹窗
-    let modals = modal_manager.read().modals.clone();
+    let modals = MODAL_MANAGER.read().modals.clone();
     rsx! {
         div {
             class: "modal-provider",
