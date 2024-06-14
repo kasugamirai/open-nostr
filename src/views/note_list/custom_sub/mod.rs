@@ -154,6 +154,18 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
             handle_save();
         }
     };
+    let handle_change_live = move |v: bool| {
+        {
+            let mut sub: Write<CustomSub, UnsyncStorage> = sub_current.write();
+            sub.live = v;
+        }
+        {
+            let sub = sub_current();
+            tracing::info!("save sub: {:#?}", sub);
+            // props.on_save.call(sub.clone());
+            handle_save();
+        }
+    };
 
     rsx! {
         div {
@@ -249,10 +261,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                             class:"flex-box-center",
                             Switch {
                                 value: sub_current().live,
-                                on_change: move |value: bool| {
-                                    let mut sub = sub_current.write();
-                                    sub.live = value;
-                                },
+                                on_change: handle_change_live,
                             }
                             button {
                                 class: format!("btn-icon purple small {}", if sub_current().live { "display-none-important" } else { "display-inline-block" }),

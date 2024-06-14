@@ -16,6 +16,7 @@ pub fn Subscription(name: String) -> Element {
         sub_name.set(name.clone());
         //todo
         relaod_flag.set(Timestamp::now());
+        
     };
     let handle_reload = move |_| {
         relaod_flag.set(Timestamp::now());

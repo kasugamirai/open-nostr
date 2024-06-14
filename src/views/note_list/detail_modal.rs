@@ -22,12 +22,11 @@
 use dioxus::prelude::*;
 
 use crate::components::icons::FALSE;
-use crate::components::ModalManager;
+use crate::components::MODAL_MANAGER;
 #[component]
 pub fn DetailModal(detail: String, id: String) -> Element {
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let on_close = move |_| {
-        modal_manager.write().close_modal(&id.clone());
+        MODAL_MANAGER.write().close_modal(&id.clone());
     };
     rsx! {
         div {

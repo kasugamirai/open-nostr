@@ -144,7 +144,6 @@ impl EventPaginator {
             })
             .collect();
 
-        tracing::info!("updated_filters: {:#?}", updated_filters);
 
         let events = if self.from_db {
             // Attempt to fetch from the database first
@@ -339,7 +338,9 @@ pub async fn get_reactions(
     timeout: Option<Duration>,
     mut is_fetch: bool,
 ) -> Result<HashMap<String, i32>> {
+
     let mut reaction_map = HashMap::new();
+    return Ok(reaction_map);
     let mut events: Vec<Event> = Vec::new();
 
     let mut reaction_filter = Filter::new().kind(Kind::Reaction).event(*event_id);
@@ -349,7 +350,7 @@ pub async fn get_reactions(
     match client.database().query(vec![db_filter], Order::Desc).await {
         Ok(db_events) => {
             if db_events.is_empty() {
-                is_fetch = true;
+                // is_fetch = true;
             } else {
                 events.extend(db_events);
             }
