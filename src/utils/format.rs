@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use nostr_sdk::{EventId, FromBech32, PublicKey};
 use regex::Regex;
-
+use nostr_sdk::nips::nip19::Nip19Event;
 use crate::components::{Mention, Quote};
 use crate::nostr::utils::{is_note_address, AddressType};
 /// format public key
@@ -287,4 +287,29 @@ fn replace_qoutes(content: &str) -> String {
         )
     })
     .to_string()
+}
+
+
+pub fn parse_notif_content_event(content: &str) -> Option<Nip19Event> {
+    let re: Regex = Regex::new(r"nostr:nevent1\w+").unwrap();
+    if let Some(capture) = re.captures(&content) {
+        if let Some(nevent) = capture.get(0) {
+            let event_id_str: &str = nevent.as_str();
+            let nevent_str: &str = event_id_str.strip_prefix("nostr:").unwrap();
+            match Nip19Event::from_bech32(nevent_str){
+                Ok(nev) => {
+                    return Some(nev);
+                }
+                Err(e) => {
+                    tracing::info!("Failed to decode {}: {:?}", nevent_str, e);
+                }
+            }
+        }
+    }
+    return None;
+}
+
+pub fn remove_content_nostr_str(content: &str) -> String {
+    let re: Regex = Regex::new(r"nostr:[^\s]+").unwrap();
+    return re.replace_all(content, "").to_string();
 }

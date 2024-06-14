@@ -5,6 +5,7 @@ use crate::components::{
   notification::notification_reply::NotifReply
 };
 use crate::components::icons::{LIKEICON,TURN_LEFT,TURN_RIGHT,QUTE,ZAP};
+use crate::utils::format::remove_content_nostr_str;
 #[derive(PartialEq, Clone, Props)]
 pub struct NotifContenteProps {
     pub notif_event: Event,
@@ -59,7 +60,7 @@ pub fn NotificationContent(props: NotifContenteProps) -> Element {
       
       div{
         class:"content",
-        "{event.content}"
+        "{remove_content_nostr_str(&event.content)}"
       }
       
       NotifReply {
