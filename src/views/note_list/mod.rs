@@ -127,6 +127,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 Ok(hc) => {
                     let client = hc.client();
                     {
+                        is_loading.set(false);
                         tracing::info!("hello handle init");
                         let sub_id = SubscriptionId::new(format!("note-list-{}", sub_current.name));
 
@@ -196,7 +197,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
         (&name, &reload_time, &is_cache),
         move |(s, _, new_is_cache)| {
             notes.clear();
-            is_loading.set(false);
+            is_loading.set(true);
             iscache.set(new_is_cache);
             sub_name.set(s.clone());
             let subs_map_lock = subs_map();

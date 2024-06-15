@@ -113,16 +113,12 @@ pub async fn verify_filters( _filters: &Vec<FilterTemp>) -> Result<String,String
         match filter {
             FilterTemp::Accounts(_accounts) =>{
                 if _accounts.kinds.len()<=0 {
-                    // alert().await;
                     return Err("Kinds cannot be empty!".to_string());
                 }else if _accounts.accounts.len() <= 0 {
-                    // alert("Accounts cannot be empty!".to_string()).await;
                     return Err("Accounts cannot be empty!".to_string());
                 }
-
                 
                 for account in _accounts.accounts.iter() {
-                    tracing::info!("loading accounts: {:?}", account);
                     if account.npub.is_empty() {
                         return Err(format!("The {} value in Accounts is empty", account.alt_name));
                     }else if let Err(e) = PublicKey::parse(&account.npub) {
@@ -137,7 +133,6 @@ pub async fn verify_filters( _filters: &Vec<FilterTemp>) -> Result<String,String
 
                 for event in _events.events.iter() {
                     if event.nevent.is_empty() {
-                        // alert(format!("The {} value in Notes is empty", event.alt_name)).await;
                         return Err(format!("The {} value in Notes is empty", event.alt_name));
                     }else if let Err(e) = EventId::parse(&event.nevent) {
                         return Err(format!("The format of the Notes->id/EventId is incorrect (alt name->:{},id/EventId:{})", event.alt_name,event.nevent));
