@@ -4,7 +4,7 @@ use notification_content::NotificationContent;
 use dioxus::prelude::*;
 use crate::components::icons::*;
 use crate::components::icons::LOADING;
-use crate::components::ModalManager;
+// use crate::components::MODAL_MANAGER;
 use std::time::Duration;
 use nostr_sdk::{PublicKey,Event};
 use crate::nostr::MultiClient;
@@ -27,7 +27,6 @@ pub fn Notification(props: NotifContenteProps) -> Element {
     let mut notif_events: Signal<Vec<NotificationMsg>> = use_signal(|| Vec::new());
     let mut paginator = use_signal(|| None);
     let mut is_loading = use_signal(|| false);
-    let mut modal_manager = use_context::<Signal<ModalManager>>();
     let mut before_present_time_str = use_signal(|| "".to_string());
 
     //parse as event 
@@ -151,7 +150,7 @@ pub fn Notification(props: NotifContenteProps) -> Element {
                 let func: &js_sys::Function = throttled_callback.as_ref().unchecked_ref();
                 func.call0(&JsValue::NULL).unwrap();
 
-                modal_manager.write().destory_all_modals_by_level(4);
+                // MODAL_MANAGER.write().destory_all_modals_by_level(4);
               },
                //data group 
                if !before_present_time_str().is_empty() {
