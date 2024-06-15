@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use cached::{Cached, TimedCache};
 use dashmap::DashMap;
+use nostr_indexeddb::database::Order;
 use nostr_indexeddb::WebDatabase;
 use nostr_sdk::{Client, ClientBuilder, Event, Filter};
 use thiserror::Error;
@@ -226,14 +227,29 @@ impl EventCache {
                 self.pending_queries.insert(query.clone(), ());
             }
         }
-
+        
         // Perform the query
-        let result = match client.client.get_events_of(filters.clone(), timeout).await {
-            Ok(result) => result,
-            Err(e) => {
-                self.pending_queries.remove(&query);
-                self.notify.notify_waiters();
-                return Err(Error::Client(e));
+        let result = {
+            let db_events = match client.client.database().query(filters.clone(), Order::Desc).await {
+                Ok(result) => result,
+                Err(_) => {
+                    vec![]
+                    // self.pending_queries.remove(&query);
+                    // self.notify.notify_waiters();
+                    // return Err(Error::Client(e));
+                }
+            };
+            if db_events.len() > 0 {
+                db_events
+            } else {
+                match client.client.get_events_of(filters.clone(), timeout).await {
+                    Ok(result) => result,
+                    Err(e) => {
+                        self.pending_queries.remove(&query);
+                        self.notify.notify_waiters();
+                        return Err(Error::Client(e));
+                    }
+                }
             }
         };
 
