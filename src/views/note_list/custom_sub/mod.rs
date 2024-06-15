@@ -53,7 +53,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     // let all_subs = use_context::<Vec<CustomSub>>();
     let mut subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let cb_database_db: Signal<CBWebDatabase> = use_context::<Signal<CBWebDatabase>>();
-    let mut is_new_name = use_signal(|| false);
+    // let mut is_new_name = use_signal(|| false);
     let mut edit = use_context_provider(|| Signal::new(false));
     
     use_effect(use_reactive((&props.sub_name,), move |(sub_name_new,)| {
@@ -66,7 +66,6 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 old_sub.set(current.clone());
                 edit.set(false);
             } else {
-                tracing::info!("init sub_current: {:#?}", 111);
                 if sub_name_new.eq(NEW_CUSTOM_SUB_KEY) {
                     let mut _sub_current = CustomSub::empty();
                     let mut init_sub_name = String::from(sub_name_new);
@@ -74,7 +73,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                     _sub_current.name = init_sub_name;
                     sub_current.set(_sub_current.clone());
                     old_sub.set(_sub_current.clone());
-                    is_new_name.set(true);
+                    // is_new_name.set(true);
                     edit.set(true);
                     tracing::info!("init sub_current: {:#?}", 111);
                 }
@@ -94,6 +93,13 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
         // TODO: save sub
         spawn(async move {
             
+            let _filters  = sub_current().filters;
+            let is_verify = verify_filters(&_filters).await;
+            if  let Err(msg) = is_verify {
+                alert(msg).await;
+                return;
+            }
+
             let old_name = sub_name();
             let edit_value = sub_current();
             tracing::info!("old name: {:#?}", old_name);

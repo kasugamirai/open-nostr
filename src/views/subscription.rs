@@ -36,7 +36,11 @@ pub fn Subscription(name: String) -> Element {
                 }
             } else {
                 div {
-                    "New Custmo Subscription"
+                    class:"flex-box-left h-full",
+                    div {
+                        class: "note-more-mod-box",
+                        "New Custmo Subscription",
+                    }
                 }
             }
             
