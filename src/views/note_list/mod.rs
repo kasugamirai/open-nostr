@@ -10,9 +10,9 @@ use std::sync::{Arc, RwLock};
 use crate::components::icons::LOADING;
 use crate::init::MODAL_MANAGER;
 use crate::init::SUB_COUNTERS;
-use crate::nostr::{NotificationHandler, Register};
 use crate::nostr::EventPaginator;
 use crate::nostr::MultiClient;
+use crate::nostr::{NotificationHandler, Register};
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
 use dioxus::prelude::*;
@@ -50,7 +50,7 @@ pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandl
                         event.content
                     );
                     {
-                        SUB_COUNTERS.write().inc(&sub_id);
+                        SUB_COUNTERS.write().inc(&sub_id, *event.clone());
                         let id = "sub-new-msg".to_string();
                         MODAL_MANAGER.write().add_message(
                             rsx! {
@@ -90,8 +90,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let mut sub_register = use_context::<Signal<Register>>();
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
-    let mut new_notes: Signal<Vec<Event>> = use_signal(|| Vec::new());
-    let handle_fetch = move || {
+    let handle_fetch = move |is_clear: Option<bool>| {
         spawn(async move {
             if !is_loading() {
                 is_loading.set(true);
@@ -101,9 +100,17 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 let result = paginator_write.as_mut();
                 if let Some(paginator) = result {
                     if let Some(events) = paginator.next_page().await {
+                        tracing::info!("hello handle fetch {:?}", notes.len());
+                        if let Some(clear) = is_clear {
+                            if clear {
+                                notes.clear();
+                            }
+                        }
                         notes.extend(events.iter().cloned());
+                        is_loading.set(false);
+                    } else {
+                        is_loading.set(false);
                     }
-                    is_loading.set(false);
                 }
             }
         });
@@ -122,7 +129,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     {
                         tracing::info!("hello handle init");
                         let sub_id = SubscriptionId::new(format!("note-list-{}", sub_current.name));
-                        
+
                         if sub_current.live {
                             tracing::info!("sub_id: {:?}", sub_id.clone());
                             sub_register
@@ -160,21 +167,23 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     }
                     {
                         if !iscache() && !sub_current.live {
-                            notes.set(vec![]);
-                            handle_fetch();
+                            handle_fetch(Some(true));
                             return;
                         }
-                        let stored_events =
-                            client.database().query(filters.clone(), Order::Desc).await;
-                        match stored_events {
-                            Ok(events) => {
-                                notes.set(events);
-                            }
-                            Err(_) => {
-                                notes.set(vec![]);
+
+                        if !sub_current.live {
+                            let stored_events =
+                                client.database().query(filters.clone(), Order::Desc).await;
+                            match stored_events {
+                                Ok(events) => {
+                                    notes.set(events);
+                                }
+                                Err(_) => {
+                                    notes.set(vec![]);
+                                }
                             }
                         }
-                        handle_fetch();
+                        handle_fetch(Some(true));
                     }
                 }
                 Err(e) => {
@@ -201,76 +210,30 @@ pub fn NoteList(props: NoteListProps) -> Element {
         if name.clone().is_empty() {
             navigator().replace("/404");
         }
-        // handle_fetch();
+        notes.clear();
     };
-    use_effect(use_reactive(
-        (&SUB_COUNTERS.signal(), ),
-        move |(counter, )| {
-            let count = counter.read().get(&SubscriptionId::new(format!("note-list-{}", &sub_name())));
-            let sub_current = sub_current.read().clone();
-            match count {
-                Some(c) => {
-                    let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
-                    if sub_current.live && c <= 0 && modal_id {
-                        spawn(async move {
-                            let multiclient = multiclient.read();
-                            let hc = multiclient.get_client(&sub_current.relay_set).await;
-                            match hc {
-                                Some(client) => {
-                                    let client = client.client();
-                                    let sub_filters = sub_current.get_filters();
-                                    // let filter = Filter::new()
-                                    let filters = match  notes().first() {
-                                        Some(event) => {
-                                            let mut filters: Vec<Filter> = vec![];
-                                            for sub_filter in sub_filters.iter() {
-                                                let mut _filter = sub_filter.clone();
-                                                _filter.since = Some(event.created_at.clone() + 1);
-                                                filters.push(_filter);
-                                            }
-                                            filters
-                                        }
-                                        None => {
-                                            sub_filters
-                                        }
-                                    };
+    use_effect(use_reactive((&SUB_COUNTERS.signal(),), move |(mut counter,)| {
+        let sub_id = SubscriptionId::new(format!("note-list-{}", &sub_name()));
+        let count = counter
+            .read()
+            .get_size(&sub_id);
+        let events = counter.read().get_event(&sub_id).unwrap_or(vec![]);
+        let sub_current = sub_current.read().clone();
+        match count {
+            Some(c) => {
+                let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
+                if sub_current.live && c <= 0 && modal_id && !events.is_empty() {
 
-                                    let stored_events =
-                                        client.database().query(filters.clone(), Order::Desc).await;
-                                        
-                                    match stored_events {
-                                        Ok(events) => {
-                                            new_notes.set(events);
-                                        }
-                                        Err(_) => {
-                                            // notes.set(vec![]);
-                                        }
-                                    }
-                                }
-                                None => {}
-                            };
-                        });
-                        //
-                        // handle_fetch();
-                    }
-                }
-                None => {}
-            };
-        },
-    ));
-    let notes_doms = use_memo(move || {
-        rsx! {
-            for (i, note) in notes().clone().iter().enumerate() {
-                Note {
-                    sub_name: sub_current().name.clone(),
-                    event: note.clone(),
-                    relay_name: sub_current().relay_set.clone(),
-                    note_index: i,
-                    // key: note.id.to_string(),
+                    let mut new_notes = events.clone();
+                    new_notes.reverse();
+                    // new_notes.extend(notes().iter().cloned());
+                    // notes.set(new_notes);
+                    counter.write().clear(&sub_id);
                 }
             }
-        }
-    });
+            None => {}
+        };
+    }));
     rsx! {
             div {
                 onmounted: on_mounted,
@@ -285,7 +248,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                                     let scroll_height = scroll_info.scroll_height;
                                     let client_height = scroll_info.client_height;
                                     if scroll_height - scroll_top - client_height <= 100 {
-                                        handle_fetch();
+                                        handle_fetch(Some(false));
                                     }
                                 }
                                 Err(e) => {
@@ -305,23 +268,15 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     class: "note-more-mod-box",
                     div {
                         class: "note-more-mod-box",
-                        for (i, note) in new_notes().clone().iter().enumerate() {
+                        for (i, note) in notes().clone().iter().enumerate() {
                             Note {
                                 sub_name: sub_current().name.clone(),
                                 event: note.clone(),
                                 relay_name: sub_current().relay_set.clone(),
                                 note_index: i,
+                                // key: note.id.to_string(),
                             }
                         }
-                        {notes_doms()}
-                        // for (i, note) in notes().clone().iter().enumerate() {
-                        //     Note {
-                        //         sub_name: sub_current().name.clone(),
-                        //         event: note.clone(),
-                        //         relay_name: sub_current().relay_set.clone(),
-                        //         note_index: i,
-                        //     }
-                        // }
                         if is_loading() {
                             div {
                                 class: "laoding-box",

@@ -3,7 +3,7 @@ use std::sync::{Arc, RwLock};
 
 use dioxus::prelude::*;
 use nostr_indexeddb::WebDatabase;
-use nostr_sdk::{ClientBuilder, SubscriptionId};
+use nostr_sdk::{ClientBuilder, Event, SubscriptionId};
 
 use crate::components::{ModalManager, ModalManagerProvider};
 use crate::nostr::Register;
@@ -24,7 +24,7 @@ pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
 
 #[derive(Debug)]
 pub struct Counter {
-    counts: Arc<RwLock<HashMap<SubscriptionId, usize>>>,
+    counts: Arc<RwLock<HashMap<SubscriptionId, (usize, Vec<Event>)>>>,
 }
 
 impl Counter {
@@ -33,24 +33,30 @@ impl Counter {
             counts: Arc::new(RwLock::new(HashMap::new())),
         }
     }
-    pub fn get(&self, id: &SubscriptionId) -> Option<usize> {
+    pub fn get_size(&self, id: &SubscriptionId) -> Option<usize> {
         let counts = self.counts.read().unwrap();
-        counts.get(id).map(|count| *count)
+        counts.get(id).map(|count| (*count).0)
     }
-    pub fn inc(&self, id: &SubscriptionId) {
-        let mut counts = self.counts.write().unwrap();
-        let count = counts.entry(id.clone()).or_insert(0);
-        *count += 1;
+
+    pub fn get_event(&self, id: &SubscriptionId) -> Option<Vec<Event>> {
+        let counts = self.counts.read().unwrap();
+        counts.get(id).map(|count| (*count).1.clone())
     }
-    pub fn dec(&self, id: &SubscriptionId) {
+    pub fn inc(&self, id: &SubscriptionId, event: Event) {
         let mut counts = self.counts.write().unwrap();
-        let count = counts.entry(id.clone()).or_insert(0);
-        *count -= 1;
+        let count = counts.entry(id.clone()).or_insert((0, vec![]));
+        (*count).0 += 1;
+        (*count).1.push(event);
+    }
+    pub fn clear_size(&self, id: &SubscriptionId) {
+        let mut counts = self.counts.write().unwrap();
+        let count = counts.entry(id.clone()).or_insert((0, vec![]));
+        // *count = 0;
+        (*count).0 = 0;
     }
     pub fn clear(&self, id: &SubscriptionId) {
         let mut counts = self.counts.write().unwrap();
-        let count = counts.entry(id.clone()).or_insert(0);
-        *count = 0;
+        counts.remove(id);
     }
     pub fn clear_all(&self) {
         let mut counts = self.counts.write().unwrap();
@@ -61,7 +67,7 @@ impl Counter {
 // Atoms and AtomRefs have been replaced with GlobalSignals
 pub static SUB_COUNTERS: GlobalSignal<Counter> = Signal::global(|| Counter::new());
 
-pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global( || ModalManager::new());
+pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global(|| ModalManager::new());
 
 #[allow(non_snake_case)]
 pub fn App() -> Element {
@@ -82,8 +88,6 @@ pub fn App() -> Element {
 
     // use_context_provider(|| Signal::new(Counter::new(true)));
     use_context_provider(|| Signal::new(Register::new()));
-
-
 
     // hook: on mounted
     let on_mounted = move |_| {
@@ -208,7 +212,7 @@ pub fn App() -> Element {
             id: "app",
             class: "{theme}",
             {router}
-            
+
             ModalManagerProvider {}
         }
     }
