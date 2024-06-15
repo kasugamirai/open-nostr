@@ -207,7 +207,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
         }
     };
 
-    let clicke_handle_save = move || {
+    let handle_new_save = move || {
         spawn(async move { 
             let old_name = sub_name();
             let edit_value = sub_current().clone();
@@ -280,7 +280,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         button {
                             class: "btn-style-unify wh-70",
                             onclick: move |_| {
-                                clicke_handle_save();
+                                handle_new_save();
                             },
                             "save"
                         }
