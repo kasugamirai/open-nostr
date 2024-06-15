@@ -64,18 +64,17 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 let current = subs_map_lock.get(&sub_name_new).unwrap();
                 sub_current.set(current.clone());
                 old_sub.set(current.clone());
-            }else{
+            } else {
                 if !is_new_name() {
                     let mut _sub_current = CustomSub::empty();
                     let mut init_sub_name = String::from(sub_name_new);
                     init_sub_name.push_str(&subs_map_lock.len().to_string());
                     _sub_current.name = init_sub_name;
-                    tracing::error!("loading sub_name: {:?}", _sub_current);
-                    tracing::error!("loading sub_name: {:?}", sub_current());
                     sub_current.set(_sub_current.clone());
                     old_sub.set(_sub_current.clone());
                     is_new_name.set(true);
                     edit.set(true);
+                    tracing::info!("init sub_current: {:#?}", 111);
                 }
             }
         }
