@@ -89,7 +89,6 @@ pub fn NotifReply(props: NotifReplyProps) -> Element {
                 };
 
                 //notif qutoe 
-                tracing::info!("note_id: {:?}", notif_type);
                 if nt_qutoe.eq(notif_type) {
                     match parse_notif_content_event(&content){
                         Some(nip19Event)=>{

@@ -3,9 +3,9 @@ use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil, Kind};
 use crate::components::{
     icons::*,
-    MODAL_MANAGER,
     Avatar
 };
+use crate::init::MODAL_MANAGER;
 use crate::nostr::get_reactions;
 use crate::nostr::MultiClient;
 use crate::nostr::{ReplyTreeManager, TextNote};
@@ -167,6 +167,7 @@ pub fn Note(props: NoteProps) -> Element {
     };
     rsx! {
         div {
+            key: "{event().id().to_hex()}",
             class: format!("com-post p-6 {}", props.clsname.clone().unwrap_or("".to_string())),
             id: format!("note-{}", event.read().id().to_string()),
             div {

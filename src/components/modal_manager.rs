@@ -7,6 +7,8 @@ use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use web_sys::window;
 
+use crate::init::MODAL_MANAGER;
+
 // extern "C" {
 //     pub type ResizeObserver;
 // }
@@ -190,8 +192,6 @@ impl ModalManager {
         }
     }
 }
-
-pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global( || ModalManager::new());
 
 #[component]
 fn ModalComponent(modal: Modal, id: String) -> Element {
