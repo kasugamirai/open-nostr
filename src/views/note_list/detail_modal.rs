@@ -22,7 +22,7 @@
 use dioxus::prelude::*;
 
 use crate::components::icons::FALSE;
-use crate::components::MODAL_MANAGER;
+use crate::init::MODAL_MANAGER;
 #[component]
 pub fn DetailModal(detail: String, id: String) -> Element {
     let on_close = move |_| {

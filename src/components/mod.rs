@@ -20,7 +20,7 @@ pub use dropdown::Dropdown;
 pub use dtpicker::DateTimePicker;
 pub use mention::Mention;
 pub use message::Message;
-pub use modal_manager::{ModalManager, ModalManagerProvider, MODAL_MANAGER};
+pub use modal_manager::{ModalManager, ModalManagerProvider};
 pub use notification::Notification;
 pub use outside::ClickOutside;
 pub use quote::Quote;

@@ -60,6 +60,9 @@ impl Counter {
 
 // Atoms and AtomRefs have been replaced with GlobalSignals
 pub static SUB_COUNTERS: GlobalSignal<Counter> = Signal::global(|| Counter::new());
+
+pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global( || ModalManager::new());
+
 #[allow(non_snake_case)]
 pub fn App() -> Element {
     tracing::info!("Welcome to Capybastr!!");

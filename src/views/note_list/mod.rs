@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use crate::components::icons::LOADING;
-use crate::components::MODAL_MANAGER;
+use crate::init::MODAL_MANAGER;
 use crate::init::SUB_COUNTERS;
 use crate::nostr::{NotificationHandler, Register};
 use crate::nostr::EventPaginator;
@@ -16,9 +16,10 @@ use crate::nostr::MultiClient;
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
 use dioxus::prelude::*;
+use dioxus_elements::{filter, math};
 use new_note_msg::NewNoteMsg;
 use nostr_indexeddb::database::Order;
-use nostr_sdk::{Event, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
+use nostr_sdk::{Event, Filter, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
 use note::Note;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
@@ -89,7 +90,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     let mut sub_register = use_context::<Signal<Register>>();
     let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
-
+    let mut new_notes: Signal<Vec<Event>> = use_signal(|| Vec::new());
     let handle_fetch = move || {
         spawn(async move {
             if !is_loading() {
@@ -217,12 +218,29 @@ pub fn NoteList(props: NoteListProps) -> Element {
                             match hc {
                                 Some(client) => {
                                     let client = client.client();
-                                    let filters = sub_current.get_filters();
+                                    let sub_filters = sub_current.get_filters();
+                                    // let filter = Filter::new()
+                                    let filters = match  notes().first() {
+                                        Some(event) => {
+                                            let mut filters: Vec<Filter> = vec![];
+                                            for sub_filter in sub_filters.iter() {
+                                                let mut _filter = sub_filter.clone();
+                                                _filter.since = Some(event.created_at.clone() + 1);
+                                                filters.push(_filter);
+                                            }
+                                            filters
+                                        }
+                                        None => {
+                                            sub_filters
+                                        }
+                                    };
+
                                     let stored_events =
                                         client.database().query(filters.clone(), Order::Desc).await;
+                                        
                                     match stored_events {
                                         Ok(events) => {
-                                            notes.set(events);
+                                            new_notes.set(events);
                                         }
                                         Err(_) => {
                                             // notes.set(vec![]);
@@ -248,6 +266,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     event: note.clone(),
                     relay_name: sub_current().relay_set.clone(),
                     note_index: i,
+                    // key: note.id.to_string(),
                 }
             }
         }
@@ -286,6 +305,14 @@ pub fn NoteList(props: NoteListProps) -> Element {
                     class: "note-more-mod-box",
                     div {
                         class: "note-more-mod-box",
+                        for (i, note) in new_notes().clone().iter().enumerate() {
+                            Note {
+                                sub_name: sub_current().name.clone(),
+                                event: note.clone(),
+                                relay_name: sub_current().relay_set.clone(),
+                                note_index: i,
+                            }
+                        }
                         {notes_doms()}
                         // for (i, note) in notes().clone().iter().enumerate() {
                         //     Note {

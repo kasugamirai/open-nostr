@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use nostr_sdk::SubscriptionId;
 
-use crate::{components::MODAL_MANAGER, init::SUB_COUNTERS};
+use crate::init::{MODAL_MANAGER, SUB_COUNTERS};
 
 
 #[component]

@@ -11,22 +11,19 @@ use crate::nostr::get_following;
 #[component]
 pub fn Home() -> Element {
     //global component
-    let subs_map: Signal<HashMap<String, CustomSub>> = use_context::<Signal<HashMap<String, CustomSub>>>();
-    let all_sub: Signal<Vec<CustomSub>> = use_context::<Signal<Vec<CustomSub>>>();
-    let multiclient: Signal<MultiClient> = use_context::<Signal<MultiClient>>();
+    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
+    let multiclient = use_context::<Signal<MultiClient>>();
     //default parameters
     let hex_str = "5ee693398c21a9ab2cfb2bea3f1f9bbe6eeb8501c053db67f7a3e83a332a6ab0";
-    let public_key: PublicKey = PublicKey::from_hex(hex_str).expect("publicKey");
-    let sub_name: String = String::from(FOLLOWING_SUB_KEY.to_string());
-    let relay_name: String = String::from(DEFAULT_RELAY_SET_KEY.to_string());
+    let public_key = PublicKey::from_hex(hex_str).expect("publicKey");
+    let sub_name = String::from(FOLLOWING_SUB_KEY.to_string());
+    let relay_name = String::from(DEFAULT_RELAY_SET_KEY.to_string());
     let mut is_loaded = use_signal(|| false);
-    let relaod_flag: Signal<Timestamp> = use_signal(Timestamp::now);
-    let is_cache: Signal<bool> = use_signal(|| true);
 
     //loading following users
     use_effect(use_reactive(
-        (&public_key,&relay_name,&sub_name,&all_sub,&subs_map),
-        move |(public_key,relay_name,sub_name,all_sub,subs_map)| {
+        (&public_key,&relay_name,&sub_name,&subs_map),
+        move |(public_key,relay_name,sub_name,subs_map)| {
             spawn(async move {
                 let clients = multiclient();
                 let client_result = clients.get_or_create(&relay_name).await;
@@ -37,7 +34,7 @@ pub fn Home() -> Element {
                             Ok(following_users) => {
                                 //format users Vec<String> ->  Account
                                 let accounts = following_users.iter().map(|user: &String| Account {
-                                  alt_name: String::from(user),
+                                  alt_name: String::from(user[0..5].to_string()),
                                   npub: String::from(user),
                                 }).collect();
                                 //init sub
@@ -54,22 +51,10 @@ pub fn Home() -> Element {
                                   })],
                                   keep_alive: true,
                                 };
-                                // //save to db
-                                // {
-                                //   let _database = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
-                                //   _database.save_custom_sub(following_sub.clone()).await.unwrap();
-                                // }
-                                //save to subs_map
                                 {
                                   let mut _subs_map = subs_map.clone();
                                   _subs_map.write().insert(sub_name.clone(), following_sub.clone());  
                                 }
-                                // //save to all_map
-                                // {
-                                //   let mut _all_sub: Signal<Vec<CustomSub>> = all_sub.clone();
-                                //   _all_sub.push(following_sub.clone());
-                                // }
-                                //edit page loading
                                 is_loaded.set(true);
                             } 
                             Err(e) => {
@@ -95,8 +80,7 @@ pub fn Home() -> Element {
             class:"flex-box-left",
               NoteList {
                   name: sub_name.clone(),
-                  reload_time: relaod_flag().clone(),
-                  is_cache: is_cache().clone(),
+                  reload_time: Timestamp::now(),
               }
           }
           div{

@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 
-use crate::components::MODAL_MANAGER;
-use crate::init::SUB_COUNTERS;
+use crate::init::{MODAL_MANAGER, SUB_COUNTERS};
 use crate::nostr::ReplyTreeManager;
 use crate::store::subscription::CustomSub;
 struct UserItem {

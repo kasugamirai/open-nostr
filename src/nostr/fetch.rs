@@ -177,8 +177,6 @@ impl EventPaginator {
             }
         };
 
-        tracing::info!("run notif events{:?},",events);
-        tracing::info!("updated_filters-result-length: {:#?}", events.len());
         if events.is_empty() || self.are_all_event_ids_present(&events) {
             self.done = true;
             return None;
