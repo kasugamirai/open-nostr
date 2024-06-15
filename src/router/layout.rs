@@ -268,7 +268,6 @@ pub fn Layout() -> Element {
                 //     onclick: move |event| {
                 //       messageContent.set("Received 10 New Events !!".to_string());
                 //     },
-                //     "获取新消息"
                 //   }
                 // }
                 Button { on_click: toggle_theme, "{theme}" }

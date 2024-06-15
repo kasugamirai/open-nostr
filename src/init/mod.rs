@@ -16,6 +16,7 @@ use crate::store::{
 use crate::Route;
 
 pub const EXAMPLE_SUB_KEY: &str = "nostr";
+pub const NEW_CUSTOM_SUB_KEY: &str = "new";
 pub const FOLLOWING_SUB_KEY: &str = "following";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";
 pub const NOSTR_DB_NAME: &str = "nostr-db";

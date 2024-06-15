@@ -35,7 +35,7 @@ pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandl
     Arc::new(move |notification| {
         let sub_id = sub_id.read().unwrap().clone();
         Box::pin(async move {
-            let sub_id = sub_id.clone(); // 获取指针以传递给闭包
+            let sub_id = sub_id.clone(); 
             match notification {
                 RelayPoolNotification::Message {
                     message: RelayMessage::Event { event, .. },
