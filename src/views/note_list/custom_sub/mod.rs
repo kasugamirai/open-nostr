@@ -64,8 +64,10 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                 let current = subs_map_lock.get(&sub_name_new).unwrap();
                 sub_current.set(current.clone());
                 old_sub.set(current.clone());
+                edit.set(false);
             } else {
-                if !is_new_name() {
+                tracing::info!("init sub_current: {:#?}", 111);
+                if sub_name_new.eq(NEW_CUSTOM_SUB_KEY) {
                     let mut _sub_current = CustomSub::empty();
                     let mut init_sub_name = String::from(sub_name_new);
                     init_sub_name.push_str(&subs_map_lock.len().to_string());
