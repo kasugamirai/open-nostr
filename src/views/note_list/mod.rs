@@ -195,6 +195,8 @@ pub fn NoteList(props: NoteListProps) -> Element {
     use_effect(use_reactive(
         (&name, &reload_time, &is_cache),
         move |(s, _, new_is_cache)| {
+            notes.clear();
+            is_loading.set(false);
             iscache.set(new_is_cache);
             sub_name.set(s.clone());
             let subs_map_lock = subs_map();
@@ -236,6 +238,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     }));
     rsx! {
             div {
+                key: "note-list-{sub_name()}",
                 onmounted: on_mounted,
                 class:"flex-box-left h-full",
                 id: "note-list",

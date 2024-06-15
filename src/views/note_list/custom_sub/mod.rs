@@ -58,6 +58,7 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     
     use_effect(use_reactive((&props.sub_name,), move |(sub_name_new,)| {
         sub_name.set(sub_name_new.clone());
+        sub_current.set(CustomSub::empty());
         {
             let subs_map_lock = subs_map();
             if subs_map_lock.contains_key(&sub_name_new) {
