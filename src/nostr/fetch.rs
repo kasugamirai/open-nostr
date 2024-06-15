@@ -177,6 +177,8 @@ impl EventPaginator {
             }
         };
 
+        tracing::info!("run notif events{:?},",events);
+        tracing::info!("updated_filters-result-length: {:#?}", events.len());
         if events.is_empty() || self.are_all_event_ids_present(&events) {
             self.done = true;
             return None;
@@ -349,14 +351,12 @@ pub async fn get_reactions(
     let db_filter = reaction_filter.clone();
     match client.database().query(vec![db_filter], Order::Desc).await {
         Ok(db_events) => {
-            if db_events.is_empty() {
-                // is_fetch = true;
-            } else {
+            if !db_events.is_empty() {
                 events.extend(db_events);
             }
         }
         Err(_) => {
-            is_fetch = true;
+            // is_fetch = true;
         }
     }
 
@@ -501,13 +501,15 @@ impl NotificationPaginator {
 }
 
 pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
-    let create_filter = |kind| Filter::new().kind(kind).pubkey(*public_key);
 
+    // let create_filter = |kind| Filter::new().kind(kind).pubkey(*public_key);
     vec![
-        create_filter(Kind::Reaction),
-        create_filter(Kind::TextNote),
-        create_filter(Kind::Repost),
-        create_filter(Kind::ZapReceipt),
+        Filter::new().pubkey(*public_key)
+        .kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt)
+        // create_filter()
+        // create_filter(Kind::TextNote),
+        // create_filter(Kind::Repost)
+        // create_filter(Kind::ZapReceipt),
     ]
 }
 

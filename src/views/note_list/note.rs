@@ -1,10 +1,11 @@
 use std::collections::HashMap;
-
 use dioxus::prelude::*;
 use nostr_sdk::{Event, JsonUtil, Kind};
-
-use crate::components::{icons::*, MODAL_MANAGER};
-use crate::components::Avatar;
+use crate::components::{
+    icons::*,
+    MODAL_MANAGER,
+    Avatar
+};
 use crate::nostr::get_reactions;
 use crate::nostr::MultiClient;
 use crate::nostr::{ReplyTreeManager, TextNote};
@@ -31,7 +32,7 @@ pub struct NoteProps {
 }
 #[component]
 pub fn Note(props: NoteProps) -> Element {
-    let subs_map = use_context::<Signal<HashMap<String, CustomSub>>>();
+    let subs_map: Signal<HashMap<String, CustomSub>> = use_context::<Signal<HashMap<String, CustomSub>>>();
     let multiclient = use_context::<Signal<MultiClient>>();
     let reply_tree_manager = use_context::<Signal<ReplyTreeManager>>();
 
@@ -131,7 +132,7 @@ pub fn Note(props: NoteProps) -> Element {
         (&props.is_tree, &props.sub_name, &props.event.id),
         move |(is_tree, sub_name, eid)| {
             spawn(async move {
-                let _subs_map = subs_map();
+                let _subs_map: HashMap<String, CustomSub> = subs_map();
                 if !_subs_map.contains_key(&sub_name) {
                     return;
                 }
@@ -140,10 +141,9 @@ pub fn Note(props: NoteProps) -> Element {
                 let client_result = clients.get_or_create(&sub.relay_set).await;
                 match client_result {
                     Ok(hc) => {
-                        let client = hc.client();
+                        let client: std::sync::Arc<nostr_sdk::Client> = hc.client();
                         match get_reactions(&client, &eid, None, is_tree).await {
                             Ok(reactions) => {
-                                tracing::info!("get_reactions result: {:?}", reactions);
                                 if reactions.len() > 0 {
                                     reactions_maps.set(reactions);
                                 }
@@ -207,13 +207,13 @@ pub fn Note(props: NoteProps) -> Element {
                         handle_nav(Route::NoteDetail {
                             sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
                             root_id: text_note.get_root().unwrap().to_hex(),
-                            note_id: event.read().id().to_hex(), // 使用克隆的 event
+                            note_id: event.read().id().to_hex(), // Use clone event
                         });
                     } else {
                         handle_nav(Route::NoteDetail {
                             sub: urlencoding::encode(&props.sub_name.clone()).to_string(),
-                            root_id: event.read().id().to_hex(), // 使用克隆的 event
-                            note_id: event.read().id().to_hex(), // 使用克隆的 event
+                            root_id: event.read().id().to_hex(), // Use clone event
+                            note_id: event.read().id().to_hex(), // Use clone event
                         });
                     }
                 },
@@ -297,9 +297,6 @@ pub fn Note(props: NoteProps) -> Element {
                             }
                         }
                     }
-                    // span{
-                    //     class: "note-action-wrapper-span ml-10",
-                    // }
                 }
 
                 if props.is_expand {

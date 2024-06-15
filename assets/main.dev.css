@@ -13806,6 +13806,18 @@ svg path {
   word-wrap: break-word;
 }
 
+.note-action-wrapper {
+  flex-wrap: wrap;
+}
+
+.note-action-wrapper .note-action {
+  flex-wrap: wrap;
+}
+
+.note-action-wrapper .note-action-expand {
+  margin-left: auto;
+}
+
 .com-post .note-action-count {
   font-size: var(--textSize-12);
   font-family: "Source Sans Pro";
@@ -15026,12 +15038,22 @@ svg path {
   background-color: var(--bgc-0);
   top: -2px;
 }
+.not-style .notificatio-contents {
+  overflow-y: scroll;
+}
 .not-style .notificatio-box {
+  position: relative;
   background-color: var(--bgc-2);
   border-radius: var(--radius-24);
   border: 1px solid var(--boc-1);
   box-sizing: border-box;
   padding: 5px 4px;
+  margin-bottom: 5px;
+}
+.not-style .notificatio-box .notificatio-rigth-icon {
+  position: absolute;
+  top: 11px;
+  right: 12px;
 }
 .not-style .header {
   justify-content: space-between;
@@ -15069,6 +15091,9 @@ svg path {
   font-family: "Source Sans Pro";
   font-weight: 400;
   line-height: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cont-box {

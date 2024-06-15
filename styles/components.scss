@@ -219,6 +219,18 @@ svg path {
   word-wrap: break-word;
 }
 
+
+.note-action-wrapper{
+  flex-wrap: wrap;
+}
+
+.note-action-wrapper .note-action{
+  flex-wrap: wrap;
+}
+.note-action-wrapper .note-action-expand{
+  margin-left: auto;
+} 
+
 .com-post .note-action-count {
   font-size: var(--textSize-12);
   font-family: "Source Sans Pro";
