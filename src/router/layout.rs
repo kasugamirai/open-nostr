@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::*;
+use nostr_sdk::SubscriptionId;
 
 use crate::init::{MODAL_MANAGER, SUB_COUNTERS};
-use crate::nostr::ReplyTreeManager;
+use crate::nostr::{Register, ReplyTreeManager};
 use crate::store::subscription::CustomSub;
 struct UserItem {
     avatar: &'static str,
@@ -47,10 +48,20 @@ pub fn Layout() -> Element {
     let mut contentText = use_signal(|| String::from(""));
 
     let mut show = use_signal(|| false);
-
-    use_effect(use_reactive(&path, move |_| {
+    let mut sub_register = use_context::<Signal<Register>>();
+    use_effect(use_reactive(&path, move |new_path| {
         MODAL_MANAGER.write().destory_all_modals();
         SUB_COUNTERS.write().clear_all();
+        tracing::info!("path change to {:?}", new_path.to_string());
+        spawn(async move {
+            let sub_keys = subs_map.read().keys().cloned().collect::<Vec<String>>();
+            for key in sub_keys {
+                let sub_register_id = SubscriptionId::new(format!("note-list-{}", key.clone()));
+                sub_register.write().set_stop_flag(&sub_register_id, true).await;
+            }
+        });
+
+        // sub_register.write().clear_all();
     }));
     rsx! {
         aside {

@@ -227,10 +227,9 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
                 if sub_current.live && c <= 0 && modal_id && !events.is_empty() {
 
-                    let mut new_notes = events.clone();
-                    new_notes.reverse();
-                    // new_notes.extend(notes().iter().cloned());
-                    // notes.set(new_notes);
+                    for event in events.iter() {
+                        notes.insert(0, event.clone());
+                    }
                     counter.write().clear(&sub_id);
                 }
             }
