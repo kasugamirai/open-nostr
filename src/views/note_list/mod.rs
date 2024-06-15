@@ -36,7 +36,7 @@ pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandl
     Arc::new(move |notification| {
         let sub_id = sub_id.read().unwrap().clone();
         Box::pin(async move {
-            let sub_id = sub_id.clone(); // 获取指针以传递给闭包
+            let sub_id = sub_id.clone(); 
             match notification {
                 RelayPoolNotification::Message {
                     message: RelayMessage::Event { event, .. },
@@ -127,6 +127,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
                 Ok(hc) => {
                     let client = hc.client();
                     {
+                        is_loading.set(false);
                         tracing::info!("hello handle init");
                         let sub_id = SubscriptionId::new(format!("note-list-{}", sub_current.name));
 
@@ -195,6 +196,8 @@ pub fn NoteList(props: NoteListProps) -> Element {
     use_effect(use_reactive(
         (&name, &reload_time, &is_cache),
         move |(s, _, new_is_cache)| {
+            notes.clear();
+            is_loading.set(true);
             iscache.set(new_is_cache);
             sub_name.set(s.clone());
             let subs_map_lock = subs_map();
@@ -236,6 +239,7 @@ pub fn NoteList(props: NoteListProps) -> Element {
     }));
     rsx! {
             div {
+                key: "note-list-{sub_name()}",
                 onmounted: on_mounted,
                 class:"flex-box-left h-full",
                 id: "note-list",

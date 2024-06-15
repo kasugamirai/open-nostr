@@ -13571,6 +13571,18 @@ body, html {
     transform: rotate(360deg);
   }
 }
+.btn-style-unify {
+  padding: 0 10px;
+  line-height: 27px;
+  border-radius: 10px;
+  background-color: var(--bgc-1);
+  font-size: 14px;
+  font-family: "Raleway";
+  font-weight: 600;
+  color: var(--boc-2);
+  margin: auto;
+}
+
 input[type=datetime-local] {
   appearance: none;
   -webkit-appearance: none;

@@ -6,6 +6,8 @@ use serde_json::Value;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use web_sys::window;
+use nostr_sdk::{PublicKey,EventId};
+use crate::store::subscription::FilterTemp;
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
@@ -100,6 +102,55 @@ pub async fn note_srcoll_into_view(node_id: &str) {
         Value::Object(map)
     })
     .unwrap();
+}
+
+
+pub async fn verify_filters( _filters: &Vec<FilterTemp>) -> Result<String,String> {
+    if _filters.len()<=0 {
+        return Err("Filters cannot be empty!".to_string());
+    }
+    for filter in _filters.iter(){
+        match filter {
+            FilterTemp::Accounts(_accounts) =>{
+                if _accounts.kinds.len()<=0 {
+                    return Err("Kinds cannot be empty!".to_string());
+                }else if _accounts.accounts.len() <= 0 {
+                    return Err("Accounts cannot be empty!".to_string());
+                }
+                
+                for account in _accounts.accounts.iter() {
+                    if account.npub.is_empty() {
+                        return Err(format!("The {} value in Accounts is empty", account.alt_name));
+                    }else if let Err(e) = PublicKey::parse(&account.npub) {
+                        return Err(format!("The format of the Aoounts->npub/pubkey is incorrect (alt name->:{},id/EventId:{})", account.alt_name,account.npub));
+                    }
+                }
+            },
+            FilterTemp::Events(_events) =>{
+                if _events.events.len()<=0 {
+                    return Err("Notes cannot be empty!".to_string());
+                }
+
+                for event in _events.events.iter() {
+                    if event.nevent.is_empty() {
+                        return Err(format!("The {} value in Notes is empty", event.alt_name));
+                    }else if let Err(e) = EventId::parse(&event.nevent) {
+                        return Err(format!("The format of the Notes->id/EventId is incorrect (alt name->:{},id/EventId:{})", event.alt_name,event.nevent));
+                    }
+                    
+                }
+            },
+            FilterTemp::HashTag(_tags) =>{
+                let _tags = _tags.clone();
+                if _tags.tags.len()<=0 {
+                    return Err("Tags cannot be empty!".to_string());
+                }
+            },
+            FilterTemp::Customize(customize) =>{
+            }
+        }
+    }
+    return Ok("ok".to_string());
 }
 
 // 定义节流函数
