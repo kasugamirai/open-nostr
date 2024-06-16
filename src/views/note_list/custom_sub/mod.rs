@@ -125,12 +125,12 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
                         };
                     }
 
-                    if old_name != edit_name {
+                    // if old_name != edit_name {
                         navigator().replace(Route::Subscription { name: edit_name });
-                    } else {
-                        props.on_save.call(sub_current().clone());
-                        edit.set(false);
-                    }
+                    // } else {
+                        // props.on_save.call(sub_current().clone());
+                        // edit.set(false);
+                    // }
                     tracing::info!("Update success: wait for reload");
                 }
                 Err(e) => {

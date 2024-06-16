@@ -16,10 +16,9 @@ use crate::nostr::{NotificationHandler, Register};
 use crate::store::subscription::CustomSub;
 use crate::utils::js::{get_scroll_info, throttle};
 use dioxus::prelude::*;
-use dioxus_elements::{filter, math};
 use new_note_msg::NewNoteMsg;
 use nostr_indexeddb::database::Order;
-use nostr_sdk::{Event, Filter, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
+use nostr_sdk::{Event, RelayMessage, RelayPoolNotification, SubscriptionId, Timestamp};
 use note::Note;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::{JsCast, JsValue};
@@ -79,7 +78,6 @@ pub fn NoteList(props: NoteListProps) -> Element {
         reload_time,
         is_cache,
     } = props;
-    let mut reload_flag = use_signal(|| reload_time.clone());
     let mut sub_current = use_signal(CustomSub::empty);
     let mut sub_name = use_signal(|| name.clone());
     let mut iscache = use_signal(|| is_cache.clone());
