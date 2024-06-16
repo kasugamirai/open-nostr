@@ -33,6 +33,7 @@ pub fn Subscription(name: String) -> Element {
                     name: name.clone(),
                     reload_time: relaod_flag(),
                     is_cache: is_cache(),
+                    key: "{name.clone()}"
                 }
             } else {
                 div {

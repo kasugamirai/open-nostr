@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use dioxus::prelude::*;
 use nostr_sdk::SubscriptionId;
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
+use web_sys::window;
 
 use crate::init::{MODAL_MANAGER, SUB_COUNTERS};
 use crate::nostr::{Register, ReplyTreeManager};
@@ -49,10 +52,12 @@ pub fn Layout() -> Element {
 
     let mut show = use_signal(|| false);
     let mut sub_register = use_context::<Signal<Register>>();
+    let root_click_pos = use_context::<Signal<(f64, f64)>>();
+
+    // change page destory all modals and stop all subscriptions
     use_effect(use_reactive(&path, move |new_path| {
         MODAL_MANAGER.write().destory_all_modals();
         SUB_COUNTERS.write().clear_all();
-        tracing::info!("path change to {:?}", new_path.to_string());
         spawn(async move {
             let sub_keys = subs_map.read().keys().cloned().collect::<Vec<String>>();
             for key in sub_keys {
@@ -60,9 +65,30 @@ pub fn Layout() -> Element {
                 sub_register.write().set_stop_flag(&sub_register_id, true).await;
             }
         });
-
-        // sub_register.write().clear_all();
     }));
+
+
+    // window resize destory all modals
+    use_effect({
+        move || {
+            let window = window().expect("no global `window` exists");
+            let closure = Closure::wrap(Box::new({
+                move || {
+                    let mut modal_manager_write = MODAL_MANAGER.write();
+                    modal_manager_write.destory_all_modals_by_level(4);
+                }
+            }) as Box<dyn FnMut()>);
+            window
+                .add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref())
+                .unwrap();
+            closure.forget();
+        }
+    });
+
+    use_effect(use_reactive(&root_click_pos(), move |_| {
+        MODAL_MANAGER.write().destory_all_modals_by_level(4);
+    }));
+
     rsx! {
         aside {
             class: "menu-bar",

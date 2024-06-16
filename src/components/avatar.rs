@@ -128,6 +128,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
     if let Some(event) = repost_event() {
         rsx! {
             div {
+                key: "avatar-{event.pubkey.to_string()}-{event.created_at().as_u64()}",
                 class: "post-avatar flex items-center min-width-120",
                 img {
                     class: "square-40 radius-20 mr-12 relative z-1",
@@ -156,6 +157,7 @@ pub fn Avatar(props: AvatarProps) -> Element {
     } else {
         rsx! {
             div {
+                key: "avatar-{props.pubkey.to_string()}-{props.timestamp}",
                 class: format!("post-avatar flex items-center {}", if props.is_text_ellipsis { "min-width-120" } else {""}),
                 img {
                     class: "square-40 radius-20 mr-12",

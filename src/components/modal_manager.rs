@@ -179,7 +179,7 @@ impl ModalManager {
         if let Some(level_modals) = self.levels.get(&level) {
             let modals_to_close = level_modals.clone();
             for id in modals_to_close {
-                self.close_modal(&id);
+                self.destroy_modal(&id);
             }
         }
     }
@@ -222,27 +222,6 @@ fn ModalComponent(modal: Modal, id: String) -> Element {
 #[component]
 pub fn ModalManagerProvider() -> Element {
 
-    let root_click_pos = use_context::<Signal<(f64, f64)>>();
-
-    use_effect({
-        move || {
-            let window = window().expect("no global `window` exists");
-            let closure = Closure::wrap(Box::new({
-                move || {
-                    let mut modal_manager_write = MODAL_MANAGER.write();
-                    modal_manager_write.destory_all_modals_by_level(4);
-                }
-            }) as Box<dyn FnMut()>);
-            window
-                .add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref())
-                .unwrap();
-            closure.forget();
-        }
-    });
-
-    use_effect(use_reactive(&root_click_pos(), move |_| {
-        MODAL_MANAGER.write().destory_all_modals_by_level(4);
-    }));
 
     // 渲染所有打开的弹窗
     let modals = MODAL_MANAGER.read().modals.clone();
