@@ -166,7 +166,7 @@ pub fn App() -> Element {
                     //todo
                 }
             }
-
+            // TODO fix this
             // //init users
             // match db.get_all_users().await {
             //     Ok(users) => {
