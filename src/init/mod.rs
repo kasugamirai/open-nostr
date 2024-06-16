@@ -167,33 +167,33 @@ pub fn App() -> Element {
                 }
             }
 
-            //init users
-            match db.get_all_users().await {
-                Ok(users) => {
-                    if users.is_empty() {
-                        let user = User {
-                            name: NOT_LOGGED_IN_USER_NAME.to_string(),
-                            inner: AccountType::NotLoggedIn(NoLogin::empty()),
-                        };
-                        db.save_user(user).await.unwrap();
+            // //init users
+            // match db.get_all_users().await {
+            //     Ok(users) => {
+            //         if users.is_empty() {
+            //             let user = User {
+            //                 name: NOT_LOGGED_IN_USER_NAME.to_string(),
+            //                 inner: AccountType::NotLoggedIn(NoLogin::empty()),
+            //             };
+            //             db.save_user(user).await.unwrap();
 
-                        //and record a last login user
-                        db.save_misc(
-                            LAST_LOGINED_KEY.to_string(),
-                            NOT_LOGGED_IN_USER_NAME.to_string(),
-                        )
-                        .await
-                        .unwrap();
-                    } else {
-                        for user in users {
-                            all_users.push(user);
-                        }
-                    }
-                }
-                Err(_) => {
-                    //todo
-                }
-            }
+            //             //and record a last login user
+            //             db.save_misc(
+            //                 LAST_LOGINED_KEY.to_string(),
+            //                 NOT_LOGGED_IN_USER_NAME.to_string(),
+            //             )
+            //             .await
+            //             .unwrap();
+            //         } else {
+            //             for user in users {
+            //                 all_users.push(user);
+            //             }
+            //         }
+            //     }
+            //     Err(_) => {
+            //         //todo
+            //     }
+            // }
 
             router.set(rsx! {Router::<Route> {}});
         });

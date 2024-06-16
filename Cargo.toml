@@ -49,6 +49,7 @@ gloo-timers = { version = "0.3.0", features = ["futures"] }
 tokio-stream = "0.1"
 uuid = "1.5.0"
 aes-gcm = "0.10.3"
+qrcode = "0.14.0"
 
 [features]
 default = []

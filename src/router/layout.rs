@@ -74,6 +74,7 @@ pub fn Layout() -> Element {
             let window = window().expect("no global `window` exists");
             let closure = Closure::wrap(Box::new({
                 move || {
+                    // tracing::info!("window resize {:?}", MODAL_MANAGER);
                     let mut modal_manager_write = MODAL_MANAGER.write();
                     modal_manager_write.destory_all_modals_by_level(4);
                 }
@@ -312,6 +313,7 @@ pub fn Layout() -> Element {
         }
         main {
             class: "content-feed",
+            key: "{path.clone()}",
             Outlet::<Route> {}
         }
     }

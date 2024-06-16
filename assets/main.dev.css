@@ -14971,6 +14971,7 @@ svg path {
 .author-not-style .author-background {
   width: 100%;
   height: 130px;
+  object-fit: cover;
 }
 .author-not-style .information-of-the-author {
   height: 80px;
@@ -15447,6 +15448,40 @@ svg path {
 }
 #sub-new-msg .new-note-msg:hover {
   background-color: #C5FCD0;
+}
+
+.qrcode-modal {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+.qrcode-modal-content {
+  width: 300px;
+  height: 300px;
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+.qrcode-modal-qrcode svg {
+  width: 180px;
+  height: 180px;
+}
+.qrcode-modal-close {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  cursor: pointer;
 }
 
 /*# sourceMappingURL=main.dev.css.map */

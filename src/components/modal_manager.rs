@@ -167,9 +167,11 @@ impl ModalManager {
 
     // destroy modal
     pub fn destroy_modal(&mut self, id: &str) {
-        if let Some(modal) = self.modals.remove(id) {
-            if let Some(level_modals) = self.levels.get_mut(&modal.level) {
-                level_modals.retain(|modal_id| modal_id != id);
+        if self.has_modal(id) {
+            if let Some(modal) = self.modals.remove(id) {
+                if let Some(level_modals) = self.levels.get_mut(&modal.level) {
+                    level_modals.retain(|modal_id| modal_id != id);
+                }
             }
         }
     }
@@ -213,7 +215,7 @@ fn ModalComponent(modal: Modal, id: String) -> Element {
     rsx! {
         div {
             id: id,
-            style: "{style}",
+            style: "position:fixed; {style}",
             div { class: "modal-content", {modal.content.clone()} }
         }
     }
@@ -221,8 +223,6 @@ fn ModalComponent(modal: Modal, id: String) -> Element {
 
 #[component]
 pub fn ModalManagerProvider() -> Element {
-
-
     // 渲染所有打开的弹窗
     let modals = MODAL_MANAGER.read().modals.clone();
     rsx! {
