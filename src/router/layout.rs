@@ -55,7 +55,7 @@ pub fn Layout() -> Element {
     let root_click_pos = use_context::<Signal<(f64, f64)>>();
 
     // change page destory all modals and stop all subscriptions
-    use_effect(use_reactive(&path, move |new_path| {
+    use_effect(use_reactive(&path, move |_| {
         MODAL_MANAGER.write().destory_all_modals();
         SUB_COUNTERS.write().clear_all();
         spawn(async move {
@@ -74,7 +74,7 @@ pub fn Layout() -> Element {
             let window = window().expect("no global `window` exists");
             let closure = Closure::wrap(Box::new({
                 move || {
-                    // tracing::info!("window resize {:?}", MODAL_MANAGER);
+                    // TODO: fix this
                     let mut modal_manager_write = MODAL_MANAGER.write();
                     modal_manager_write.destory_all_modals_by_level(4);
                 }
