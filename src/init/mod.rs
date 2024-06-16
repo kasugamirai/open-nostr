@@ -17,11 +17,14 @@ use crate::Route;
 
 pub const EXAMPLE_SUB_KEY: &str = "nostr";
 pub const NEW_CUSTOM_SUB_KEY: &str = "new";
-pub const FOLLOWING_SUB_KEY: &str = "following";
+pub const FOLLOWING_SUB_KEY: &str = "Following";
 pub const EXAMPLE_SUB_TAG: &str = "nostr";
 pub const NOSTR_DB_NAME: &str = "nostr-db";
 pub const LAST_LOGINED_KEY: &str = "last_logined";
 pub const NOT_LOGGED_IN_USER_NAME: &str = "NOT_LOGGED_IN";
+// pub const RELAY_SET_FILERS:[&str; 1] = ["following"];
+pub const SUB_INIT:[&str; 5] = ["Channel", "Community", "DM", "Group",EXAMPLE_SUB_KEY];
+pub const SUB_SYSTEM_FILERS:[&str; 5] = ["Channel", "Community", "DM", "Group",FOLLOWING_SUB_KEY];
 
 #[derive(Debug)]
 pub struct Counter {
@@ -136,24 +139,27 @@ pub fn App() -> Element {
             match db.get_all_subs().await {
                 Ok(subs) => {
                     if subs.is_empty() {
-                        let custom_sub = CustomSub {
-                            name: EXAMPLE_SUB_KEY.to_string(),
-                            relay_set: DEFAULT_RELAY_SET_KEY.to_string(),
-                            live: false,
-                            since: 0,
-                            until: 0,
-                            filters: vec![FilterTemp::HashTag(CustomHashTag {
-                                r#type: String::from("hashtag"),
-                                tags: vec![EXAMPLE_SUB_TAG.to_string()],
-                            })],
-                            keep_alive: true,
-                        };
-                        db.save_custom_sub(custom_sub.clone()).await.unwrap();
-                        subs_map
+                        for item in SUB_INIT.iter(){
+                            let custom_sub =  CustomSub {
+                              name: item.to_string(),
+                              relay_set: DEFAULT_RELAY_SET_KEY.to_string(),
+                              live: false,
+                              since: 0,
+                              until: 0,
+                              filters: vec![FilterTemp::HashTag(CustomHashTag {
+                                  r#type: String::from("hashtag"),
+                                  tags: vec![EXAMPLE_SUB_TAG.to_string()],
+                              })],
+                              keep_alive: true,
+                            };
+                            db.save_custom_sub(custom_sub.clone()).await.unwrap();
+                            subs_map
                             .write()
                             .insert(EXAMPLE_SUB_KEY.to_string(), custom_sub.clone());
-                        // TODO remove this line
-                        all_sub.push(custom_sub);
+                            // TODO remove this line
+                            all_sub.push(custom_sub);
+                        }
+                        
                     } else {
                         for sub in subs {
                             subs_map.write().insert(sub.name.clone(), sub.clone());

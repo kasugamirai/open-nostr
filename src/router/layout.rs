@@ -18,6 +18,7 @@ use crate::components::icons::*;
 use crate::components::{Button, Message};
 use crate::router::*;
 use crate::utils::format::splite_by_replys;
+use crate::init::SUB_SYSTEM_FILERS;
 
 #[component]
 pub fn Layout() -> Element {
@@ -67,6 +68,15 @@ pub fn Layout() -> Element {
         });
     }));
 
+    //filter system sub 
+    let exist_system_sub = move |sub_name: &String| -> bool{
+      for val in SUB_SYSTEM_FILERS.iter(){
+          if val==sub_name {
+            return true;
+          }
+      }
+      return false;  
+    };
 
     // window resize destory all modals
     use_effect({
@@ -85,7 +95,7 @@ pub fn Layout() -> Element {
             closure.forget();
         }
     });
-
+    
     use_effect(use_reactive(&root_click_pos(), move |_| {
         MODAL_MANAGER.write().destory_all_modals_by_level(4);
     }));
@@ -283,11 +293,13 @@ pub fn Layout() -> Element {
                         //     }
                         // }
                         for (name, sub) in subs_map.read().iter() {
-                            Link {
-                                active_class: "active",
-                                class: "nav-item",
-                                to: Route::Subscription { name: name.clone() },
-                                "#{sub.name}"
+                            if !exist_system_sub(&name) {
+                                Link {
+                                    active_class: "active",
+                                    class: "nav-item",
+                                    to: Route::Subscription { name: name.clone() },
+                                    "#{sub.name}"
+                                }
                             }
                         }
                         Link {
