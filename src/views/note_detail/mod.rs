@@ -2,12 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 use dioxus::prelude::*;
-use dioxus_elements::tr;
-use nostr_sdk::{Event, EventId, Timestamp};
+use nostr_sdk::{Event, EventId};
 
 use crate::components::Author;
 use crate::nostr::MultiClient;
-use crate::nostr::{self, ReplyTreeManager, ReplyTrees, TextNote};
+use crate::nostr::{ReplyTreeManager, ReplyTrees, TextNote};
 use crate::nostr::{get_event_by_id, get_replies};
 use crate::views::note_list::note::Note;
 use crate::CustomSub;
@@ -23,7 +22,6 @@ pub fn NoteDetail(sub: String, root_id: String, note_id: String) -> Element {
     let mut pubkey_str = use_signal(|| "".to_string());
 
     let mut render_notes = use_signal(ReplyTrees::default);
-    let mut refresh = use_signal(Timestamp::now);
 
     let tree_exists = {
         let manager = replytree_manager.read();
