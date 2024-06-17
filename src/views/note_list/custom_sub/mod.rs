@@ -26,6 +26,7 @@ use tag::TagInput;
 use std::sync::Arc;
 use crate::init::NEW_CUSTOM_SUB_KEY;
 
+use crate::utils::js::{export_to_clipboard, import_from_clipboard};
 use crate::{
     components::{icons::*, DateTimePicker, Dropdown, Switch},
     store::{
@@ -149,16 +150,21 @@ pub fn CustomSubscription(props: CustomSubscriptionProps) -> Element {
     };
 
     let handle_import = move || {
+        // TODO import from clipboard
         // spawn(async move {
         //     let value = import_from_clipboard().await;
-        //     sub_current.set(CustomSub::from(&value));
+        //     if value == "" {
+        //         return;
+        //     } else {
+        //         sub_current.set(CustomSub::from(&value));
+        //         handle_save();
+        //     }
         // });
     };
     let handle_export = move || {
-        // spawn(async move {
-        //     let value = import_from_clipboard().await;
-        //     sub_current.set(CustomSub::from(&value));
-        // });
+        spawn(async move {
+            let _ = export_to_clipboard(sub_current().json()).await;
+        });
     };
     let handle_change_subname = move |v: String| {
         let subs_map_lock = subs_map();
