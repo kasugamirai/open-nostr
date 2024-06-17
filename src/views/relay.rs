@@ -29,12 +29,12 @@ pub fn Relay() -> Element {
 
     use_effect(move || {
         spawn(async move {
-          if system_subs().len()<=0 {
+          if system_subs().is_empty() {
             system_subs.set(filter_map_key(subs_map().clone(),&SUB_SYSTEM_FILERS,true));
           }
           
-          if user_subs().len()<=0 {
-            user_subs.set(filter_map_key(subs_map().clone(),&SUB_SYSTEM_FILERS,false));
+          if user_subs().is_empty() {
+              user_subs.set(filter_map_key(subs_map().clone(),&SUB_SYSTEM_FILERS,false));
           }
 
           if is_loaded() {
