@@ -340,7 +340,6 @@ pub async fn get_reactions(
 ) -> Result<HashMap<String, i32>> {
 
     let mut reaction_map = HashMap::new();
-    return Ok(reaction_map);
     let mut events: Vec<Event> = Vec::new();
 
     let mut reaction_filter = Filter::new().kind(Kind::Reaction).event(*event_id);

@@ -1,5 +1,4 @@
 use dioxus::prelude::*;
-use dioxus_elements::sub;
 use nostr_sdk::Timestamp;
 use crate::init::NEW_CUSTOM_SUB_KEY;
 use crate::views::note_list::custom_sub::CustomSubscription;
