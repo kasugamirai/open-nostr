@@ -10,6 +10,7 @@ mod notification;
 mod outside;
 mod quote;
 mod switch;
+mod relays_manage;
 
 pub mod icons;
 
@@ -25,3 +26,5 @@ pub use notification::Notification;
 pub use outside::ClickOutside;
 pub use quote::Quote;
 pub use switch::Switch;
+pub use relays_manage::RelaysManage;
+
