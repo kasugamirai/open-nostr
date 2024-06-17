@@ -24,3 +24,6 @@ jobs:
 
       - name: Cargo Check
         run: cargo check
+
+      - name: Cargo Clippy
+        run: cargo clippy -- -A warnings
