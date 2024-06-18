@@ -7,7 +7,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nostr-sdk = { version = "0.32", default-features = false, features = [
+#nostr-sdk = { version = "0.32", default-features = false, features = [
+#    "indexeddb",
+#    "webln",
+#    "nip04",
+#    "nip05",
+#    "nip06",
+#    "nip11",
+#    "nip44",
+#    "nip46",
+#    "nip47",
+#    "nip49",
+#    "nip57",
+#    "nip59",
+#] }
+nostr-sdk = { git = "https://github.com/rust-nostr/nostr.git", branch = "master", default-features = false, features = [
     "indexeddb",
     "webln",
     "nip04",
@@ -20,9 +34,10 @@ nostr-sdk = { version = "0.32", default-features = false, features = [
     "nip49",
     "nip57",
     "nip59",
-] }
+], package = "nostr-sdk" }
 dashmap = "5.5.3"
-nostr-indexeddb = "0.32"
+#nostr-indexeddb = "0.32"
+nostr-indexeddb = { git = "https://github.com/rust-nostr/nostr.git", branch = "master", package = "nostr-indexeddb" }
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0"

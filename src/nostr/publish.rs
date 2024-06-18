@@ -21,7 +21,7 @@ macro_rules! sign_and_send_event {
     ($client:expr, $signer:expr, $builder:expr) => {{
         let event = $signer.sign_event_builder($builder).await?;
         let eid = $client.send_event(event).await?;
-        Ok(eid)
+        Ok(*eid)
     }};
 }
 
