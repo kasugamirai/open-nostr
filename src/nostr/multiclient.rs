@@ -227,10 +227,15 @@ impl EventCache {
                 self.pending_queries.insert(query.clone(), ());
             }
         }
-        
+
         // Perform the query
         let result = {
-            let db_events = match client.client.database().query(filters.clone(), Order::Desc).await {
+            let db_events = match client
+                .client
+                .database()
+                .query(filters.clone(), Order::Desc)
+                .await
+            {
                 Ok(result) => result,
                 Err(_) => {
                     vec![]
@@ -239,7 +244,7 @@ impl EventCache {
                     // return Err(Error::Client(e));
                 }
             };
-            if db_events.len() > 0 {
+            if !db_events.is_empty() {
                 db_events
             } else {
                 match client.client.get_events_of(filters.clone(), timeout).await {

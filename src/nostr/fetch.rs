@@ -144,7 +144,6 @@ impl EventPaginator {
             })
             .collect();
 
-
         let events = if self.from_db {
             // Attempt to fetch from the database first
             match self
@@ -336,9 +335,8 @@ pub async fn get_reactions(
     client: &Client,
     event_id: &EventId,
     timeout: Option<Duration>,
-    mut is_fetch: bool,
+    is_fetch: bool,
 ) -> Result<HashMap<String, i32>> {
-
     let mut reaction_map = HashMap::new();
     let mut events: Vec<Event> = Vec::new();
 
@@ -498,15 +496,17 @@ impl NotificationPaginator {
 }
 
 pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
-
     // let create_filter = |kind| Filter::new().kind(kind).pubkey(*public_key);
     vec![
-        Filter::new().pubkey(*public_key)
-        .kind(Kind::Reaction).kind(Kind::TextNote).kind(Kind::Repost).kind(Kind::ZapReceipt)
-        // create_filter()
-        // create_filter(Kind::TextNote),
-        // create_filter(Kind::Repost)
-        // create_filter(Kind::ZapReceipt),
+        Filter::new()
+            .pubkey(*public_key)
+            .kind(Kind::Reaction)
+            .kind(Kind::TextNote)
+            .kind(Kind::Repost)
+            .kind(Kind::ZapReceipt), // create_filter()
+                                     // create_filter(Kind::TextNote),
+                                     // create_filter(Kind::Repost)
+                                     // create_filter(Kind::ZapReceipt),
     ]
 }
 

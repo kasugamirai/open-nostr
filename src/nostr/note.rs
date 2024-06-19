@@ -275,9 +275,9 @@ impl ReplyTreeManager {
     }
 
     pub fn get_replies(&self, root_id: &EventId) -> Vec<&TextNote> {
-        let tree = self.get_tree(&root_id);
+        let tree = self.get_tree(root_id);
         match tree {
-            Some(tree) => tree.get_replies(&root_id, None),
+            Some(tree) => tree.get_replies(root_id, None),
             None => vec![],
         }
     }
