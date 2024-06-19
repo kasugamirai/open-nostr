@@ -124,24 +124,16 @@ impl TryFrom<Event> for TextNote {
     type Error = Error;
 
     fn try_from(event: Event) -> Result<Self> {
-        if event.kind == Kind::TextNote {
-            let mut text_note: TextNote = TextNote::new(event.clone());
-            let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
-            Ok(text_note)
-        } else if event.kind == Kind::Reaction {
-            let mut text_note: TextNote = TextNote::new(event.clone());
-            let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
-            Ok(text_note)
-        } else if event.kind == Kind::Repost {
-            let mut text_note: TextNote = TextNote::new(event.clone());
-            let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
-            Ok(text_note)
-        } else {
-            Err(Error::KindNotMatch)
+        match event.kind {
+            Kind::TextNote | Kind::Reaction | Kind::Repost => {
+                let mut text_note: TextNote = TextNote::new(event.clone());
+                let _ = TextNote::process_tags(&event, &mut text_note); // pass event directly
+                Ok(text_note)
+            }
+            _ => Err(Error::KindNotMatch),
         }
     }
 }
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ReplyTrees {
     id2id: HashMap<EventId, NodeId>,
