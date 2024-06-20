@@ -496,18 +496,12 @@ impl NotificationPaginator {
 }
 
 pub fn create_notification_filters(public_key: &PublicKey) -> Vec<Filter> {
-    // let create_filter = |kind| Filter::new().kind(kind).pubkey(*public_key);
-    vec![
-        Filter::new()
-            .pubkey(*public_key)
-            .kind(Kind::Reaction)
-            .kind(Kind::TextNote)
-            .kind(Kind::Repost)
-            .kind(Kind::ZapReceipt), // create_filter()
-                                     // create_filter(Kind::TextNote),
-                                     // create_filter(Kind::Repost)
-                                     // create_filter(Kind::ZapReceipt),
-    ]
+    vec![Filter::new()
+        .pubkey(*public_key)
+        .kind(Kind::Reaction)
+        .kind(Kind::TextNote)
+        .kind(Kind::Repost)
+        .kind(Kind::ZapReceipt)]
 }
 
 pub fn process_notification_events(events: Vec<Event>) -> Vec<NotificationMsg> {
