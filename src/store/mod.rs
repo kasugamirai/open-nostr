@@ -204,9 +204,7 @@ impl CBWebDatabase {
         let relay_set_key = JsValue::from_str(&old_name);
         if let Some(mut relay_set_value) = relay_set_store.get(&relay_set_key)?.await? {
             // Deserialize the RelaySet
-            let mut relay_set: RelaySet = from_value(relay_set_value.clone())
-                .map_err(CBwebDatabaseError::DeserializationError)?;
-
+            let mut relay_set: RelaySet = from_value(relay_set_value.clone())?;
             // Update the name
             relay_set.name.clone_from(&new_relay_set.name);
             relay_set.relays.clone_from(&new_relay_set.relays);

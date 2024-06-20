@@ -35,7 +35,7 @@ pub fn handle_sub_list(sub_id: Arc<RwLock<SubscriptionId>>) -> NotificationHandl
     Arc::new(move |notification| {
         let sub_id = sub_id.read().unwrap().clone();
         Box::pin(async move {
-            let sub_id = sub_id.clone(); 
+            let sub_id = sub_id.clone();
             match notification {
                 RelayPoolNotification::Message {
                     message: RelayMessage::Event { event, .. },
@@ -213,27 +213,27 @@ pub fn NoteList(props: NoteListProps) -> Element {
         }
         notes.clear();
     };
-    use_effect(use_reactive((&SUB_COUNTERS.signal(),), move |(mut counter,)| {
-        let sub_id = SubscriptionId::new(format!("note-list-{}", &sub_name()));
-        let count = counter
-            .read()
-            .get_size(&sub_id);
-        let events = counter.read().get_event(&sub_id).unwrap_or(vec![]);
-        let sub_current = sub_current.read().clone();
-        match count {
-            Some(c) => {
-                let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
-                if sub_current.live && c <= 0 && modal_id && !events.is_empty() {
-
-                    for event in events.iter() {
-                        notes.insert(0, event.clone());
+    use_effect(use_reactive(
+        (&SUB_COUNTERS.signal(),),
+        move |(mut counter,)| {
+            let sub_id = SubscriptionId::new(format!("note-list-{}", &sub_name()));
+            let count = counter.read().get_size(&sub_id);
+            let events = counter.read().get_event(&sub_id).unwrap_or(vec![]);
+            let sub_current = sub_current.read().clone();
+            match count {
+                Some(c) => {
+                    let modal_id = MODAL_MANAGER.read().has_modal(&"sub-new-msg".to_string());
+                    if sub_current.live && c == 0 && modal_id && !events.is_empty() {
+                        for event in events.iter() {
+                            notes.insert(0, event.clone());
+                        }
+                        counter.write().clear(&sub_id);
                     }
-                    counter.write().clear(&sub_id);
                 }
-            }
-            None => {}
-        };
-    }));
+                None => {}
+            };
+        },
+    ));
     rsx! {
             div {
                 key: "note-list-{sub_name()}",

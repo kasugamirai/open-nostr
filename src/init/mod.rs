@@ -42,24 +42,24 @@ impl Counter {
     }
     pub fn get_size(&self, id: &SubscriptionId) -> Option<usize> {
         let counts = self.counts.read().unwrap();
-        counts.get(id).map(|count| (*count).0)
+        counts.get(id).map(|count| (count).0)
     }
 
     pub fn get_event(&self, id: &SubscriptionId) -> Option<Vec<Event>> {
         let counts = self.counts.read().unwrap();
-        counts.get(id).map(|count| (*count).1.clone())
+        counts.get(id).map(|count| (count).1.clone())
     }
     pub fn inc(&self, id: &SubscriptionId, event: Event) {
         let mut counts = self.counts.write().unwrap();
         let count = counts.entry(id.clone()).or_insert((0, vec![]));
-        (*count).0 += 1;
-        (*count).1.push(event);
+        (count).0 += 1;
+        (count).1.push(event);
     }
     pub fn clear_size(&self, id: &SubscriptionId) {
         let mut counts = self.counts.write().unwrap();
         let count = counts.entry(id.clone()).or_insert((0, vec![]));
         // *count = 0;
-        (*count).0 = 0;
+        (count).0 = 0;
     }
     pub fn clear(&self, id: &SubscriptionId) {
         let mut counts = self.counts.write().unwrap();
@@ -72,9 +72,9 @@ impl Counter {
 }
 
 // Atoms and AtomRefs have been replaced with GlobalSignals
-pub static SUB_COUNTERS: GlobalSignal<Counter> = Signal::global(|| Counter::new());
+pub static SUB_COUNTERS: GlobalSignal<Counter> = Signal::global(Counter::new);
 
-pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global(|| ModalManager::new());
+pub static MODAL_MANAGER: GlobalSignal<ModalManager> = Signal::global(ModalManager::new);
 
 #[allow(non_snake_case)]
 pub fn App() -> Element {
@@ -174,34 +174,32 @@ pub fn App() -> Element {
                     //todo
                 }
             }
-            // TODO fix this
-            // //init users
-            // match db.get_all_users().await {
-            //     Ok(users) => {
-            //         if users.is_empty() {
-            //             let user = User {
-            //                 name: NOT_LOGGED_IN_USER_NAME.to_string(),
-            //                 inner: AccountType::NotLoggedIn(NoLogin::empty()),
-            //             };
-            //             db.save_user(user).await.unwrap();
+            match db.get_all_users().await {
+                Ok(users) => {
+                    if users.is_empty() {
+                        let user = User {
+                            name: NOT_LOGGED_IN_USER_NAME.to_string(),
+                            inner: AccountType::NotLoggedIn(NoLogin::empty()),
+                        };
+                        db.save_user(user).await.unwrap();
 
-            //             //and record a last login user
-            //             db.save_misc(
-            //                 LAST_LOGINED_KEY.to_string(),
-            //                 NOT_LOGGED_IN_USER_NAME.to_string(),
-            //             )
-            //             .await
-            //             .unwrap();
-            //         } else {
-            //             for user in users {
-            //                 all_users.push(user);
-            //             }
-            //         }
-            //     }
-            //     Err(_) => {
-            //         //todo
-            //     }
-            // }
+                        //and record a last login user
+                        db.save_misc(
+                            LAST_LOGINED_KEY.to_string(),
+                            NOT_LOGGED_IN_USER_NAME.to_string(),
+                        )
+                        .await
+                        .unwrap();
+                    } else {
+                        for user in users {
+                            all_users.push(user);
+                        }
+                    }
+                }
+                Err(_) => {
+                    //todo
+                }
+            }
 
             router.set(rsx! {Router::<Route> {}});
         });
