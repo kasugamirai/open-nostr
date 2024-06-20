@@ -80,14 +80,21 @@ impl<'de> Deserialize<'de> for AccountType {
         let value = Value::deserialize(deserializer)?;
         match value.get("type").and_then(Value::as_str) {
             Some("NoLogin") => Ok(AccountType::NotLoggedIn(NoLogin::empty())),
-            Some("Pub") => Ok(AccountType::Pub(OnlyPubkey {
-                r#type: "Pub".to_string(),
-                pk: PublicKey::deserialize(value).unwrap(),
-            })),
-            Some("SecretKey") => Ok(AccountType::SecretKey(PinProtectedPrivkey {
-                r#type: "SecretKey".to_string(),
-                encrypted_sk: EncryptedSK::deserialize(value).unwrap(),
-            })),
+            Some("Pub") => {
+                let pk = PublicKey::deserialize(value).map_err(serde::de::Error::custom)?;
+                Ok(AccountType::Pub(OnlyPubkey {
+                    r#type: "Pub".to_string(),
+                    pk,
+                }))
+            }
+            Some("SecretKey") => {
+                let encrypted_sk =
+                    EncryptedSK::deserialize(value).map_err(serde::de::Error::custom)?;
+                Ok(AccountType::SecretKey(PinProtectedPrivkey {
+                    r#type: "SecretKey".to_string(),
+                    encrypted_sk,
+                }))
+            }
             _ => Err(serde::de::Error::custom("Invalid value")),
         }
     }
