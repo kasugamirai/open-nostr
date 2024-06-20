@@ -494,3 +494,42 @@ impl CBWebDatabase {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use user::NoLogin;
+    use wasm_bindgen_test::*;
+
+    use super::*;
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
+    #[wasm_bindgen_test]
+    async fn test_relay_db() {
+        let db = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let relay_set = RelaySet {
+            name: "test".to_string(),
+            relays: vec!["test".to_string()],
+        };
+        db.save_relay_set(relay_set.clone()).await.unwrap();
+        let relay_set2 = db.get_relay_set("test".to_string()).await.unwrap();
+        assert_eq!(relay_set, relay_set2);
+        db.remove_relay_set("test".to_string()).await.unwrap();
+        let relay_set3 = db.get_relay_set("test".to_string()).await;
+        assert!(relay_set3.is_err());
+    }
+
+    #[wasm_bindgen_test]
+    async fn test_user_db() {
+        let db = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let user = User {
+            name: "test_user".to_string(),
+            inner: AccountType::NotLoggedIn(NoLogin::empty()),
+        };
+        db.save_user(user.clone()).await.unwrap();
+        let user2 = db.get_user("test_user".to_string()).await.unwrap();
+        assert_eq!(user, user2);
+        db.remove_user("test_user".to_string()).await.unwrap();
+        let user3 = db.get_user("test_user".to_string()).await;
+        assert!(user3.is_err());
+    }
+}
