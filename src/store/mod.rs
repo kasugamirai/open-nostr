@@ -497,6 +497,8 @@ impl CBWebDatabase {
 
 #[cfg(test)]
 mod tests {
+    use nostr_sdk::key::Keys;
+
     use user::NoLogin;
     use wasm_bindgen_test::*;
 
@@ -521,9 +523,14 @@ mod tests {
     #[wasm_bindgen_test]
     async fn test_user_db() {
         let db = CBWebDatabase::open(CAPYBASTR_DBNAME).await.unwrap();
+        let key = Keys::generate();
+        let secret_key = key.secret_key().unwrap();
+        let encrypted_sk = crate::account::EncryptedSK::new(secret_key, [1, 2, 3, 4]);
+        let pin_key = user::PinProtectedPrivkey::new(encrypted_sk);
+
         let user = User {
             name: "test_user".to_string(),
-            inner: AccountType::NotLoggedIn(NoLogin::empty()),
+            inner: AccountType::SecretKey(pin_key),
         };
         db.save_user(user.clone()).await.unwrap();
         let user2 = db.get_user("test_user".to_string()).await.unwrap();

@@ -77,25 +77,32 @@ impl<'de> Deserialize<'de> for AccountType {
     where
         D: serde::Deserializer<'de>,
     {
+        // Deserialize into a serde_json::Value to allow inspection of the "type" field
         let value = Value::deserialize(deserializer)?;
+
+        // Match on the "type" field to determine which variant to use for deserialization
         match value.get("type").and_then(Value::as_str) {
-            Some("NoLogin") => Ok(AccountType::NotLoggedIn(NoLogin::empty())),
+            Some("NoLogin") => {
+                // Deserialize the entire value into a NoLogin variant
+                let no_login = NoLogin::deserialize(value).map_err(serde::de::Error::custom)?;
+                Ok(AccountType::NotLoggedIn(no_login))
+            }
             Some("Pub") => {
-                let pk = PublicKey::deserialize(value).map_err(serde::de::Error::custom)?;
-                Ok(AccountType::Pub(OnlyPubkey {
-                    r#type: "Pub".to_string(),
-                    pk,
-                }))
+                // Deserialize the entire value into a OnlyPubkey variant
+                let only_pubkey =
+                    OnlyPubkey::deserialize(value).map_err(serde::de::Error::custom)?;
+                Ok(AccountType::Pub(only_pubkey))
             }
             Some("SecretKey") => {
-                let encrypted_sk =
-                    EncryptedSK::deserialize(value).map_err(serde::de::Error::custom)?;
-                Ok(AccountType::SecretKey(PinProtectedPrivkey {
-                    r#type: "SecretKey".to_string(),
-                    encrypted_sk,
-                }))
+                // Deserialize the entire value into a PinProtectedPrivkey variant
+                let pin_protected_privkey =
+                    PinProtectedPrivkey::deserialize(value).map_err(serde::de::Error::custom)?;
+                Ok(AccountType::SecretKey(pin_protected_privkey))
             }
-            _ => Err(serde::de::Error::custom("Invalid value")),
+            _ => {
+                // Return an error if the "type" field does not match any known variant
+                Err(serde::de::Error::custom("Unknown account type"))
+            }
         }
     }
 }
