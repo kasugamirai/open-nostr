@@ -106,3 +106,45 @@ impl<'de> Deserialize<'de> for AccountType {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nostr_sdk::key::Keys;
+    use wasm_bindgen_test::*;
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
+
+    #[wasm_bindgen_test]
+    fn test_account_type_deserialization() {
+        let no_login_json = serde_json::json!({
+            "type": "NoLogin"
+        });
+        let no_login: AccountType = serde_json::from_value(no_login_json).unwrap();
+        assert_eq!(no_login, AccountType::NotLoggedIn(NoLogin::empty()));
+
+        let public_key =
+            String::from("npub1q0uulk2ga9dwkp8hsquzx38hc88uqggdntelgqrtkm29r3ass6fq8y9py9");
+        let only_pub_json = serde_json::json!({
+            "type": "Pub",
+            "pk": public_key
+        });
+        let only_pub: AccountType = serde_json::from_value(only_pub_json).unwrap();
+        assert_eq!(
+            only_pub,
+            AccountType::Pub(OnlyPubkey::new(
+                <PublicKey as std::str::FromStr>::from_str(&public_key).unwrap()
+            ))
+        );
+
+        let encrypted_sk = EncryptedSK::new(Keys::generate().secret_key().unwrap(), [1, 2, 3, 4]);
+        let secret_key_json = serde_json::json!({
+            "type": "SecretKey",
+            "encrypted_sk": encrypted_sk
+        });
+        let secret_key: AccountType = serde_json::from_value(secret_key_json).unwrap();
+        assert_eq!(
+            secret_key,
+            AccountType::SecretKey(PinProtectedPrivkey::new(encrypted_sk))
+        );
+    }
+}
